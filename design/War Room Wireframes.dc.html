@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&family=Architects+Daughter&display=swap" rel="stylesheet">
+<style>
+  body{margin:0;background:#efece5;font-family:'Patrick Hand',cursive;color:#1a1a1a;}
+  .dv-turn{padding:44px 48px 36px;border-bottom:2px dashed rgba(0,0,0,.15);}
+  .dv-thd{display:flex;align-items:baseline;gap:12px;margin:0 0 24px;}
+  .dv-tid{font:700 13px/1 'Patrick Hand',cursive;padding:5px 10px;background:#1a1a1a;color:#fff;border-radius:5px;text-decoration:none;}
+  .dv-tname{font:600 20px/1.2 'Patrick Hand',cursive;}
+  .dv-opts{display:flex;flex-wrap:wrap;gap:36px;align-items:flex-start;}
+  .dv-opt{flex:none;display:flex;flex-direction:column;gap:10px;}
+  .dv-oid{font:700 15px/1 'Patrick Hand',cursive;padding:4px 10px;background:rgba(0,0,0,.1);border-radius:6px;text-decoration:none;color:#1a1a1a;}
+  .dv-olabel{display:flex;align-items:baseline;gap:8px;font:18px 'Patrick Hand',cursive;color:rgba(0,0,0,.6);}
+  .dv-card{background:#fdfcf8;border:2.5px solid #1a1a1a;border-radius:3px;box-shadow:4px 4px 0 rgba(0,0,0,.15);overflow:hidden;}
+  .dv-opt:target .dv-oid{background:#c0392b;color:#fff;}
+  .dv-next{margin:26px 0 0;font:18px/1.5 'Patrick Hand',cursive;color:rgba(0,0,0,.55);}
+  .box{border:2px solid #1a1a1a;border-radius:2px;padding:6px 8px;background:#fff;}
+  .dash{border:2px dashed #888;border-radius:2px;padding:6px 8px;background:transparent;}
+  .tag{font-size:13px;border:1.5px solid #1a1a1a;border-radius:10px;padding:1px 7px;display:inline-block;}
+  .hot{background:#e8b4ab;border-color:#c0392b;}
+  .warm{background:#f0d9a8;border-color:#b8860b;}
+  .cool{background:#dfe8dc;border-color:#4a7a4a;}
+  .accent{background:#c0392b;color:#fff;border-color:#c0392b;}
+  .scribble{color:rgba(0,0,0,.35);font-size:13px;}
+  h3{font:700 17px 'Patrick Hand',cursive;margin:0 0 6px;}
+  .row{display:flex;gap:8px;align-items:center;}
+  .col{display:flex;flex-direction:column;gap:8px;}
+</style>
+</helmet>
+
+<section class="dv-turn" id="t3">
+  <div class="dv-thd"><a class="dv-tid" href="#t3">3</a><span class="dv-tname">Merge: <a class="dv-oid" href="#2b">2b</a> swim-lanes + <a class="dv-oid" href="#2a">2a</a> position-box styling, 3-col footer</span></div>
+  <div class="dv-opts">
+
+    <div class="dv-opt" id="3a">
+      <div class="dv-olabel"><a class="dv-oid" href="#3a">3a</a>Swim lanes (2a-styled) + roster / targets / scarcity+feed</div>
+      <div class="dv-card" style="width:1440px;height:940px;padding:0;box-sizing:border-box;">
+        <div class="row" style="justify-content:space-between;padding:10px 16px;border-bottom:2px solid #1a1a1a;background:#fdfcf8;">
+          <div class="row" style="gap:14px;">
+            <span class="box accent" style="font-size:32px;padding:6px 18px;">PICK 47</span>
+            <span class="box" style="font-size:18px;">Round 5</span>
+            <span class="box" style="font-size:18px;"><b>3 picks til YOU</b></span>
+          </div>
+          <div class="row"><span class="tag">Yahoo: connected ✓</span><span class="tag">poll every 8s</span><span class="scribble">(read-only — draft happens in Yahoo app)</span></div>
+        </div>
+
+        <div class="box" style="margin:10px 16px 8px;">
+          <h3>Best Available — next 3 per position <span class="scribble">(tap "+more" to peek further)</span></h3>
+          <div class="row" style="align-items:stretch;gap:8px;">
+            <div class="dash" style="width:19%;"><b>C</b> <span class="tag hot">2 left</span>
+              <div class="row">1. Player A <span class="tag">+22G +6PPP</span> ☆</div>
+              <div class="row">2. Player E <span class="tag">+15G +3PPP</span> ☆</div>
+              <div class="row">3. Player F <span class="tag">+11G +2PPP</span> ☆</div>
+              <div class="scribble">+more (2)</div>
+            </div>
+            <div class="dash" style="width:19%;"><b>LW</b> <span class="tag cool">9 left</span>
+              <div class="row">1. Player G <span class="tag">+18G +40Sh</span> ☆</div>
+              <div class="row">2. Player H <span class="tag">+14G</span> ☆</div>
+              <div class="row">3. Player I <span class="tag">+10G</span> ☆</div>
+            </div>
+            <div class="dash" style="width:19%;"><b>RW</b> <span class="tag warm">5 left</span>
+              <div class="row">1. Player B <span class="tag">+20A +5PPP</span> ★tracked</div>
+              <div class="row">2. Player J <span class="tag">+16A</span> ☆</div>
+              <div class="row">3. Player K <span class="tag">+12A</span> ☆</div>
+            </div>
+            <div class="dash" style="width:19%;"><b>D</b> <span class="tag warm">6 left</span>
+              <div class="row">1. Player C <span class="tag">+8G +30Sh +/-12</span> ☆</div>
+              <div class="row">2. Player L <span class="tag">+6G</span> ☆</div>
+              <div class="row">3. Player M <span class="tag">+4G</span> ☆</div>
+            </div>
+            <div class="dash" style="width:19%;"><b>G</b> <span class="tag cool">9 left</span>
+              <div class="row">1. Player N <span class="tag">W22 GAA2.4</span> ☆</div>
+              <div class="row">2. Player O <span class="tag">W18 GAA2.6</span> ☆</div>
+              <div class="row">3. Player P <span class="tag">W15 GAA2.8</span> ☆</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="row" style="padding:0 16px 12px;gap:16px;height:calc(100% - 300px);align-items:stretch;">
+          <div class="col box" style="width:calc(38% - 8px);overflow:auto;">
+            <h3>My Roster</h3>
+            <div class="scribble" style="margin-bottom:4px;">Slot / Player / G A P PPP +/- Shots (skaters) · W GAA Sv (goalies)</div>
+            <div class="dash">C — Player Q &nbsp; 18 22 40 8 +6 140</div>
+            <div class="dash">LW — Player R &nbsp; 25 15 40 10 +9 180</div>
+            <div class="dash">RW — <span class="scribble">empty slot</span></div>
+            <div class="dash">D — <span class="scribble">empty</span></div>
+            <div class="dash">D — <span class="scribble">empty</span></div>
+            <div class="dash">G — <span class="scribble">empty</span></div>
+            <div class="dash">Bench x2 / IR x1 — empty</div>
+          </div>
+
+          <div class="col box" style="width:calc(30% - 8px);overflow:auto;">
+            <h3>Target Progress</h3>
+            <div class="dash">Goals &nbsp;&nbsp;43/200 <span class="scribble">▓▓░░░░░░░░</span></div>
+            <div class="dash">Assists 37/220 <span class="scribble">▓▓░░░░░░░░</span></div>
+            <div class="dash">PPP&nbsp;&nbsp;&nbsp;&nbsp;18/90 &nbsp;<span class="scribble">▓░░░░░░░░░</span></div>
+            <div class="dash">+/-&nbsp;&nbsp;&nbsp;&nbsp;+15/120 <span class="scribble">▓░░░░░░░░░</span></div>
+            <div class="dash">Shots &nbsp;320/1400 <span class="scribble">▓▓░░░░░░░░</span></div>
+            <div class="dash scribble">Wins, GAA, Saves rows continue…</div>
+          </div>
+
+          <div class="col box" style="width:calc(32% - 16px);overflow:auto;">
+            <h3>Position Scarcity</h3>
+            <div class="scribble" style="margin-bottom:4px;">left-to-draft vs already-taken, per position</div>
+            <div class="dash"><b>C</b> <span class="tag hot">2 left</span> · 18 taken <span class="scribble">▓▓▓▓▓▓▓▓░░</span></div>
+            <div class="dash"><b>LW</b> <span class="tag cool">9 left</span> · 11 taken <span class="scribble">▓▓▓▓▓░░░░░</span></div>
+            <div class="dash"><b>RW</b> <span class="tag warm">5 left</span> · 15 taken <span class="scribble">▓▓▓▓▓▓▓░░░</span></div>
+            <div class="dash"><b>D</b> <span class="tag warm">6 left</span> · 24 taken <span class="scribble">▓▓▓▓▓▓▓░░░</span></div>
+            <div class="dash"><b>G</b> <span class="tag cool">9 left</span> · 11 taken <span class="scribble">▓▓▓▓▓░░░░░</span></div>
+            <h3 style="margin-top:10px;">Live Pick Feed</h3>
+            <div class="dash">#46 Team Bob → Player Z (C) — <span class="scribble">tracked, now taken</span></div>
+            <div class="dash">#45 Team Sue → Player W</div>
+            <div class="dash scribble">…ticker, newest on top</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  <p class="dv-next">Try next: "this is it, build settings wireframes" · "tweak the scarcity bar style" · "adjust roster/targets/scarcity column widths"</p>
+</section>
+
+<section class="dv-turn" id="t2">
+  <div class="dv-thd"><a class="dv-tid" href="#t2">2</a><span class="dv-tname">Refined from <a class="dv-oid" href="#1a">1a</a> — next-3-per-position, targets, tracking, read-only</span></div>
+  <div class="dv-opts">
+
+    <div class="dv-opt" id="2a">
+      <div class="dv-olabel"><a class="dv-oid" href="#2a">2a</a>Position lanes stacked left, roster+targets center, status right</div>
+      <div class="dv-card" style="width:1400px;height:900px;padding:0;box-sizing:border-box;">
+        <div class="row" style="justify-content:space-between;padding:10px 16px;border-bottom:2px solid #1a1a1a;background:#fdfcf8;">
+          <div class="row" style="gap:14px;">
+            <span class="box accent" style="font-size:30px;padding:6px 16px;">PICK 47</span>
+            <span class="box" style="font-size:18px;">Round 5</span>
+            <span class="box" style="font-size:18px;"><b>3 picks til YOU</b></span>
+          </div>
+          <div class="row"><span class="tag">Yahoo: connected ✓</span><span class="tag">poll every 8s</span><span class="scribble">(read-only — draft happens in Yahoo app)</span></div>
+        </div>
+        <div class="row" style="align-items:stretch;height:calc(100% - 54px);">
+
+          <div class="col box" style="width:520px;overflow:auto;">
+            <h3>Best Available — next 3 per position <span class="scribble">(tap "+more" to peek further)</span></h3>
+            <div class="dash"><b>C</b> <span class="tag hot">2 left</span>
+              <div class="row">1. Player A <span class="tag">+22G +6PPP</span> ☆track</div>
+              <div class="row">2. Player E <span class="tag">+15G +3PPP</span> ☆</div>
+              <div class="row">3. Player F <span class="tag">+11G +2PPP</span> ☆</div>
+              <div class="scribble">+more (2)</div>
+            </div>
+            <div class="dash"><b>LW</b> <span class="tag cool">9 left</span>
+              <div class="row">1. Player G <span class="tag">+18G +40Sh</span> ☆</div>
+              <div class="row">2. Player H <span class="tag">+14G</span> ☆</div>
+              <div class="row">3. Player I <span class="tag">+10G</span> ☆</div>
+            </div>
+            <div class="dash"><b>RW</b> <span class="tag warm">5 left</span>
+              <div class="row">1. Player B <span class="tag">+20A +5PPP</span> ★tracked</div>
+              <div class="row">2. Player J <span class="tag">+16A</span> ☆</div>
+              <div class="row">3. Player K <span class="tag">+12A</span> ☆</div>
+            </div>
+            <div class="dash"><b>D</b> <span class="tag warm">6 left</span>
+              <div class="row">1. Player C <span class="tag">+8G +30Sh +/-12</span> ☆</div>
+              <div class="row">2. Player L <span class="tag">+6G</span> ☆</div>
+              <div class="row">3. Player M <span class="tag">+4G</span> ☆</div>
+            </div>
+            <div class="dash"><b>G</b> <span class="tag cool">9 left</span>
+              <div class="row">1. Player N <span class="tag">W22 GAA2.4</span> ☆</div>
+              <div class="row">2. Player O <span class="tag">W18 GAA2.6</span> ☆</div>
+              <div class="row">3. Player P <span class="tag">W15 GAA2.8</span> ☆</div>
+            </div>
+          </div>
+
+          <div class="col box" style="width:calc(100% - 520px - 380px - 24px);overflow:auto;">
+            <h3>My Roster</h3>
+            <div class="scribble" style="margin-bottom:4px;">Slot / Player / G A P PPP +/- Shots (skaters) · W GAA Sv (goalies)</div>
+            <div class="dash">C — Player Q &nbsp; 18 22 40 8 +6 140</div>
+            <div class="dash">LW — Player R &nbsp; 25 15 40 10 +9 180</div>
+            <div class="dash">RW — <span class="scribble">empty slot</span></div>
+            <div class="dash">D — <span class="scribble">empty</span></div>
+            <div class="dash">D — <span class="scribble">empty</span></div>
+            <div class="dash">G — <span class="scribble">empty</span></div>
+            <div class="dash">Bench x2 / IR x1 — empty</div>
+            <h3 style="margin-top:12px;">Targets Progress</h3>
+            <div class="dash">Goals &nbsp; 43/200 <span class="scribble">▓▓░░░░░░░░</span></div>
+            <div class="dash">Assists 37/220 <span class="scribble">▓▓░░░░░░░░</span></div>
+            <div class="dash">PPP 18/90 <span class="scribble">▓░░░░░░░░░</span></div>
+            <div class="dash scribble">+/-, Shots, Wins, GAA, Saves rows continue…</div>
+            <h3 style="margin-top:12px;">Tracked Players</h3>
+            <div class="dash">Player B — RW — still available</div>
+            <div class="dash">Player Z — C — <span class="tag hot">taken by Team Sue (#45)</span></div>
+          </div>
+
+          <div class="col box" style="width:380px;overflow:auto;">
+            <h3>Position Scarcity</h3>
+            <div class="row"><span class="tag hot">C 2</span><span class="tag warm">D 6</span><span class="tag warm">RW 5</span><span class="tag cool">LW 9</span><span class="tag cool">G 9</span></div>
+            <h3 style="margin-top:12px;">Live Pick Feed</h3>
+            <div class="dash">#46 Team Bob → Player Z (C) — <span class="scribble">tracked, now taken</span></div>
+            <div class="dash">#45 Team Sue → Player W</div>
+            <div class="dash scribble">…ticker, newest on top</div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <div class="dv-opt" id="2b">
+      <div class="dv-olabel"><a class="dv-oid" href="#2b">2b</a>Horizontal position swim-lanes (scan left→right by position)</div>
+      <div class="dv-card" style="width:1400px;height:900px;padding:0;box-sizing:border-box;">
+        <div class="row" style="justify-content:space-between;padding:10px 16px;border-bottom:2px solid #1a1a1a;background:#fdfcf8;">
+          <div class="row" style="gap:14px;">
+            <span class="box accent" style="font-size:30px;padding:6px 16px;">PICK 47</span>
+            <span class="box" style="font-size:18px;">Round 5 · <b>3 til you</b></span>
+          </div>
+          <div class="row"><span class="tag">Yahoo connected</span><span class="tag">poll 8s</span><span class="tag hot">C 2 left</span><span class="tag warm">D 6</span><span class="tag warm">RW 5</span><span class="tag cool">LW 9</span><span class="tag cool">G 9</span></div>
+        </div>
+        <div class="box" style="margin:10px 16px;">
+          <h3>Best Available — swim lanes, next 3 (+more) each</h3>
+          <div class="row" style="align-items:stretch;gap:8px;">
+            <div class="col dash" style="width:19%;"><b>C</b><div>1. A +22G</div><div>2. E +15G</div><div>3. F +11G</div><div class="scribble">+2 more</div></div>
+            <div class="col dash" style="width:19%;"><b>LW</b><div>1. G +18G</div><div>2. H +14G</div><div>3. I +10G</div></div>
+            <div class="col dash" style="width:19%;"><b>RW</b><div>1. B ★track</div><div>2. J</div><div>3. K</div></div>
+            <div class="col dash" style="width:19%;"><b>D</b><div>1. C +8G</div><div>2. L</div><div>3. M</div></div>
+            <div class="col dash" style="width:19%;"><b>G</b><div>1. N W22</div><div>2. O</div><div>3. P</div></div>
+          </div>
+        </div>
+        <div class="row" style="padding:0 16px;gap:16px;height:calc(100% - 300px);">
+          <div class="col box" style="width:46%;">
+            <h3>My Roster + Targets</h3>
+            <div class="dash">C Player Q — 18 22 40 8 +6 140</div>
+            <div class="dash">LW Player R — 25 15 40 10 +9 180</div>
+            <div class="dash scribble">RW/D/D/G empty…</div>
+            <div class="dash">Goals 43/200 ▓▓░░░░ · Assists 37/220 ▓▓░░░░ · PPP 18/90 ▓░░░░░</div>
+          </div>
+          <div class="col box" style="width:27%;">
+            <h3>Tracked</h3>
+            <div class="dash">Player B — available</div>
+            <div class="dash">Player Z — <span class="tag hot">taken, Team Sue</span></div>
+          </div>
+          <div class="col box" style="width:calc(27% - 32px);">
+            <h3>Live Feed</h3>
+            <div class="dash scribble">#46 Bob→Z<br>#45 Sue→W</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  <p class="dv-next">Try next: "go with <a class="dv-oid" href="#2a">2a</a>, add polling slider" · "make pick number even bigger" · "start settings wireframes"</p>
+</section>
+
+<section class="dv-turn" id="t1">
+  <div class="dv-thd"><a class="dv-tid" href="#t1">1</a><span class="dv-tname">War Room — draft-night dashboard, 4 layout directions</span></div>
+  <div class="dv-opts">
+
+    <div class="dv-opt" id="1a">
+      <div class="dv-olabel"><a class="dv-oid" href="#1a">1a</a>Three-column terminal (classic trading-desk split)</div>
+      <div class="dv-card" style="width:1280px;height:760px;padding:14px;box-sizing:border-box;">
+        <div class="row" style="justify-content:space-between;margin-bottom:10px;">
+          <div class="row"><span class="box accent">PICK 47</span><span class="box">ROUND 5</span><span class="box">3 picks til YOU</span></div>
+          <div class="row"><span class="tag">Yahoo: connected</span><span class="tag">poll 8s</span></div>
+        </div>
+        <div class="row" style="align-items:stretch;height:calc(100% - 46px);">
+          <div class="col box" style="width:420px;">
+            <h3>Best Available <span class="scribble">(filter: ALL / C / LW / RW / D / G)</span></h3>
+            <div class="dash">1. Player A — C — rank 12 <span class="tag hot">reach</span></div>
+            <div class="dash">2. Player B — RW — rank 14</div>
+            <div class="dash">3. Player C — D — rank 15 <span class="tag cool">value</span></div>
+            <div class="dash">4. Player D — LW — rank 19</div>
+            <div class="dash scribble">...scroll for more (140 stat cols hide behind expand)</div>
+            <h3 style="margin-top:12px;">Positional Scarcity</h3>
+            <div class="row"><span class="tag hot">C 2 left</span><span class="tag warm">D 6 left</span><span class="tag cool">RW 11 left</span><span class="tag cool">G 9 left</span></div>
+          </div>
+          <div class="col box" style="width:420px;">
+            <h3 style="text-align:center;">★ BEST PICK NOW ★</h3>
+            <div class="box accent" style="text-align:center;padding:16px;">Player A — C<br><span class="scribble" style="color:#fff;">yours by round 5, gone by 6</span></div>
+            <div class="row" style="margin-top:8px;"><button class="box" style="cursor:pointer;">+ Shortlist</button><button class="box" style="cursor:pointer;">expand card</button></div>
+            <h3 style="margin-top:14px;">My Roster</h3>
+            <div class="dash">C: filled — LW: filled — RW: — — D: — — D2: — — G: —</div>
+            <h3 style="margin-top:12px;">Shortlist (pinned)</h3>
+            <div class="dash">Player X vs Player Y — compare stats side by side</div>
+          </div>
+          <div class="col box" style="width:calc(100% - 420px - 420px - 24px);">
+            <h3>Live Pick Feed</h3>
+            <div class="dash">#46 Team Bob → Player Z</div>
+            <div class="dash">#45 Team Sue → Player W</div>
+            <div class="dash scribble">...ticker, newest on top</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="dv-opt" id="1b">
+      <div class="dv-olabel"><a class="dv-oid" href="#1b">1b</a>Sticky hero + dense single scroll</div>
+      <div class="dv-card" style="width:1100px;height:760px;padding:14px;box-sizing:border-box;">
+        <div class="box accent" style="padding:14px;margin-bottom:10px;">
+          <div class="row" style="justify-content:space-between;">
+            <span style="font-size:20px;">★ Take Player A (C) now — value drops next round</span>
+            <span class="box" style="background:#fff;color:#1a1a1a;">3 picks til you</span>
+          </div>
+        </div>
+        <div class="row" style="gap:8px;margin-bottom:10px;">
+          <span class="tag hot">C 2 left</span><span class="tag warm">D 6 left</span><span class="tag cool">RW 11</span><span class="tag cool">LW 9</span><span class="tag cool">G 9</span>
+          <span class="scribble">heat scale = scarcity, click to filter list below</span>
+        </div>
+        <div class="row" style="align-items:flex-start;">
+          <div class="col box" style="flex:2;">
+            <h3>Best Available (all positions, sortable)</h3>
+            <div class="dash">1. Player A — C — rank12 / ADP18 <span class="tag hot">reach</span></div>
+            <div class="dash">2. Player B — RW — rank14 / ADP13</div>
+            <div class="dash">3. Player C — D — rank15 / ADP22 <span class="tag cool">value</span></div>
+            <div class="dash scribble">click row → expand 6-8 stats, tap star → shortlist</div>
+          </div>
+          <div class="col box" style="flex:1;">
+            <h3>My Roster</h3>
+            <div class="dash">C ✓ / LW ✓ / RW — / D — / D — / G —</div>
+            <h3 style="margin-top:10px;">Shortlist</h3>
+            <div class="dash">2 pinned, tap to compare</div>
+            <h3 style="margin-top:10px;">Feed</h3>
+            <div class="dash scribble">#46 Bob→PlayerZ<br>#45 Sue→PlayerW</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="dv-opt" id="1c">
+      <div class="dv-olabel"><a class="dv-oid" href="#1c">1c</a>Heat-grid first (scarcity table as the anchor)</div>
+      <div class="dv-card" style="width:1200px;height:760px;padding:14px;box-sizing:border-box;">
+        <div class="row" style="justify-content:space-between;margin-bottom:8px;">
+          <span class="box">Pick 47 · Rd 5 · <b>3 til you</b></span>
+          <span class="box accent">Best now: Player A (C)</span>
+        </div>
+        <h3>Scarcity Heat Grid — players left worth drafting, by tier</h3>
+        <div class="box" style="display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-bottom:10px;">
+          <div class="tag hot">C: 2</div><div class="tag warm">LW: 6</div><div class="tag warm">RW: 5</div><div class="tag warm">D: 6</div><div class="tag cool">G: 9</div><div class="tag cool">Bench: —</div>
+        </div>
+        <div class="row" style="align-items:flex-start;">
+          <div class="col box" style="width:600px;">
+            <h3>Best Available <span class="scribble">(tap pos chip above to filter)</span></h3>
+            <div class="dash">Player A — C — you/YADP diff +6 <span class="tag hot">take now</span></div>
+            <div class="dash">Player B — RW — diff -1 <span class="tag cool">safe next rd</span></div>
+            <div class="dash">Player C — D — diff +3</div>
+          </div>
+          <div class="col box" style="width:calc(100% - 600px - 24px);">
+            <h3>My Roster</h3>
+            <div class="dash">C✓ LW✓ RW– D– D– G–</div>
+            <h3 style="margin-top:8px;">Shortlist / Compare</h3>
+            <div class="dash scribble">pinned players side-by-side</div>
+            <h3 style="margin-top:8px;">Feed</h3>
+            <div class="dash scribble">#46 Bob→Z, #45 Sue→W</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="dv-opt" id="1d">
+      <div class="dv-olabel"><a class="dv-oid" href="#1d">1d</a>Split list + expand-detail panel (player deep-dive on demand)</div>
+      <div class="dv-card" style="width:1250px;height:760px;padding:14px;box-sizing:border-box;">
+        <div class="row" style="justify-content:space-between;margin-bottom:8px;">
+          <span class="box">Pick 47 · Rd5 · 3 til you</span>
+          <span class="row"><span class="tag hot">C 2 left</span><span class="tag warm">D 6</span><span class="tag cool">RW 11</span></span>
+        </div>
+        <div class="row" style="align-items:stretch;height:calc(100% - 40px);">
+          <div class="col box" style="width:380px;">
+            <h3>Best Available</h3>
+            <div class="dash accent" style="color:#fff;">▸ Player A — C (selected)</div>
+            <div class="dash">Player B — RW</div>
+            <div class="dash">Player C — D</div>
+            <div class="dash scribble">list stays live-sorted as picks land</div>
+          </div>
+          <div class="col box" style="width:calc(100% - 380px - 340px - 24px);">
+            <h3>Player A — Detail</h3>
+            <div class="dash">6-8 headline stats: G/A/P, PP%, rank, ADP, YDIFF, tier</div>
+            <div class="dash scribble">expand → full 140-col sheet</div>
+            <div class="row" style="margin-top:8px;"><button class="box">+ Shortlist</button><button class="box accent">Draft (manual)</button></div>
+          </div>
+          <div class="col box" style="width:340px;">
+            <h3>Roster</h3>
+            <div class="dash">C✓ LW✓ RW– D– D– G–</div>
+            <h3 style="margin-top:8px;">Feed</h3>
+            <div class="dash scribble">#46 Bob→Z<br>#45 Sue→W</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  <p class="dv-next">Try next: "combine <a class="dv-oid" href="#1a">1a</a>'s 3-col with <a class="dv-oid" href="#1c">1c</a>'s heat grid" · "go deeper on <a class="dv-oid" href="#1d">1d</a>'s detail panel" · "build settings wireframes"</p>
+</section>
+
+</x-dc>
+</body>
+</html>

@@ -1,0 +1,84 @@
+:root {
+  /* Backgrounds */
+  --bg-app: #0a0c0f;
+  --bg-panel: #0e1114;
+  --bg-card: #14171b;
+  --bg-input: #191d22;
+  --bg-row: #1a1e23;
+  --bg-row-alt: #17191d;
+
+  /* Borders */
+  --border-hairline: rgba(255, 255, 255, 0.07);
+  --border-hairline-strong: rgba(255, 255, 255, 0.1);
+
+  /* Text */
+  --text-primary: #e8eaed;
+  --text-secondary: #c7cbd1;
+  --text-muted: #8b929c;
+  --text-faint: #5a6068;
+
+  /* Accent */
+  --accent: #e0603f;
+  --accent-hover: #ef7454;
+  --accent-on-text: #0a0c0f;
+  --gold: #f2c34d;
+
+  /* Success */
+  --success: #3fa66b;
+  --success-bg: #12241a;
+  --success-bg-alt: #1e2a20;
+  --success-text: #7fd9a3;
+  --success-border: #2a4a35;
+
+  /* Danger */
+  --danger-text: #e8837a;
+  --danger-bg: #3a2020;
+  --danger-bg-alt: #2a1414;
+  --danger-border: #4a2020;
+
+  /* Warning */
+  --warning-bg: #3a2f18;
+  --warning-text: #f2c34d;
+  --warning-border: #4a3a22;
+
+  /* Shape */
+  --radius-card: 10px;
+  --radius-chip: 6px;
+  --radius-pill: 20px;
+
+  /* Progress bars */
+  --track-bg: #1e2226;
+
+  /* Fonts */
+  --font-ui: 'Inter', -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', 'SFMono-Regular', monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--bg-app);
+  color: var(--text-primary);
+  font-family: var(--font-ui);
+  -webkit-font-smoothing: antialiased;
+}
+
+button,
+input,
+select {
+  font-family: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+}

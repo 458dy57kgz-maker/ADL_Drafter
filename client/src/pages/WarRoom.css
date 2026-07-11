@@ -1,0 +1,354 @@
+.war-room {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 100%;
+}
+
+.war-room--empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--text-muted);
+  font: 500 13px var(--font-ui);
+  padding: 24px;
+}
+
+.war-room__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 22px;
+  border-bottom: 1px solid var(--border-hairline);
+  background: var(--bg-panel);
+  flex: none;
+}
+
+.war-room__header-left,
+.war-room__header-right {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.pick-chip {
+  background: var(--accent);
+  color: var(--accent-on-text);
+  font: 800 26px var(--font-mono);
+  padding: 6px 18px;
+  border-radius: 8px;
+  letter-spacing: 0.5px;
+  width: 151px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.war-room__round {
+  font: 600 15px var(--font-ui);
+  color: var(--text-secondary);
+}
+
+.picks-until-pill {
+  background: var(--bg-row);
+  border: 1px solid var(--border-hairline-strong);
+  padding: 6px 14px;
+  border-radius: var(--radius-pill);
+  font: 700 14px var(--font-ui);
+  color: var(--gold);
+}
+
+.yahoo-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font: 500 12px var(--font-ui);
+  color: var(--text-muted);
+}
+
+.status-dot--off {
+  background: var(--danger-text);
+}
+
+.poll-chip {
+  font: 500 12px var(--font-mono);
+  color: var(--text-muted);
+  background: var(--bg-row);
+  border: 1px solid var(--border-hairline-strong);
+  padding: 5px 10px;
+  border-radius: 6px;
+}
+
+.war-room__lanes-section {
+  padding: 16px 22px 10px;
+  flex: none;
+}
+
+.lanes-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.lane-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 230px;
+  min-width: 0;
+  padding: 12px;
+}
+
+.lane-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-width: 0;
+}
+
+.lane-card__pos {
+  font: 800 15px var(--font-ui);
+  color: var(--text-primary);
+}
+
+.scarcity-pill {
+  flex: none;
+  font: 700 11px var(--font-mono);
+  padding: 2px 8px;
+  border-radius: 10px;
+  border: 1px solid;
+  white-space: nowrap;
+}
+
+.lane-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 6px 8px;
+  background: var(--bg-input);
+  border-radius: 6px;
+  min-width: 0;
+}
+
+.lane-row__info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+}
+
+.lane-row__name {
+  font: 600 12.5px var(--font-ui);
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lane-row__contrib {
+  font: 600 10.5px var(--font-mono);
+  color: var(--text-faint);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lane-row__actions {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.rank-badge {
+  font: 700 10.5px var(--font-mono);
+  padding: 2px 6px;
+  border-radius: 5px;
+  border: 1px solid;
+  white-space: nowrap;
+}
+
+.track-toggle {
+  width: 20px;
+  height: 20px;
+  border-radius: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font: 14px var(--font-ui);
+  border: 1px solid;
+}
+
+.lane-card__more {
+  font: 500 11px var(--font-ui);
+  color: var(--text-faint);
+  text-align: center;
+  padding: 2px;
+  background: transparent;
+  border: none;
+}
+
+.war-room__bottom-grid {
+  display: grid;
+  grid-template-columns: 1.15fr 0.9fr 1fr;
+  gap: 14px;
+  padding: 6px 22px 22px;
+  flex: 1;
+  min-height: 0;
+}
+
+.roster-card,
+.targets-card,
+.side-card {
+  overflow: auto;
+}
+
+.side-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.roster-header {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) repeat(6, minmax(0, 1fr));
+  gap: 2px 4px;
+  font: 600 9.5px var(--font-ui);
+  color: var(--text-faint);
+  padding: 0 6px;
+  margin-bottom: 4px;
+}
+
+.roster-row {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) repeat(6, minmax(0, 1fr));
+  gap: 2px 4px;
+  align-items: center;
+  padding: 6px;
+  border-radius: 6px;
+  background: var(--bg-input);
+  margin-bottom: 4px;
+  min-width: 0;
+  font: 500 11px var(--font-mono);
+  color: var(--text-secondary);
+}
+
+.roster-row__pos {
+  color: var(--text-muted);
+  font-weight: 700;
+}
+
+.roster-row__name {
+  font: 500 12px var(--font-ui);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.roster-footer {
+  font: 500 11px var(--font-ui);
+  color: var(--text-faint);
+  margin-top: 4px;
+}
+
+.target-row {
+  margin-bottom: 10px;
+}
+
+.target-row__labels {
+  display: flex;
+  justify-content: space-between;
+  font: 500 11.5px var(--font-ui);
+  color: var(--text-secondary);
+  margin-bottom: 3px;
+}
+
+.progress-track {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--track-bg);
+  overflow: hidden;
+}
+
+.progress-track--flex {
+  flex: 1;
+}
+
+.progress-fill {
+  height: 100%;
+  background: var(--accent);
+}
+
+.progress-fill--neutral {
+  background: #3a3f46;
+}
+
+.scarcity-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.scarcity-row__pos {
+  width: 26px;
+  font: 700 11px var(--font-mono);
+  color: var(--text-muted);
+}
+
+.scarcity-row__pill {
+  font: 600 10.5px var(--font-mono);
+  padding: 1px 6px;
+  border-radius: 8px;
+  border: 1px solid;
+}
+
+.scarcity-row__taken {
+  font: 500 10.5px var(--font-ui);
+  color: var(--text-faint);
+}
+
+.feed-row {
+  font: 500 12px var(--font-ui);
+  color: var(--text-secondary);
+  padding: 6px 8px;
+  background: var(--bg-input);
+  border-radius: 6px;
+  margin-bottom: 4px;
+}
+
+.feed-row__num {
+  color: var(--text-faint);
+}
+
+.tracked-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font: 500 12px var(--font-ui);
+  color: var(--text-secondary);
+  padding: 6px 8px;
+  background: var(--bg-input);
+  border-radius: 6px;
+  margin-bottom: 4px;
+}
+
+.tracked-row--empty {
+  color: var(--text-faint);
+  justify-content: flex-start;
+}
+
+.tracked-row__pos {
+  color: var(--text-faint);
+}
+
+.tracked-row__status {
+  font: 600 11px var(--font-ui);
+}

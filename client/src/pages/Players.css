@@ -1,0 +1,119 @@
+.players-page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 20px 24px;
+}
+
+.players-page__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+  flex: none;
+}
+
+.players-page__title {
+  font: 700 18px var(--font-ui);
+  color: var(--text-primary);
+}
+
+.players-page__actions {
+  display: flex;
+  gap: 10px;
+}
+
+.players-page__filters {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  flex: none;
+  flex-wrap: wrap;
+}
+
+.players-page__search {
+  min-width: 200px;
+}
+
+.players-page__count {
+  font: 500 11px var(--font-ui);
+  color: var(--text-faint);
+  margin-left: 6px;
+}
+
+.players-page__table-wrap {
+  flex: 1;
+  overflow: auto;
+  border: 1px solid var(--border-hairline-strong);
+  border-radius: var(--radius-card);
+  position: relative;
+}
+
+.players-page__loading {
+  padding: 24px;
+  color: var(--text-muted);
+  font: 500 13px var(--font-ui);
+}
+
+.players-table {
+  border-collapse: collapse;
+  width: 100%;
+  font-family: var(--font-ui);
+}
+
+.players-table thead tr {
+  background: var(--bg-card);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.players-table th {
+  padding: 9px 10px;
+  text-align: left;
+  font: 700 11px var(--font-ui);
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border-hairline-strong);
+  cursor: pointer;
+  white-space: nowrap;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.players-table td {
+  padding: 7px 10px;
+  font: 500 11.5px var(--font-mono);
+  color: var(--text-secondary);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.players-table__name {
+  font: 600 12.5px var(--font-ui) !important;
+  color: var(--text-primary) !important;
+  white-space: nowrap;
+}
+
+.players-table__pos {
+  color: var(--text-muted) !important;
+  font-weight: 600 !important;
+}
+
+.players-table__team {
+  color: var(--text-faint) !important;
+}
+
+.players-table__status {
+  font: 600 11px var(--font-ui) !important;
+  white-space: nowrap;
+}
+
+.tier-input {
+  width: 44px;
+  background: var(--warning-bg);
+  border: 1px solid var(--warning-border);
+  color: var(--gold);
+  font: 600 11.5px var(--font-mono);
+  padding: 3px 6px;
+  border-radius: 5px;
+}

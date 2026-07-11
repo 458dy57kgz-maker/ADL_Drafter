@@ -1,0 +1,903 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics="">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;family=JetBrains+Mono:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+  html,body{margin:0;padding:0;background:#0a0c0f;color:#e8eaed;font-family:'Inter',system-ui,sans-serif;}
+  *{box-sizing:border-box;}
+  ::-webkit-scrollbar{width:9px;height:9px;}
+  ::-webkit-scrollbar-track{background:transparent;}
+  ::-webkit-scrollbar-thumb{background:#2a2f36;border-radius:5px;}
+  a{color:#e0603f;}
+  a:hover{color:#ef7454;}
+  input[type=range]{accent-color:#e0603f;}
+  input[type=checkbox],input[type=radio]{accent-color:#e0603f;}
+</style>
+</helmet>
+
+<div style="display:flex;height:100vh;width:100%;background:#0a0c0f;overflow:hidden;">
+
+  <div style="width:84px;flex:none;background:#0e1114;border-right:1px solid rgba(255,255,255,0.07);display:flex;flex-direction:column;align-items:center;padding:16px 0;gap:6px;">
+    <div style="width:40px;height:40px;border-radius:9px;background:#e0603f;display:flex;align-items:center;justify-content:center;font:800 15px 'Inter';color:#0a0c0f;margin-bottom:14px;">FH</div>
+
+    <div onClick="{{ goWarRoom }}" style="width:64px;padding:9px 0 7px;border-radius:8px;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;{{ warRoomNavStyle }}">
+      <div style="width:26px;height:26px;border-radius:6px;background:{{ warRoomIconBg }};"></div>
+      <div style="font:600 10px 'Inter';color:{{ warRoomTextColor }};">War Room</div>
+    </div>
+
+    <div onClick="{{ goPlayers }}" style="width:64px;padding:9px 0 7px;border-radius:8px;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;{{ playersNavStyle }}">
+      <div style="width:26px;height:26px;border-radius:13px;background:{{ playersIconBg }};"></div>
+      <div style="font:600 10px 'Inter';color:{{ playersTextColor }};">Players</div>
+    </div>
+
+    <div onClick="{{ goSettings }}" style="width:64px;padding:9px 0 7px;border-radius:8px;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;{{ settingsNavStyle }}">
+      <div style="width:26px;height:26px;transform:rotate(45deg);background:{{ settingsIconBg }};"></div>
+      <div style="font:600 10px 'Inter';color:{{ settingsTextColor }};">Settings</div>
+    </div>
+  </div>
+
+  <div style="flex:1;overflow:auto;position:relative;">
+
+    <sc-if value="{{ isWarRoom }}" hint-placeholder-val="{{ true }}">
+      <div style="display:flex;flex-direction:column;height:100%;min-height:100%;">
+
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 22px;border-bottom:1px solid rgba(255,255,255,0.07);background:#0e1114;flex:none;">
+          <div style="display:flex;align-items:center;gap:14px;">
+            <div style="background: #e0603f; color: #0a0c0f; font: 800 26px 'JetBrains Mono'; padding: 6px 18px; border-radius: 8px; letter-spacing: 0.5px; width: 151px; height: 44px">PICK {{ pickInfo.pickNum }}</div>
+            <div style="font:600 15px 'Inter';color:#c7cbd1;">Round {{ pickInfo.round }}</div>
+            <div style="background:#1a1e23;border:1px solid rgba(255,255,255,0.1);padding:6px 14px;border-radius:20px;font:700 14px 'Inter';color:#f2c34d;">{{ pickInfo.picksUntilMe }} picks until you</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div style="display:flex;align-items:center;gap:6px;font:500 12px 'Inter';color:#8b929c;"><div style="width:7px;height:7px;border-radius:50%;background:#3fa66b;"></div>Yahoo connected</div>
+            <div style="font:500 12px 'JetBrains Mono';color:#8b929c;background:#1a1e23;border:1px solid rgba(255,255,255,0.08);padding:5px 10px;border-radius:6px;">poll 8s</div>
+            
+          </div>
+        </div>
+
+        <div style="padding:16px 22px 10px;flex:none;">
+          <div style="font:600 12px 'Inter';color:#8b929c;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:10px;">Best Available — next per position</div>
+          <div style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;">
+            <sc-for list="{{ posLanes }}" as="lane" hint-placeholder-count="5">
+              <div style="background:#14171b;border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:8px;min-height:230px;min-width:0;">
+                <div style="display:flex;align-items:center;justify-content:space-between;min-width:0;">
+                  <div style="font:800 15px 'Inter';color:#e8eaed;">{{ lane.pos }}</div>
+                  <div style="flex:none;font:700 11px 'JetBrains Mono';padding:2px 8px;border-radius:10px;background:{{ lane.scarcityBg }};color:{{ lane.scarcityFg }};border:1px solid {{ lane.scarcityBorder }};white-space:nowrap;">{{ lane.scarcity.left }} left</div>
+                </div>
+                <sc-for list="{{ lane.shown }}" as="p" hint-placeholder-count="3">
+                  <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;padding:6px 8px;background:#191d22;border-radius:6px;min-width:0;">
+                    <div style="display:flex;flex-direction:column;gap:1px;min-width:0;flex:1;overflow:hidden;">
+                      <div style="font:600 12.5px 'Inter';color:#e8eaed;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ p.name }}</div>
+                      <div style="font:600 10.5px 'JetBrains Mono';color:{{ p.contribColor }};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ p.contribText }}</div>
+                    </div>
+                    <div style="flex:none;display:flex;align-items:center;gap:4px;">
+                      <div title="my overall rank" style="font:700 10.5px 'JetBrains Mono';padding:2px 6px;border-radius:5px;background:{{ p.rankBg }};color:{{ p.rankFg }};border:1px solid {{ p.rankBorder }};white-space:nowrap;">#{{ p.overallRank }}</div>
+                      <div onClick="{{ p.onToggleTrack }}" style="width:20px;height:20px;border-radius:5px;display:flex;align-items:center;justify-content:center;cursor:pointer;font:14px 'Inter';background:{{ p.trackBg }};color:{{ p.trackFg }};border:1px solid {{ p.trackBorder }};">{{ p.trackGlyph }}</div>
+                    </div>
+                  </div>
+                </sc-for>
+                <sc-if value="{{ lane.hasMore }}">
+                  <div onClick="{{ lane.onExpand }}" style="font:500 11px 'Inter';color:#5a6068;cursor:pointer;text-align:center;padding:2px;">+{{ lane.moreCount }} more</div>
+                </sc-if>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1.15fr 0.9fr 1fr;gap:14px;padding:6px 22px 22px;flex:1;min-height:0;">
+
+          <div style="background:#14171b;border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:14px;overflow:auto;">
+            <div style="font:700 13px 'Inter';color:#e8eaed;margin-bottom:10px;">My Roster</div>
+            <div style="display:grid;grid-template-columns:28px minmax(0,1fr) repeat(6,minmax(0,1fr));gap:2px 4px;font:600 9.5px 'Inter';color:#5a6068;padding:0 6px;margin-bottom:4px;">
+              <div>SLOT</div><div>PLAYER</div><div>G</div><div>A</div><div>P</div><div>PPP</div><div>+/-</div><div>SH</div>
+            </div>
+            <sc-for list="{{ rosterSlots }}" as="slot" hint-placeholder-count="6">
+              <div style="display:grid;grid-template-columns:28px minmax(0,1fr) repeat(6,minmax(0,1fr));gap:2px 4px;align-items:center;padding:6px;border-radius:6px;background:#191d22;margin-bottom:4px;min-width:0;">
+                <div style="font:700 11px 'JetBrains Mono';color:#8b929c;">{{ slot.pos }}</div>
+                <div style="font:500 12px 'Inter';color:{{ slot.nameColor }};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;">{{ slot.displayName }}</div>
+                <div style="font:500 11px 'JetBrains Mono';color:#c7cbd1;overflow:hidden;">{{ slot.g }}</div>
+                <div style="font:500 11px 'JetBrains Mono';color:#c7cbd1;overflow:hidden;">{{ slot.a }}</div>
+                <div style="font:500 11px 'JetBrains Mono';color:#c7cbd1;overflow:hidden;">{{ slot.p }}</div>
+                <div style="font:500 11px 'JetBrains Mono';color:#c7cbd1;overflow:hidden;">{{ slot.ppp }}</div>
+                <div style="font:500 11px 'JetBrains Mono';color:#c7cbd1;overflow:hidden;">{{ slot.plusMinus }}</div>
+                <div style="font:500 11px 'JetBrains Mono';color:#c7cbd1;overflow:hidden;">{{ slot.shots }}</div>
+              </div>
+            </sc-for>
+            <div style="font:500 11px 'Inter';color:#5a6068;margin-top:4px;">Bench x{{ benchCount }} · IR x{{ irCount }} — empty</div>
+          </div>
+
+          <div style="background:#14171b;border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:14px;overflow:auto;">
+            <div style="font:700 13px 'Inter';color:#e8eaed;margin-bottom:10px;">Target Progress</div>
+            <sc-for list="{{ targetRows }}" as="t" hint-placeholder-count="7">
+              <div style="margin-bottom:10px;">
+                <div style="display:flex;justify-content:space-between;font:500 11.5px 'Inter';color:#c7cbd1;margin-bottom:3px;">
+                  <div>{{ t.label }}</div>
+                  <div style="font-family:'JetBrains Mono';">{{ t.cur }} / {{ t.goal }}</div>
+                </div>
+                <div style="height:6px;border-radius:3px;background:#1e2226;overflow:hidden;">
+                  <div style="height:100%;background:#e0603f;width:{{ t.pct }}%;"></div>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+
+          <div style="background:#14171b;border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:14px;overflow:auto;display:flex;flex-direction:column;gap:14px;">
+            <div>
+              <div style="font:700 13px 'Inter';color:#e8eaed;margin-bottom:8px;">Position Scarcity</div>
+              <sc-for list="{{ scarcityRows }}" as="s" hint-placeholder-count="5">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+                  <div style="width:26px;font:700 11px 'JetBrains Mono';color:#8b929c;">{{ s.pos }}</div>
+                  <div style="font:600 10.5px 'JetBrains Mono';padding:1px 6px;border-radius:8px;background:{{ s.leftBg }};color:{{ s.leftFg }};border:1px solid {{ s.leftBorder }};">{{ s.left }} left</div>
+                  <div style="flex:1;height:6px;border-radius:3px;background:#1e2226;overflow:hidden;">
+                    <div style="height:100%;background:#3a3f46;width:{{ s.takenPct }}%;"></div>
+                  </div>
+                  <div style="font:500 10.5px 'Inter';color:#5a6068;">{{ s.taken }} taken</div>
+                </div>
+              </sc-for>
+            </div>
+            <div>
+              <div style="font:700 13px 'Inter';color:#e8eaed;margin-bottom:8px;">Live Pick Feed</div>
+              <sc-for list="{{ liveFeed }}" as="f" hint-placeholder-count="4">
+                <div style="font:500 12px 'Inter';color:#c7cbd1;padding:6px 8px;background:#191d22;border-radius:6px;margin-bottom:4px;">
+                  <span style="font-family:'JetBrains Mono';color:#5a6068;">#{{ f.pickNum }}</span> {{ f.team }} → {{ f.playerName }} ({{ f.pos }})
+                </div>
+              </sc-for>
+            </div>
+            <div>
+              <div style="font:700 13px 'Inter';color:#e8eaed;margin-bottom:8px;">Tracked Players</div>
+              <sc-for list="{{ trackedList }}" as="tr" hint-placeholder-count="2">
+                <div style="display:flex;justify-content:space-between;align-items:center;font:500 12px 'Inter';color:#c7cbd1;padding:6px 8px;background:#191d22;border-radius:6px;margin-bottom:4px;">
+                  <div>{{ tr.name }} <span style="color:#5a6068;">— {{ tr.pos }}</span></div>
+                  <div style="font:600 11px 'Inter';color:{{ tr.statusColor }};">{{ tr.statusText }}</div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isPlayers }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;flex-direction:column;height:100%;padding:20px 24px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex:none;">
+          <div style="font:700 18px 'Inter';color:#e8eaed;">Players — Full Data</div>
+          <div style="display:flex;gap:10px;">
+            <button style="background:#1a1e23;border:1px solid rgba(255,255,255,0.1);color:#c7cbd1;font:600 12px 'Inter';padding:8px 14px;border-radius:7px;cursor:pointer;">Manage Columns</button>
+            <button style="background:#e0603f;border:none;color:#0a0c0f;font:700 12px 'Inter';padding:8px 16px;border-radius:7px;cursor:pointer;">Save</button>
+          </div>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex:none;flex-wrap:wrap;">
+          <select onChange="{{ onPosFilterChange }}" value="{{ gridPosFilter }}" style="background:#1a1e23;border:1px solid rgba(255,255,255,0.1);color:#e8eaed;font:600 12px 'Inter';padding:7px 10px;border-radius:20px;">
+            <option value="ALL">Pos: All</option>
+            <option value="C">C</option><option value="LW">LW</option><option value="RW">RW</option><option value="D">D</option><option value="G">G</option>
+          </select>
+          <select onChange="{{ onDraftedFilterChange }}" value="{{ gridDraftedFilter }}" style="background:#1a1e23;border:1px solid rgba(255,255,255,0.1);color:#e8eaed;font:600 12px 'Inter';padding:7px 10px;border-radius:20px;">
+            <option value="hide">Drafted: hide</option>
+            <option value="show">Drafted: show</option>
+          </select>
+          <input type="text" placeholder="Search player…" value="{{ gridSearch }}" onChange="{{ onSearchChange }}" style="background:#1a1e23;border:1px solid rgba(255,255,255,0.1);color:#e8eaed;font:500 12px 'Inter';padding:7px 12px;border-radius:20px;min-width:200px;">
+          <div style="font:500 11px 'Inter';color:#5a6068;margin-left:6px;">{{ gridRowCount }} players shown</div>
+        </div>
+
+        <div style="flex:1;overflow:auto;border:1px solid rgba(255,255,255,0.08);border-radius:10px;">
+          <table style="border-collapse:collapse;width:100%;font-family:'Inter';">
+            <thead>
+              <tr style="background:#14171b;position:sticky;top:0;z-index:1;">
+                <sc-for list="{{ gridColumns }}" as="col" hint-placeholder-count="14">
+                  <th onClick="{{ col.onClick }}" style="padding:9px 10px;text-align:left;font:700 11px 'Inter';color:#8b929c;border-bottom:1px solid rgba(255,255,255,0.08);cursor:pointer;white-space:nowrap;text-transform:uppercase;letter-spacing:0.04em;">{{ col.label }}{{ col.sortGlyph }}</th>
+                </sc-for>
+              </tr>
+            </thead>
+            <tbody>
+              <sc-for list="{{ gridRows }}" as="row" hint-placeholder-count="12">
+                <tr style="background:{{ row.rowBg }};">
+                  <td style="padding:7px 10px;font:600 12.5px 'Inter';color:#e8eaed;border-bottom:1px solid rgba(255,255,255,0.05);white-space:nowrap;">{{ row.name }}</td>
+                  <td style="padding:7px 10px;font:600 11.5px 'JetBrains Mono';color:#8b929c;border-bottom:1px solid rgba(255,255,255,0.05);">{{ row.pos }}</td>
+                  <td style="padding:7px 10px;font:500 11.5px 'JetBrains Mono';color:#5a6068;border-bottom:1px solid rgba(255,255,255,0.05);">{{ row.team }}</td>
+                  <td style="padding:7px 10px;font:500 11.5px 'JetBrains Mono';color:#c7cbd1;border-bottom:1px solid rgba(255,255,255,0.05);">{{ row.rank }}</td>
+                  <td style="padding:7px 10px;font:500 11.5px 'JetBrains Mono';color:#c7cbd1;border-bottom:1px solid rgba(255,255,255,0.05);">{{ row.adp }}</td>
+                  <td style="padding:4px 10px;border-bottom:1px solid rgba(255,255,255,0.05);">
+                    <input type="number" value="{{ row.tier }}" onChange="{{ row.onTierChange }}" style="width:44px;background:#221c14;border:1px solid #4a3a22;color:#f2c34d;font:600 11.5px 'JetBrains Mono';padding:3px 6px;border-radius:5px;">
+                  </td>
+                  <td style="padding:7px 10px;font:500 11.5px 'JetBrains Mono';color:#c7cbd1;border-bottom:1px solid rgba(255,255,255,0.05);">{{ row.g }}</td>
+                  <td style="padding:7px 10px;font:500 11.5px 'JetBrains Mono';color:#c7cbd1;border-bottom:1px solid rgba(255,255,255,0.05);">{{ row.a }}</td>
+                  <td style="padding:7px 10px;font:500 11.5px 'JetBrains Mono';color:#c7cbd1;border-bottom:1px solid rgba(255,255,255,0.05);">{{ row.p }}</td>
+                  <td style="padding:7px 10px;font:500 11.5px 'JetBrains Mono';color:#c7cbd1;border-bottom:1px solid rgba(255,255,255,0.05);">{{ row.ppp }}</td>
+                  <td style="padding:7px 10px;font:500 11.5px 'JetBrains Mono';color:#c7cbd1;border-bottom:1px solid rgba(255,255,255,0.05);">{{ row.plusMinus }}</td>
+                  <td style="padding:7px 10px;font:500 11.5px 'JetBrains Mono';color:#c7cbd1;border-bottom:1px solid rgba(255,255,255,0.05);">{{ row.shots }}</td>
+                  <td style="padding:7px 10px;font:500 11.5px 'JetBrains Mono';color:#c7cbd1;border-bottom:1px solid rgba(255,255,255,0.05);">{{ row.wgs }}</td>
+                  <td style="padding:7px 10px;font:600 11px 'Inter';color:{{ row.draftedColor }};border-bottom:1px solid rgba(255,255,255,0.05);white-space:nowrap;">{{ row.draftedText }}</td>
+                </tr>
+              </sc-for>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isSettings }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;height:100%;">
+        <div style="width:230px;flex:none;background:#0e1114;border-right:1px solid rgba(255,255,255,0.07);padding:18px 12px;">
+          <div style="font:700 15px 'Inter';color:#e8eaed;padding:0 8px;margin-bottom:14px;">Settings</div>
+          <sc-for list="{{ settingsNav }}" as="s" hint-placeholder-count="7">
+            <div onClick="{{ s.onClick }}" style="padding:9px 10px;border-radius:7px;font:600 13px 'Inter';cursor:pointer;margin-bottom:3px;background:{{ s.bg }};color:{{ s.fg }};">{{ s.label }}</div>
+          </sc-for>
+        </div>
+
+        <div style="flex:1;overflow:auto;padding:24px 30px;">
+
+          <sc-if value="{{ isYahooSection }}">
+            <div style="max-width:760px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+                <div style="font:700 20px 'Inter';color:#e8eaed;">Yahoo Connection</div>
+                <div style="display:flex;align-items:center;gap:8px;background:#12241a;border:1px solid #2a4a35;padding:6px 12px;border-radius:20px;">
+                  <div style="width:7px;height:7px;border-radius:50%;background:#3fa66b;"></div>
+                  <div style="font:600 12px 'Inter';color:#7fd9a3;">Connected as jsmith_fantasy</div>
+                </div>
+              </div>
+              <div style="background:#14171b;border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:16px;margin-bottom:16px;">
+                <div style="font:600 12px 'Inter';color:#8b929c;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:10px;">Token Health</div>
+                <div style="display:flex;gap:24px;font:500 13px 'Inter';color:#c7cbd1;">
+                  <div>Last call: <span style="color:#e8eaed;font-family:'JetBrains Mono';">12s ago</span></div>
+                  <div>Auto-refresh: <span style="color:#3fa66b;">healthy</span></div>
+                  <div>Token expires: <span style="color:#e8eaed;font-family:'JetBrains Mono';">47min</span></div>
+                </div>
+                <button style="margin-top:12px;background:#1a1e23;border:1px solid rgba(255,255,255,0.12);color:#e8eaed;font:600 12px 'Inter';padding:8px 16px;border-radius:7px;cursor:pointer;">Reconnect</button>
+              </div>
+              <div style="background:#14171b;border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:16px;">
+                <div style="font:700 14px 'Inter';color:#e8eaed;margin-bottom:12px;">Guided Setup</div>
+                <div style="font:500 13px 'Inter';color:#c7cbd1;margin-bottom:10px;">Step 1 — Client ID / Client Secret <span style="color:#5a6068;">(from developer.yahoo.com)</span></div>
+                <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:10px;">
+                  <input placeholder="Client ID" style="background:#191d22;border:1px solid rgba(255,255,255,0.1);color:#e8eaed;font:500 12px 'JetBrains Mono';padding:9px 12px;border-radius:7px;">
+                  <input placeholder="Client Secret" type="password" style="background:#191d22;border:1px solid rgba(255,255,255,0.1);color:#e8eaed;font:500 12px 'JetBrains Mono';padding:9px 12px;border-radius:7px;">
+                </div>
+                <div style="font:500 13px 'Inter';color:#c7cbd1;margin:14px 0 8px;">Step 2 — Connection Mode</div>
+                <div style="display:flex;gap:10px;margin-bottom:12px;">
+                  <div onClick="{{ setModeProxy }}" style="flex:1;padding:12px;border-radius:8px;cursor:pointer;background:{{ proxyModeBg }};border:1px solid {{ proxyModeBorder }};">
+                    <div style="font:600 13px 'Inter';color:#e8eaed;margin-bottom:4px;">I have a domain / reverse proxy</div>
+                    <div style="font:500 11.5px 'Inter';color:#5a6068;">Standard HTTPS redirect — paste this URI into your Yahoo app config</div>
+                  </div>
+                  <div onClick="{{ setModePaste }}" style="flex:1;padding:12px;border-radius:8px;cursor:pointer;background:{{ pasteModeBg }};border:1px solid {{ pasteModeBorder }};">
+                    <div style="font:600 13px 'Inter';color:#e8eaed;margin-bottom:4px;">No public HTTPS</div>
+                    <div style="font:500 11.5px 'Inter';color:#5a6068;">Paste-the-code fallback — authorize in a new tab, paste the code back here</div>
+                  </div>
+                </div>
+                <div style="background:#191d22;border:1px solid rgba(255,255,255,0.1);border-radius:7px;padding:10px 12px;display:flex;justify-content:space-between;align-items:center;">
+                  <div style="font:500 12px 'JetBrains Mono';color:#8b929c;">{{ redirectUri }}</div>
+                  <button style="background:#1a1e23;border:1px solid rgba(255,255,255,0.12);color:#e8eaed;font:600 11px 'Inter';padding:5px 10px;border-radius:6px;cursor:pointer;">Copy</button>
+                </div>
+              </div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ isLeagueSection }}">
+            <div style="max-width:600px;">
+              <div style="font:700 20px 'Inter';color:#e8eaed;margin-bottom:16px;">League</div>
+              <div style="background:#14171b;border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:12px;">
+                <div style="font:500 13px 'Inter';color:#c7cbd1;">League ID: <span style="font-family:'JetBrains Mono';color:#e8eaed;">1234567</span></div>
+                <div style="display:flex;align-items:center;gap:10px;font:500 13px 'Inter';color:#c7cbd1;">Season: <span style="font-family:'JetBrains Mono';color:#e8eaed;">2026 (nhl)</span>
+                  <button style="background:#1a1e23;border:1px solid rgba(255,255,255,0.12);color:#e8eaed;font:600 11px 'Inter';padding:5px 10px;border-radius:6px;cursor:pointer;">Refresh</button>
+                </div>
+                <div style="font:500 13px 'Inter';color:#c7cbd1;">Team count: <span style="font-family:'JetBrains Mono';color:#e8eaed;">10</span></div>
+                <div style="font:500 13px 'Inter';color:#c7cbd1;">My team: <select style="background:#191d22;border:1px solid rgba(255,255,255,0.1);color:#e8eaed;font:500 12px 'Inter';padding:6px 10px;border-radius:6px;"><option>J's Juggernauts</option></select></div>
+                <button style="margin-top:6px;background:#e0603f;border:none;color:#0a0c0f;font:700 13px 'Inter';padding:10px 16px;border-radius:8px;cursor:pointer;">Start New Season — re-pull &amp; archive last draft</button>
+              </div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ isRosterSection }}">
+            <div style="max-width:520px;">
+              <div style="font:700 20px 'Inter';color:#e8eaed;margin-bottom:16px;">Roster</div>
+              <div style="background:#14171b;border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:16px;margin-bottom:16px;">
+                <div style="font:700 14px 'Inter';color:#e8eaed;margin-bottom:4px;">Slots per Position</div>
+                <div style="font:500 12px 'Inter';color:#5a6068;margin-bottom:12px;">Fetched from Yahoo league settings — editable</div>
+                <sc-for list="{{ rosterSlotFields }}" as="rf" hint-placeholder-count="7">
+                  <div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid rgba(255,255,255,0.05);">
+                    <div style="font:600 13px 'Inter';color:#c7cbd1;">{{ rf.label }}</div>
+                    <input type="number" value="{{ rf.value }}" onChange="{{ rf.onChange }}" style="width:56px;background:#191d22;border:1px solid rgba(255,255,255,0.1);color:#e8eaed;font:600 12px 'JetBrains Mono';padding:6px 8px;border-radius:6px;">
+                  </div>
+                </sc-for>
+              </div>
+              <div style="background:#14171b;border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:16px;">
+                <div style="font:700 14px 'Inter';color:#e8eaed;margin-bottom:4px;">Targets</div>
+                <div style="font:500 12px 'Inter';color:#5a6068;margin-bottom:12px;">Season-end stat goals — drives the Target Progress bars in War Room</div>
+                <sc-for list="{{ targetFields }}" as="tf" hint-placeholder-count="7">
+                  <div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid rgba(255,255,255,0.05);">
+                    <div style="font:600 13px 'Inter';color:#c7cbd1;">{{ tf.label }}</div>
+                    <input type="number" value="{{ tf.value }}" onChange="{{ tf.onChange }}" style="width:72px;background:#191d22;border:1px solid rgba(255,255,255,0.1);color:#e8eaed;font:600 12px 'JetBrains Mono';padding:6px 8px;border-radius:6px;">
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ isRankingsSection }}">
+            <div style="max-width:760px;">
+              <div style="font:700 20px 'Inter';color:#e8eaed;margin-bottom:16px;">Rankings Import</div>
+              <div style="background:#14171b;border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:16px;margin-bottom:14px;">
+                <div style="font:600 13px 'Inter';color:#e8eaed;margin-bottom:8px;">Upload CSV or paste from Google Sheet</div>
+                <button style="background:#1a1e23;border:1px solid rgba(255,255,255,0.12);color:#e8eaed;font:600 12px 'Inter';padding:8px 16px;border-radius:7px;cursor:pointer;">Choose File</button>
+                <div style="font:500 12px 'Inter';color:#5a6068;margin-top:10px;">Column mapping — name → col A · position → col B · rank/score → col C · tier → col D</div>
+              </div>
+              <div style="background:#14171b;border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:16px;margin-bottom:14px;">
+                <div style="font:600 13px 'Inter';color:#e8eaed;margin-bottom:8px;">Alias / Exceptions Table</div>
+                <div style="font:500 12.5px 'JetBrains Mono';color:#c7cbd1;padding:6px 0;">"Mitchell Marner" → "Mitch Marner"</div>
+                <button style="background:#1a1e23;border:1px solid rgba(255,255,255,0.12);color:#e8eaed;font:600 11px 'Inter';padding:6px 12px;border-radius:6px;cursor:pointer;">+ Add Row</button>
+              </div>
+              <div style="background:#14171b;border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:16px;">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+                  <div style="font:600 13px 'Inter';color:#e8eaed;">Unmatched at import</div>
+                  <div style="font:700 11px 'JetBrains Mono';background:#3a2020;color:#e8837a;padding:2px 8px;border-radius:10px;">6</div>
+                </div>
+                <div style="font:500 12.5px 'Inter';color:#c7cbd1;padding:6px 0;">"Alexandre Texier" — suggest: <span style="color:#e8eaed;">Alex Texier</span> <span style="color:#3fa66b;">✓</span> <span style="color:#e8837a;">✗</span></div>
+                <div style="font:500 12.5px 'Inter';color:#c7cbd1;padding:6px 0;">"Tim Stuetzle" — suggest: <span style="color:#e8eaed;">Tim Stützle</span> <span style="color:#3fa66b;">✓</span> <span style="color:#e8837a;">✗</span></div>
+              </div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ isDraftDaySection }}">
+            <div style="max-width:480px;">
+              <div style="font:700 20px 'Inter';color:#e8eaed;margin-bottom:16px;">Draft-Day Behavior</div>
+              <div style="background:#14171b;border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:18px;">
+                <div>
+                  <div style="display:flex;justify-content:space-between;font:600 13px 'Inter';color:#c7cbd1;margin-bottom:8px;"><div>Polling interval</div><div style="font-family:'JetBrains Mono';color:#e8eaed;">{{ pollInterval }}s</div></div>
+                  <input type="range" min="5" max="60" step="1" value="{{ pollInterval }}" onChange="{{ onPollChange }}" style="width:100%;">
+                </div>
+                <div>
+                  <div style="font:600 13px 'Inter';color:#c7cbd1;margin-bottom:8px;">Draft start detection</div>
+                  <div style="display:flex;gap:8px;">
+                    <div onClick="{{ setDraftAuto }}" style="flex:1;text-align:center;padding:8px;border-radius:7px;cursor:pointer;font:600 12px 'Inter';background:{{ autoModeBg }};color:{{ autoModeFg }};">Auto-detect</div>
+                    <div onClick="{{ setDraftManual }}" style="flex:1;text-align:center;padding:8px;border-radius:7px;cursor:pointer;font:600 12px 'Inter';background:{{ manualModeBg }};color:{{ manualModeFg }};">Manual "Go Live"</div>
+                  </div>
+                </div>
+                <div>
+                  <div style="font:600 13px 'Inter';color:#c7cbd1;margin-bottom:8px;">Notifications</div>
+                  <label style="display:flex;align-items:center;gap:8px;font:500 13px 'Inter';color:#c7cbd1;margin-bottom:6px;cursor:pointer;"><input type="checkbox" checked="{{ notifSound }}" onChange="{{ onToggleSound }}">Sound when pick approaches</label>
+                  <label style="display:flex;align-items:center;gap:8px;font:500 13px 'Inter';color:#c7cbd1;cursor:pointer;"><input type="checkbox" checked="{{ notifDesktop }}" onChange="{{ onToggleDesktop }}">Desktop notification</label>
+                </div>
+              </div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ isHostingSection }}">
+            <div style="max-width:480px;">
+              <div style="font:700 20px 'Inter';color:#e8eaed;margin-bottom:16px;">App / Hosting</div>
+              <div style="background:#14171b;border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:14px;">
+                <div style="display:flex;align-items:center;justify-content:space-between;">
+                  <div style="font:600 13px 'Inter';color:#c7cbd1;">Leagues</div>
+                  <div style="display:flex;gap:8px;">
+                    <select style="background:#191d22;border:1px solid rgba(255,255,255,0.1);color:#e8eaed;font:500 12px 'Inter';padding:6px 10px;border-radius:6px;"><option>My League 2026</option></select>
+                    <button style="background:#1a1e23;border:1px solid rgba(255,255,255,0.12);color:#e8eaed;font:600 11px 'Inter';padding:6px 10px;border-radius:6px;cursor:pointer;">+ Add League</button>
+                  </div>
+                </div>
+                <div style="display:flex;align-items:center;justify-content:space-between;">
+                  <div style="font:600 13px 'Inter';color:#c7cbd1;">Timezone</div>
+                  <select style="background:#191d22;border:1px solid rgba(255,255,255,0.1);color:#e8eaed;font:500 12px 'Inter';padding:6px 10px;border-radius:6px;"><option>America/Toronto</option></select>
+                </div>
+                <div style="display:flex;align-items:center;justify-content:space-between;">
+                  <div style="font:600 13px 'Inter';color:#c7cbd1;">Data</div>
+                  <div style="display:flex;gap:8px;">
+                    <button style="background:#1a1e23;border:1px solid rgba(255,255,255,0.12);color:#e8eaed;font:600 11px 'Inter';padding:6px 12px;border-radius:6px;cursor:pointer;">Export All</button>
+                    <button style="background:#2a1414;border:1px solid #4a2020;color:#e8837a;font:600 11px 'Inter';padding:6px 12px;border-radius:6px;cursor:pointer;">Reset App</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ isDebugSection }}">
+            <div style="max-width:720px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+                <div style="font:700 20px 'Inter';color:#e8eaed;">Debug Log</div>
+                <div style="display:flex;align-items:center;gap:8px;background:#12241a;border:1px solid #2a4a35;padding:6px 12px;border-radius:20px;">
+                  <div style="width:7px;height:7px;border-radius:50%;background:#3fa66b;"></div>
+                  <div style="font:600 12px 'Inter';color:#7fd9a3;">All systems ok</div>
+                </div>
+              </div>
+              <div style="display:flex;gap:8px;margin-bottom:12px;">
+                <sc-for list="{{ debugFilters }}" as="df" hint-placeholder-count="3">
+                  <div onClick="{{ df.onClick }}" style="padding:6px 14px;border-radius:20px;font:600 12px 'Inter';cursor:pointer;background:{{ df.bg }};color:{{ df.fg }};">{{ df.label }}</div>
+                </sc-for>
+                <div style="flex:1;"></div>
+                <button style="background:#1a1e23;border:1px solid rgba(255,255,255,0.12);color:#e8eaed;font:600 11px 'Inter';padding:6px 12px;border-radius:6px;cursor:pointer;">Clear</button>
+                <button style="background:#1a1e23;border:1px solid rgba(255,255,255,0.12);color:#e8eaed;font:600 11px 'Inter';padding:6px 12px;border-radius:6px;cursor:pointer;">Copy Log</button>
+              </div>
+              <div style="background:#14171b;border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:6px;">
+                <sc-for list="{{ debugRows }}" as="d" hint-placeholder-count="6">
+                  <div style="display:flex;gap:10px;font:500 12px 'JetBrains Mono';padding:7px 10px;border-radius:6px;background:{{ d.rowBg }};margin-bottom:2px;">
+                    <div style="color:#5a6068;">{{ d.time }}</div>
+                    <div style="color:#8b929c;flex:1;">{{ d.msg }}</div>
+                    <div style="color:{{ d.statusColor }};">{{ d.status }}</div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </sc-if>
+
+        </div>
+      </div>
+    </sc-if>
+
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+
+const FIRST = ['Ethan','Marcus','Jalen','Wyatt','Devon','Silas','Rory','Theo','Owen','Callum','Dario','Nash','Milo','Kai','Bram','Reid','Soren','Emmett','Julian','Adrian'];
+const LAST = ['Cole','Byrne','Ortiz','Sun','Kwan','Nakamura','Delgado','Franks','Vasquez','Reyes','Wexler','Petrov','Andersson','Fontaine','Solberg','Hastings','Marchetti','Kariya','Dubois','Whitfield'];
+const NHL_TEAMS = ['TOR','EDM','COL','BOS','VAN','NYR','DAL','CAR','MIN','SEA'];
+const FANTASY_TEAMS = ['Ice Breakers','Puck Norris','Slapshot Sallies','Zamboni Drivers','Blue Line Bandits','Power Play Pirates','Fourth Liners','Hat Trick Heroes','Offside Outlaws','Neutral Zone Ninjas'];
+
+function seeded(seed) {
+  const x = Math.sin(seed) * 10000;
+  return x - Math.floor(x);
+}
+
+function buildPlayers() {
+  const posList = [['C', 12], ['LW', 12], ['RW', 12], ['D', 16], ['G', 10]];
+  const players = [];
+  let id = 1;
+  posList.forEach(([pos, count]) => {
+    for (let i = 0; i < count; i++) {
+      const rank = i + 1;
+      const name = FIRST[(id * 3) % FIRST.length] + ' ' + LAST[(id * 7) % LAST.length];
+      const team = NHL_TEAMS[id % NHL_TEAMS.length];
+      const tier = Math.ceil(rank / 4);
+      const adp = Math.max(1, rank + Math.round(seeded(id) * 4 - 2));
+      const obj = { id, name, pos, team, rank, adp, tier };
+      if (pos === 'G') {
+        obj.w = Math.max(2, Math.round(34 - rank * 2.4));
+        obj.gaa = (1.85 + rank * 0.065).toFixed(2);
+        obj.saves = Math.max(80, Math.round(1350 - rank * 45));
+        obj.g = null; obj.a = null; obj.p = null; obj.ppp = null; obj.plusMinus = null; obj.shots = null;
+      } else {
+        obj.g = Math.max(2, Math.round(34 - rank * 1.7));
+        obj.a = Math.max(3, Math.round(38 - rank * 1.4));
+        obj.p = obj.g + obj.a;
+        obj.ppp = Math.max(0, Math.round(12 - rank * 0.6));
+        obj.plusMinus = Math.round(18 - rank * 1.1);
+        obj.shots = Math.max(60, Math.round(190 - rank * 7));
+        obj.w = null; obj.gaa = null; obj.saves = null;
+      }
+      obj.drafted = false;
+      obj.draftedBy = null;
+      obj.mine = false;
+      obj.tracked = false;
+      players.push(obj);
+      id++;
+    }
+  });
+  // Overall (cross-position) draft rank — what actually compares to a pick number.
+  // Position ranks alone (1-12/16) never approach pick numbers like 47, so blend
+  // them into one global order using a per-position value factor before assigning it.
+  const POS_VALUE_FACTOR = { C: 1.0, LW: 1.05, RW: 1.05, D: 1.35, G: 1.5 };
+  players.slice().sort((a, b) => (a.rank * POS_VALUE_FACTOR[a.pos]) - (b.rank * POS_VALUE_FACTOR[b.pos]))
+    .forEach((p, i) => { p.overallRank = i + 1; });
+
+  // Drafted status keyed off overall rank vs. where the draft currently sits (pick 47),
+  // with noise so the board isn't a clean cutoff — some reaches still sit undrafted,
+  // some sleepers already got scooped early.
+  const draftThreshold = 47;
+  players.forEach(p => {
+    const noise = seeded(p.id * 13);
+    let draftedChance;
+    if (p.overallRank <= draftThreshold - 5) draftedChance = 0.88;
+    else if (p.overallRank <= draftThreshold + 15) draftedChance = 0.45;
+    else draftedChance = 0.15;
+    p.drafted = noise < draftedChance;
+    p.draftedBy = p.drafted ? FANTASY_TEAMS[p.id % FANTASY_TEAMS.length] : null;
+  });
+
+  const myC = players.find(p => p.pos === 'C');
+  myC.mine = true; myC.drafted = true; myC.draftedBy = 'You';
+  myC.g = 18; myC.a = 22; myC.p = 40; myC.ppp = 8; myC.plusMinus = 6; myC.shots = 140;
+  const myLW = players.find(p => p.pos === 'LW');
+  myLW.mine = true; myLW.drafted = true; myLW.draftedBy = 'You';
+  myLW.g = 25; myLW.a = 15; myLW.p = 40; myLW.ppp = 10; myLW.plusMinus = 9; myLW.shots = 180;
+  // The noise roll above can, by chance, draft every player at a position — guarantee
+  // a minimum bench of undrafted players per lane so "best available" never goes blank.
+  const MIN_UNDRAFTED_PER_POS = 5;
+  ['C', 'LW', 'RW', 'D', 'G'].forEach(pos => {
+    const posPlayers = players.filter(p => p.pos === pos);
+    const undrafted = posPlayers.filter(p => !p.drafted);
+    if (undrafted.length < MIN_UNDRAFTED_PER_POS) {
+      const need = MIN_UNDRAFTED_PER_POS - undrafted.length;
+      const flipCandidates = posPlayers
+        .filter(p => p.drafted && !p.mine)
+        .sort((a, b) => b.overallRank - a.overallRank);
+      for (let i = 0; i < need && i < flipCandidates.length; i++) {
+        flipCandidates[i].drafted = false;
+        flipCandidates[i].draftedBy = null;
+      }
+    }
+  });
+
+  const trackRW = players.find(p => p.pos === 'RW' && !p.drafted);
+  if (trackRW) trackRW.tracked = true;
+  const trackTakenC = players.find(p => p.pos === 'C' && p.drafted && !p.mine);
+  if (trackTakenC) trackTakenC.tracked = true;
+  return players;
+}
+
+const SCARCITY = {
+  C: { left: 2, taken: 18, total: 20 },
+  LW: { left: 9, taken: 11, total: 20 },
+  RW: { left: 5, taken: 15, total: 20 },
+  D: { left: 6, taken: 24, total: 30 },
+  G: { left: 9, taken: 11, total: 20 },
+};
+
+const TARGETS = { goals: 200, assists: 220, ppp: 90, plusMinus: 120, shots: 1400, wins: 30, saves: 900 };
+
+function clamp01(v) { return Math.max(0, Math.min(1, v)); }
+
+// delta = player's rank number minus current pick number.
+// <=0 red (take now/already should be gone), 1-10 orange, 11-20 yellow, 21+ green.
+// Each band gets its own light->dark gradient so magnitude within a band still reads.
+function rankDeltaStyle(delta) {
+  let hue, bandT;
+  if (delta <= 0) { hue = 358; bandT = clamp01((delta + 15) / 15); }
+  else if (delta <= 10) { hue = 24; bandT = clamp01((delta - 1) / 9); }
+  else if (delta <= 20) { hue = 46; bandT = clamp01((delta - 11) / 9); }
+  else { hue = 150; bandT = clamp01((delta - 21) / 29); }
+  const fgL = 58 + bandT * 20;
+  const fgS = 78 - bandT * 15;
+  const bgL = 15 + bandT * 5;
+  const borderL = fgL - 16;
+  return {
+    fg: `hsl(${hue} ${fgS}% ${fgL}%)`,
+    bg: `hsl(${hue} 45% ${bgL}%)`,
+    border: `hsl(${hue} ${fgS}% ${borderL}%)`,
+  };
+}
+
+const GRID_COLUMNS = [
+  { key: 'name', label: 'Name' },
+  { key: 'pos', label: 'Pos' },
+  { key: 'team', label: 'Team' },
+  { key: 'rank', label: 'Rank' },
+  { key: 'adp', label: 'ADP' },
+  { key: 'tier', label: 'Tier' },
+  { key: 'g', label: 'G' },
+  { key: 'a', label: 'A' },
+  { key: 'p', label: 'P' },
+  { key: 'ppp', label: 'PPP' },
+  { key: 'plusMinus', label: '+/-' },
+  { key: 'shots', label: 'Sh' },
+  { key: 'w', label: 'W/GAA/SV' },
+  { key: 'drafted', label: 'Status' },
+];
+
+class Component extends DCLogic {
+  state = {
+    tab: 'warroom',
+    settingsSection: 'yahoo',
+    players: buildPlayers(),
+    expandedPos: { C: 3, LW: 3, RW: 3, D: 3, G: 3 },
+    connectionMode: 'proxy',
+    rosterSlots: { C: 2, LW: 2, RW: 2, D: 4, G: 2, BENCH: 4, IR: 2 },
+    targets: { goals: 200, assists: 220, ppp: 90, plusMinus: 120, shots: 1400, wins: 30, saves: 900 },
+    pollInterval: 8,
+    draftMode: 'auto',
+    notifSound: true,
+    notifDesktop: true,
+    debugFilter: 'all',
+    gridPosFilter: 'ALL',
+    gridSearch: '',
+    gridSort: { col: 'rank', dir: 'asc' },
+    gridDraftedFilter: 'hide',
+  };
+
+  goWarRoom = () => this.setState({ tab: 'warroom' });
+  goPlayers = () => this.setState({ tab: 'players' });
+  goSettings = () => this.setState({ tab: 'settings' });
+
+  setSettingsSection = (s) => this.setState({ settingsSection: s });
+
+  toggleTrack = (id) => this.setState(s => ({ players: s.players.map(p => p.id === id ? { ...p, tracked: !p.tracked } : p) }));
+
+  expandPos = (pos) => this.setState(s => ({ expandedPos: { ...s.expandedPos, [pos]: s.expandedPos[pos] + 2 } }));
+
+  setModeProxy = () => this.setState({ connectionMode: 'proxy' });
+  setModePaste = () => this.setState({ connectionMode: 'pastecode' });
+
+  setRosterSlot = (pos, val) => this.setState(s => ({ rosterSlots: { ...s.rosterSlots, [pos]: val } }));
+  setTarget = (key, val) => this.setState(s => ({ targets: { ...s.targets, [key]: val } }));
+
+  onPollChange = (e) => this.setState({ pollInterval: Number(e.target.value) });
+  setDraftAuto = () => this.setState({ draftMode: 'auto' });
+  setDraftManual = () => this.setState({ draftMode: 'manual' });
+  onToggleSound = () => this.setState(s => ({ notifSound: !s.notifSound }));
+  onToggleDesktop = () => this.setState(s => ({ notifDesktop: !s.notifDesktop }));
+
+  setDebugFilter = (f) => this.setState({ debugFilter: f });
+
+  onPosFilterChange = (e) => this.setState({ gridPosFilter: e.target.value });
+  onDraftedFilterChange = (e) => this.setState({ gridDraftedFilter: e.target.value });
+  onSearchChange = (e) => this.setState({ gridSearch: e.target.value });
+  setGridSort = (col) => this.setState(s => ({
+    gridSort: s.gridSort.col === col ? { col, dir: s.gridSort.dir === 'asc' ? 'desc' : 'asc' } : { col, dir: 'asc' }
+  }));
+  setTier = (id, val) => this.setState(s => ({ players: s.players.map(p => p.id === id ? { ...p, tier: val } : p) }));
+
+  renderVals() {
+    const s = this.state;
+    const { players } = s;
+    const isWarRoom = s.tab === 'warroom';
+    const isPlayers = s.tab === 'players';
+    const isSettings = s.tab === 'settings';
+
+    const navActiveBg = 'background:#1a1e23;';
+    const navIdleBg = '';
+
+    const currentPick = 47;
+    const POS_ORDER = ['C', 'LW', 'RW', 'D', 'G'];
+    const posLanes = POS_ORDER.map(pos => {
+      const avail = players.filter(p => p.pos === pos && !p.drafted).sort((a, b) => a.rank - b.rank);
+      const showCount = s.expandedPos[pos];
+      const shown = avail.slice(0, showCount).map(p => {
+        let contribText = '';
+        if (p.pos === 'G') {
+          contribText = `W${p.w} GAA${p.gaa}`;
+        } else {
+          const bits = [];
+          if (p.g) bits.push(`+${p.g}G`);
+          if (p.ppp) bits.push(`+${p.ppp}PPP`);
+          contribText = bits.join(' ');
+        }
+        const rd = rankDeltaStyle(p.overallRank - currentPick);
+        return {
+          ...p,
+          contribText,
+          contribColor: '#5a6068',
+          rankBg: rd.bg,
+          rankFg: rd.fg,
+          rankBorder: rd.border,
+          trackBg: p.tracked ? '#e0603f' : 'transparent',
+          trackFg: p.tracked ? '#0a0c0f' : '#5a6068',
+          trackBorder: p.tracked ? '#e0603f' : 'rgba(255,255,255,0.15)',
+          trackGlyph: p.tracked ? '\u2605' : '\u2606',
+          onToggleTrack: () => this.toggleTrack(p.id),
+        };
+      });
+      const moreCount = Math.max(0, avail.length - shown.length);
+      const scarcity = SCARCITY[pos];
+      let scarcityBg = '#1e2a20', scarcityFg = '#7fd9a3', scarcityBorder = '#2a4a35';
+      if (scarcity.left <= 3) { scarcityBg = '#3a2020'; scarcityFg = '#e8837a'; scarcityBorder = '#4a2020'; }
+      else if (scarcity.left <= 7) { scarcityBg = '#3a2f18'; scarcityFg = '#f2c34d'; scarcityBorder = '#4a3a22'; }
+      return { pos, shown, moreCount, hasMore: moreCount > 0, scarcity, scarcityBg, scarcityFg, scarcityBorder, onExpand: () => this.expandPos(pos) };
+    });
+
+    const mine = players.filter(p => p.mine);
+    const rosterSlots = [];
+    ['C', 'LW', 'RW', 'D', 'G'].forEach(pos => {
+      const count = s.rosterSlots[pos];
+      const filled = mine.filter(p => p.pos === pos);
+      for (let i = 0; i < count; i++) {
+        const p = filled[i];
+        rosterSlots.push({
+          pos,
+          displayName: p ? p.name : 'empty',
+          nameColor: p ? '#e8eaed' : '#5a6068',
+          g: p ? (p.g ?? '—') : '—',
+          a: p ? (p.a ?? '—') : '—',
+          p: p ? (p.p ?? '—') : '—',
+          ppp: p ? (p.ppp ?? '—') : '—',
+          plusMinus: p ? (p.plusMinus ?? '—') : '—',
+          shots: p ? (p.shots ?? '—') : '—',
+        });
+      }
+    });
+
+    const sumSkater = (key) => mine.filter(p => p.pos !== 'G').reduce((acc, p) => acc + (p[key] || 0), 0);
+    const sumGoalie = (key) => mine.filter(p => p.pos === 'G').reduce((acc, p) => acc + (p[key] || 0), 0);
+    const targetRows = [
+      { label: 'Goals', cur: sumSkater('g'), goal: s.targets.goals },
+      { label: 'Assists', cur: sumSkater('a'), goal: s.targets.assists },
+      { label: 'PPP', cur: sumSkater('ppp'), goal: s.targets.ppp },
+      { label: '+/-', cur: sumSkater('plusMinus'), goal: s.targets.plusMinus },
+      { label: 'Shots', cur: sumSkater('shots'), goal: s.targets.shots },
+      { label: 'Wins', cur: sumGoalie('w'), goal: s.targets.wins },
+      { label: 'Saves', cur: sumGoalie('saves'), goal: s.targets.saves },
+    ].map(t => ({ ...t, pct: Math.min(100, Math.round((t.cur / t.goal) * 100)) }));
+
+    const targetFields = [
+      { key: 'goals', label: 'Goals (skaters)' },
+      { key: 'assists', label: 'Assists (skaters)' },
+      { key: 'ppp', label: 'PPP (skaters)' },
+      { key: 'plusMinus', label: '+/- (skaters)' },
+      { key: 'shots', label: 'Shots (skaters)' },
+      { key: 'wins', label: 'Wins (goalies)' },
+      { key: 'saves', label: 'Saves (goalies)' },
+    ].map(f => ({
+      ...f,
+      value: s.targets[f.key],
+      onChange: (e) => this.setTarget(f.key, Number(e.target.value)),
+    }));
+
+    const scarcityRows = POS_ORDER.map(pos => {
+      const sc = SCARCITY[pos];
+      let leftBg = '#1e2a20', leftFg = '#7fd9a3', leftBorder = '#2a4a35';
+      if (sc.left <= 3) { leftBg = '#3a2020'; leftFg = '#e8837a'; leftBorder = '#4a2020'; }
+      else if (sc.left <= 7) { leftBg = '#3a2f18'; leftFg = '#f2c34d'; leftBorder = '#4a3a22'; }
+      return { pos, left: sc.left, taken: sc.taken, takenPct: Math.round((sc.taken / sc.total) * 100), leftBg, leftFg, leftBorder };
+    });
+
+    const liveFeed = [
+      { pickNum: 46, team: 'Team Bob', playerName: 'Player who was tracked', pos: 'C' },
+      { pickNum: 45, team: 'Team Sue', playerName: FIRST[2] + ' ' + LAST[2], pos: 'RW' },
+      { pickNum: 44, team: 'Ice Breakers', playerName: FIRST[5] + ' ' + LAST[9], pos: 'D' },
+      { pickNum: 43, team: 'Puck Norris', playerName: FIRST[8] + ' ' + LAST[4], pos: 'LW' },
+    ];
+
+    const trackedList = players.filter(p => p.tracked).map(p => ({
+      id: p.id,
+      name: p.name,
+      pos: p.pos,
+      statusText: (p.drafted && !p.mine) ? `Taken by ${p.draftedBy}` : 'Still available',
+      statusColor: (p.drafted && !p.mine) ? '#e8837a' : '#7fd9a3',
+    }));
+
+    // Players grid
+    let gridRows = players.slice();
+    if (s.gridPosFilter !== 'ALL') gridRows = gridRows.filter(p => p.pos === s.gridPosFilter);
+    if (s.gridDraftedFilter === 'hide') gridRows = gridRows.filter(p => !p.drafted || p.mine);
+    if (s.gridSearch) {
+      const q = s.gridSearch.toLowerCase();
+      gridRows = gridRows.filter(p => p.name.toLowerCase().includes(q));
+    }
+    const { col, dir } = s.gridSort;
+    gridRows.sort((a, b) => {
+      let av = a[col], bv = b[col];
+      if (av === null || av === undefined) av = dir === 'asc' ? Infinity : -Infinity;
+      if (bv === null || bv === undefined) bv = dir === 'asc' ? Infinity : -Infinity;
+      if (typeof av === 'string') return dir === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av);
+      return dir === 'asc' ? av - bv : bv - av;
+    });
+    const gridRowCount = gridRows.length;
+    gridRows = gridRows.map((p, i) => ({
+      ...p,
+      wgs: p.pos === 'G' ? `${p.w} / ${p.gaa} / ${p.saves}` : '—',
+      rowBg: i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.015)',
+      draftedText: p.mine ? 'You' : (p.drafted ? p.draftedBy : 'Available'),
+      draftedColor: p.mine ? '#f2c34d' : (p.drafted ? '#5a6068' : '#7fd9a3'),
+      onTierChange: (e) => this.setTier(p.id, Number(e.target.value)),
+    }));
+
+    const gridColumns = GRID_COLUMNS.map(c => ({
+      ...c,
+      sortGlyph: s.gridSort.col === c.key ? (s.gridSort.dir === 'asc' ? ' \u25B2' : ' \u25BC') : '',
+      onClick: () => this.setGridSort(c.key),
+    }));
+
+    // Settings nav
+    const SETTINGS_SECTIONS = [
+      { key: 'yahoo', label: 'Yahoo Connection' },
+      { key: 'league', label: 'League' },
+      { key: 'roster', label: 'Roster' },
+      { key: 'rankings', label: 'Rankings Import' },
+      { key: 'draftday', label: 'Draft-Day Behavior' },
+      { key: 'hosting', label: 'App / Hosting' },
+      { key: 'debug', label: 'Debug Log' },
+    ];
+    const settingsNav = SETTINGS_SECTIONS.map(sec => ({
+      ...sec,
+      bg: s.settingsSection === sec.key ? '#1a1e23' : 'transparent',
+      fg: s.settingsSection === sec.key ? '#e8eaed' : '#8b929c',
+      onClick: () => this.setSettingsSection(sec.key),
+    }));
+
+    const rosterSlotFields = ['C', 'LW', 'RW', 'D', 'G', 'BENCH', 'IR'].map(pos => ({
+      label: pos,
+      value: s.rosterSlots[pos],
+      onChange: (e) => this.setRosterSlot(pos, Number(e.target.value)),
+    }));
+
+    const DEBUG_ROWS_ALL = [
+      { time: '12:04:41', msg: 'GET draftresults · 200 OK · 212ms', status: 'ok', type: 'yahoo' },
+      { time: '12:04:33', msg: 'token refresh · success', status: 'ok', type: 'yahoo' },
+      { time: '12:03:58', msg: 'GET draftresults · 429 rate limited — backing off', status: 'error', type: 'error' },
+      { time: '12:03:41', msg: 'GET draftresults · 200 OK · 198ms', status: 'ok', type: 'yahoo' },
+      { time: '12:02:12', msg: 'rankings import · 612 rows parsed', status: 'ok', type: 'app' },
+      { time: '11:58:04', msg: 'GET leaguesettings · 200 OK · 340ms', status: 'ok', type: 'yahoo' },
+    ];
+    const debugRows = DEBUG_ROWS_ALL.filter(d => s.debugFilter === 'all' || d.type === s.debugFilter).map(d => ({
+      ...d,
+      statusColor: d.status === 'error' ? '#e8837a' : '#7fd9a3',
+      status: d.status === 'error' ? 'ERROR' : 'OK',
+      rowBg: d.type === 'error' ? 'rgba(217,79,79,0.08)' : 'transparent',
+    }));
+    const DEBUG_FILTERS = [
+      { key: 'all', label: 'All' },
+      { key: 'error', label: 'Errors' },
+      { key: 'yahoo', label: 'Yahoo calls' },
+    ];
+    const debugFilters = DEBUG_FILTERS.map(f => ({
+      ...f,
+      bg: s.debugFilter === f.key ? '#e0603f' : '#1a1e23',
+      fg: s.debugFilter === f.key ? '#0a0c0f' : '#8b929c',
+      onClick: () => this.setDebugFilter(f.key),
+    }));
+
+    return {
+      isWarRoom, isPlayers, isSettings,
+      warRoomNavStyle: isWarRoom ? navActiveBg : navIdleBg,
+      playersNavStyle: isPlayers ? navActiveBg : navIdleBg,
+      settingsNavStyle: isSettings ? navActiveBg : navIdleBg,
+      warRoomIconBg: isWarRoom ? '#e0603f' : '#2a2f36',
+      playersIconBg: isPlayers ? '#e0603f' : '#2a2f36',
+      settingsIconBg: isSettings ? '#e0603f' : '#2a2f36',
+      warRoomTextColor: isWarRoom ? '#e8eaed' : '#5a6068',
+      playersTextColor: isPlayers ? '#e8eaed' : '#5a6068',
+      settingsTextColor: isSettings ? '#e8eaed' : '#5a6068',
+      goWarRoom: this.goWarRoom, goPlayers: this.goPlayers, goSettings: this.goSettings,
+
+      pickInfo: { pickNum: currentPick, round: 5, picksUntilMe: 3 },
+      posLanes,
+      rosterSlots,
+      benchCount: s.rosterSlots.BENCH,
+      irCount: s.rosterSlots.IR,
+      targetRows,
+      scarcityRows,
+      liveFeed,
+      trackedList,
+
+      gridRowCount,
+      gridColumns,
+      gridRows,
+      gridPosFilter: s.gridPosFilter,
+      gridDraftedFilter: s.gridDraftedFilter,
+      gridSearch: s.gridSearch,
+      onPosFilterChange: this.onPosFilterChange,
+      onDraftedFilterChange: this.onDraftedFilterChange,
+      onSearchChange: this.onSearchChange,
+
+      settingsNav,
+      isYahooSection: s.settingsSection === 'yahoo',
+      isLeagueSection: s.settingsSection === 'league',
+      isRosterSection: s.settingsSection === 'roster',
+      isRankingsSection: s.settingsSection === 'rankings',
+      isDraftDaySection: s.settingsSection === 'draftday',
+      isHostingSection: s.settingsSection === 'hosting',
+      isDebugSection: s.settingsSection === 'debug',
+
+      redirectUri: s.connectionMode === 'proxy' ? 'https://yourhost.example.com/oauth/callback' : 'https://localhost:8080/oauth/callback (paste code manually)',
+      setModeProxy: this.setModeProxy, setModePaste: this.setModePaste,
+      proxyModeBg: s.connectionMode === 'proxy' ? '#221c14' : '#191d22',
+      proxyModeBorder: s.connectionMode === 'proxy' ? '#e0603f' : 'rgba(255,255,255,0.08)',
+      pasteModeBg: s.connectionMode === 'pastecode' ? '#221c14' : '#191d22',
+      pasteModeBorder: s.connectionMode === 'pastecode' ? '#e0603f' : 'rgba(255,255,255,0.08)',
+
+      rosterSlotFields,
+      targetFields,
+
+      pollInterval: s.pollInterval,
+      onPollChange: this.onPollChange,
+      draftMode: s.draftMode,
+      setDraftAuto: this.setDraftAuto, setDraftManual: this.setDraftManual,
+      autoModeBg: s.draftMode === 'auto' ? '#e0603f' : '#191d22',
+      autoModeFg: s.draftMode === 'auto' ? '#0a0c0f' : '#8b929c',
+      manualModeBg: s.draftMode === 'manual' ? '#e0603f' : '#191d22',
+      manualModeFg: s.draftMode === 'manual' ? '#0a0c0f' : '#8b929c',
+      notifSound: s.notifSound, notifDesktop: s.notifDesktop,
+      onToggleSound: this.onToggleSound, onToggleDesktop: this.onToggleDesktop,
+
+      debugFilters, debugRows,
+    };
+  }
+}
+
+</script>
+</body>
+</html>

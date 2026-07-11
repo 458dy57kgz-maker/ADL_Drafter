@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&family=Architects+Daughter&display=swap" rel="stylesheet">
+<style>
+  body{margin:0;background:#efece5;font-family:'Patrick Hand',cursive;color:#1a1a1a;}
+  .dv-turn{padding:44px 48px 36px;border-bottom:2px dashed rgba(0,0,0,.15);}
+  .dv-thd{display:flex;align-items:baseline;gap:12px;margin:0 0 24px;}
+  .dv-tid{font:700 13px/1 'Patrick Hand',cursive;padding:5px 10px;background:#1a1a1a;color:#fff;border-radius:5px;text-decoration:none;}
+  .dv-tname{font:600 20px/1.2 'Patrick Hand',cursive;}
+  .dv-opts{display:flex;flex-wrap:wrap;gap:36px;align-items:flex-start;}
+  .dv-opt{flex:none;display:flex;flex-direction:column;gap:10px;}
+  .dv-oid{font:700 15px/1 'Patrick Hand',cursive;padding:4px 10px;background:rgba(0,0,0,.1);border-radius:6px;text-decoration:none;color:#1a1a1a;}
+  .dv-olabel{display:flex;align-items:baseline;gap:8px;font:18px 'Patrick Hand',cursive;color:rgba(0,0,0,.6);}
+  .dv-card{background:#fdfcf8;border:2.5px solid #1a1a1a;border-radius:3px;box-shadow:4px 4px 0 rgba(0,0,0,.15);overflow:hidden;}
+  .dv-opt:target .dv-oid{background:#c0392b;color:#fff;}
+  .dv-next{margin:26px 0 0;font:18px/1.5 'Patrick Hand',cursive;color:rgba(0,0,0,.55);}
+  .box{border:2px solid #1a1a1a;border-radius:2px;padding:6px 8px;background:#fff;}
+  .dash{border:2px dashed #888;border-radius:2px;padding:6px 8px;background:transparent;}
+  .tag{font-size:13px;border:1.5px solid #1a1a1a;border-radius:10px;padding:1px 7px;display:inline-block;}
+  .hot{background:#e8b4ab;border-color:#c0392b;}
+  .warm{background:#f0d9a8;border-color:#b8860b;}
+  .cool{background:#dfe8dc;border-color:#4a7a4a;}
+  .accent{background:#c0392b;color:#fff;border-color:#c0392b;}
+  .scribble{color:rgba(0,0,0,.35);font-size:13px;}
+  h3{font:700 17px 'Patrick Hand',cursive;margin:0 0 6px;}
+  .row{display:flex;gap:8px;align-items:center;}
+  .col{display:flex;flex-direction:column;gap:8px;}
+  table{border-collapse:collapse;width:100%;font-family:'Patrick Hand',cursive;}
+  th,td{border:1.5px solid #1a1a1a;padding:4px 8px;font-size:14px;text-align:left;}
+  th{background:#eee;}
+  th.editable, td.editable{background:#fdf6e3;}
+</style>
+</helmet>
+
+<section class="dv-turn" id="t1">
+  <div class="dv-thd"><a class="dv-tid" href="#t1">1</a><span class="dv-tname">New page — full player data grid (excel-like: sortable, filterable, editable)</span></div>
+  <div class="dv-opts">
+
+    <div class="dv-opt" id="1a">
+      <div class="dv-olabel"><a class="dv-oid" href="#1a">1a</a>Classic grid, frozen name/pos, header sort+filter, column manager left drawer</div>
+      <div class="dv-card" style="width:1360px;height:820px;padding:0;box-sizing:border-box;">
+        <div class="row" style="justify-content:space-between;padding:10px 16px;border-bottom:2px solid #1a1a1a;">
+          <div class="row"><h3 style="margin:0;">Players — Full Data</h3><span class="scribble">612 rows · 140 cols</span></div>
+          <div class="row"><span class="box">🔍 search player</span><span class="tag">unsaved edits: 3</span><button class="box accent">save</button><button class="box">export CSV</button></div>
+        </div>
+        <div class="row" style="align-items:stretch;height:calc(100% - 52px);">
+          <div class="col box" style="width:200px;border-radius:0;overflow:auto;">
+            <h3>Columns</h3>
+            <div class="scribble">drag to reorder, check to show</div>
+            <div>☑ Name</div><div>☑ Pos</div><div>☑ Team</div><div>☑ Rank</div><div>☑ Tier</div><div>☑ G A P PPP +/- Sh</div><div>☐ Faceoff%</div><div>☐ TOI</div><div>☐ Hits</div><div class="scribble">…130 more, grouped by category</div>
+          </div>
+          <div class="col" style="flex:1;overflow:auto;padding:8px;">
+            <table>
+              <tr><th>Name ▾filter</th><th>Pos ▾</th><th>Team</th><th>Rank ▾sort</th><th>Tier</th><th>G</th><th>A</th><th>P</th><th>PPP</th><th>+/-</th><th>Sh</th></tr>
+              <tr><td>Player A</td><td>C</td><td>TOR</td><td>12</td><td class="editable">1 ✎</td><td>22</td><td>18</td><td>40</td><td>6</td><td>+12</td><td>140</td></tr>
+              <tr><td>Player B</td><td>RW</td><td>EDM</td><td>14</td><td class="editable">1 ✎</td><td>20</td><td>25</td><td>45</td><td>5</td><td>+8</td><td>150</td></tr>
+              <tr><td>Player C</td><td>D</td><td>COL</td><td>15</td><td class="editable">2 ✎</td><td>8</td><td>28</td><td>36</td><td>4</td><td>+15</td><td>130</td></tr>
+              <tr><td class="scribble" colspan="11">…row edits inline (double-click cell), tier/notes columns are the ones you actually edit; stat columns read-only from import</td></tr>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="dv-opt" id="1b">
+      <div class="dv-olabel"><a class="dv-oid" href="#1b">1b</a>Toolbar filters (chips) above grid, no side drawer — column manager as modal</div>
+      <div class="dv-card" style="width:1300px;height:800px;padding:14px;box-sizing:border-box;">
+        <div class="row" style="justify-content:space-between;margin-bottom:8px;">
+          <h3 style="margin:0;">Players — Full Data</h3>
+          <div class="row"><button class="box">⚙ manage columns</button><button class="box accent">save</button></div>
+        </div>
+        <div class="row" style="margin-bottom:8px;">
+          <span class="tag">Pos: All ▾</span><span class="tag">Team: All ▾</span><span class="tag">Tier: All ▾</span><span class="tag">Drafted: hide ▾</span><span class="box">🔍 search</span>
+        </div>
+        <table>
+          <tr><th>Name</th><th>Pos</th><th>Rank</th><th>Tier</th><th>G</th><th>A</th><th>P</th><th>PPP</th><th>+/-</th><th>Sh</th></tr>
+          <tr><td>Player A</td><td>C</td><td>12</td><td class="editable">1</td><td>22</td><td>18</td><td>40</td><td>6</td><td>+12</td><td>140</td></tr>
+          <tr><td>Player B</td><td>RW</td><td>14</td><td class="editable">1</td><td>20</td><td>25</td><td>45</td><td>5</td><td>+8</td><td>150</td></tr>
+        </table>
+        <div class="scribble" style="margin-top:8px;">click any header to sort, click filter chip to narrow; edit only unlocked (yellow) cells</div>
+      </div>
+    </div>
+
+    <div class="dv-opt" id="1c">
+      <div class="dv-olabel"><a class="dv-oid" href="#1c">1c</a>Split: category tabs across top (Bio/Scoring/Advanced/PP/PK/Goalie) narrow the columns shown</div>
+      <div class="dv-card" style="width:1300px;height:800px;padding:14px;box-sizing:border-box;">
+        <div class="row" style="justify-content:space-between;margin-bottom:8px;">
+          <h3 style="margin:0;">Players — Full Data</h3>
+          <div class="row"><span class="box">🔍</span><button class="box accent">save</button></div>
+        </div>
+        <div class="row" style="margin-bottom:8px;">
+          <span class="box accent">Scoring</span><span class="box">Bio</span><span class="box">Advanced</span><span class="box">PP/PK</span><span class="box">Goalie</span><span class="box">My Rankings</span>
+        </div>
+        <table>
+          <tr><th>Name</th><th>Pos</th><th>G</th><th>A</th><th>P</th><th>PPP</th><th>+/-</th><th>Sh</th><th>Sh%</th></tr>
+          <tr><td>Player A</td><td>C</td><td>22</td><td>18</td><td>40</td><td>6</td><td>+12</td><td>140</td><td>15.7%</td></tr>
+          <tr><td>Player B</td><td>RW</td><td>20</td><td>25</td><td>45</td><td>5</td><td>+8</td><td>150</td><td>13.3%</td></tr>
+        </table>
+        <div class="scribble" style="margin-top:8px;">tabs swap the visible column set instead of a checklist — fewer clicks day-to-day, "My Rankings" tab is the editable rank/tier/notes view</div>
+      </div>
+    </div>
+
+  </div>
+  <p class="dv-next">Try next: "go with <a class="dv-oid" href="#1a">1a</a>'s column drawer" · "like <a class="dv-oid" href="#1c">1c</a>'s tabs better" · "move to hi-fi build"</p>
+</section>
+
+</x-dc>
+</body>
+</html>

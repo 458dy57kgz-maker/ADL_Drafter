@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&family=Architects+Daughter&display=swap" rel="stylesheet">
+<style>
+  body{margin:0;background:#efece5;font-family:'Patrick Hand',cursive;color:#1a1a1a;}
+  .dv-turn{padding:44px 48px 36px;border-bottom:2px dashed rgba(0,0,0,.15);}
+  .dv-thd{display:flex;align-items:baseline;gap:12px;margin:0 0 24px;}
+  .dv-tid{font:700 13px/1 'Patrick Hand',cursive;padding:5px 10px;background:#1a1a1a;color:#fff;border-radius:5px;text-decoration:none;}
+  .dv-tname{font:600 20px/1.2 'Patrick Hand',cursive;}
+  .dv-opts{display:flex;flex-wrap:wrap;gap:36px;align-items:flex-start;}
+  .dv-opt{flex:none;display:flex;flex-direction:column;gap:10px;}
+  .dv-oid{font:700 15px/1 'Patrick Hand',cursive;padding:4px 10px;background:rgba(0,0,0,.1);border-radius:6px;text-decoration:none;color:#1a1a1a;}
+  .dv-olabel{display:flex;align-items:baseline;gap:8px;font:18px 'Patrick Hand',cursive;color:rgba(0,0,0,.6);}
+  .dv-card{background:#fdfcf8;border:2.5px solid #1a1a1a;border-radius:3px;box-shadow:4px 4px 0 rgba(0,0,0,.15);overflow:hidden;}
+  .dv-opt:target .dv-oid{background:#c0392b;color:#fff;}
+  .dv-next{margin:26px 0 0;font:18px/1.5 'Patrick Hand',cursive;color:rgba(0,0,0,.55);}
+  .box{border:2px solid #1a1a1a;border-radius:2px;padding:6px 8px;background:#fff;}
+  .dash{border:2px dashed #888;border-radius:2px;padding:6px 8px;background:transparent;}
+  .tag{font-size:13px;border:1.5px solid #1a1a1a;border-radius:10px;padding:1px 7px;display:inline-block;}
+  .hot{background:#e8b4ab;border-color:#c0392b;}
+  .warm{background:#f0d9a8;border-color:#b8860b;}
+  .cool{background:#dfe8dc;border-color:#4a7a4a;}
+  .accent{background:#c0392b;color:#fff;border-color:#c0392b;}
+  .scribble{color:rgba(0,0,0,.35);font-size:13px;}
+  h3{font:700 17px 'Patrick Hand',cursive;margin:0 0 6px;}
+  .row{display:flex;gap:8px;align-items:center;}
+  .col{display:flex;flex-direction:column;gap:8px;}
+  .navitem{padding:8px 10px;border-radius:4px;}
+  .navitem.active{background:#1a1a1a;color:#fff;}
+</style>
+</helmet>
+
+<section class="dv-turn" id="t1">
+  <div class="dv-thd"><a class="dv-tid" href="#t1">1</a><span class="dv-tname">Settings tab — nav shell + Yahoo wizard detail, 2 nav directions</span></div>
+  <div class="dv-opts">
+
+    <div class="dv-opt" id="1a">
+      <div class="dv-olabel"><a class="dv-oid" href="#1a">1a</a>Left sidebar sections, Yahoo wizard shown</div>
+      <div class="dv-card" style="width:1300px;height:860px;padding:0;box-sizing:border-box;">
+        <div class="row" style="height:100%;align-items:stretch;">
+          <div class="col box" style="width:220px;border-radius:0;">
+            <h3>Settings</h3>
+            <div class="navitem active">① Yahoo Connection</div>
+            <div class="navitem">② League</div>
+            <div class="navitem">③ Roster Structure</div>
+            <div class="navitem">④ Rankings Import</div>
+            <div class="navitem">⑤ Draft-Day Behavior</div>
+            <div class="navitem">⑥ App / Hosting</div>
+            <div class="navitem">⑦ Debug Log</div>
+          </div>
+          <div class="col" style="flex:1;padding:14px;overflow:auto;">
+            <div class="row" style="justify-content:space-between;">
+              <h3 style="font-size:22px;">① Yahoo Connection</h3>
+              <span class="box cool">● Connected as jsmith_fantasy</span>
+            </div>
+            <div class="box" style="margin-bottom:8px;">
+              <div class="scribble">Status readout</div>
+              <div class="dash">Last successful call: 12s ago &nbsp; Auto-refresh: <span class="tag cool">healthy</span> &nbsp; Token expires in 47min</div>
+              <button class="box" style="margin-top:6px;">Reconnect</button>
+            </div>
+            <div class="box">
+              <h3>Guided setup (wizard, one step visible at a time)</h3>
+              <div class="dash">Step 1 — Enter Client ID / Client Secret <span class="scribble">(from developer.yahoo.com)</span></div>
+              <div class="dash">Step 2 — Choose connection mode:
+                <div class="row" style="margin-top:4px;">
+                  <div class="box" style="width:48%;">○ I have a domain / reverse proxy → standard HTTPS redirect<br><span class="scribble">shows redirect URI to paste into Yahoo app, "test redirect" button</span></div>
+                  <div class="box" style="width:48%;">● No public HTTPS → paste-the-code fallback<br><span class="scribble">shows local redirect URI + manual code paste field, big "Paste code here" box</span></div>
+                </div>
+              </div>
+              <div class="dash">Step 3 — Authorize in Yahoo (opens popup/new tab) → paste/receive code → ✓ Connected</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="dv-opt" id="1b">
+      <div class="dv-olabel"><a class="dv-oid" href="#1b">1b</a>Top tabs, single-scroll wizard card centered</div>
+      <div class="dv-card" style="width:1300px;height:860px;padding:14px;box-sizing:border-box;">
+        <div class="row" style="gap:6px;margin-bottom:10px;">
+          <div class="box accent">Yahoo</div><div class="box">League</div><div class="box">Roster</div><div class="box">Rankings</div><div class="box">Draft-Day</div><div class="box">App/Hosting</div>
+        </div>
+        <div class="col box" style="align-items:center;padding:20px;">
+          <div class="box cool" style="align-self:flex-start;">● Connected as jsmith_fantasy — token expires 47min — last call 12s ago</div>
+          <div class="box" style="width:640px;margin-top:10px;">
+            <h3 style="text-align:center;">Step 2 of 3 — Redirect mode</h3>
+            <div class="row">
+              <div class="dash" style="width:48%;">Have HTTPS/domain? <br>redirect URI: <span class="scribble">https://yourhost/oauth/cb</span> [copy]</div>
+              <div class="dash" style="width:48%;">No public HTTPS?<br>paste-the-code fallback, local URI shown</div>
+            </div>
+            <div class="row" style="justify-content:center;margin-top:8px;"><button class="box">back</button><button class="box accent">continue</button></div>
+          </div>
+          <div class="scribble" style="margin-top:10px;">● step 1 ○ step 2 ○ step 3 — progress dots</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  <p class="dv-next">Try next: "go with <a class="dv-oid" href="#1a">1a</a> sidebar" · "show League panel with Start New Season" · "show Rankings import + fuzzy match screen"</p>
+</section>
+
+<section class="dv-turn" id="t2">
+  <div class="dv-thd"><a class="dv-tid" href="#t2">2</a><span class="dv-tname">Remaining sections — League, Roster, Rankings/matching, Draft-Day, Hosting</span></div>
+  <div class="dv-opts">
+
+    <div class="dv-opt" id="2a">
+      <div class="dv-olabel"><a class="dv-oid" href="#2a">2a</a>League panel</div>
+      <div class="dv-card" style="width:640px;padding:14px;box-sizing:border-box;">
+        <h3>② League <span class="scribble">renews each season</span></h3>
+        <div class="dash">League ID: 123456 &nbsp; <span class="scribble">(from league URL)</span></div>
+        <div class="dash">Game key / season: 2026 (nhl) &nbsp; <button class="box">refresh ⟳</button></div>
+        <div class="dash">Team count: 10 &nbsp; My team: <span class="tag">picker ▾ "J's Juggernauts"</span></div>
+        <button class="box accent" style="margin-top:10px;">⟳ Start New Season — re-pulls league, archives last draft</button>
+      </div>
+    </div>
+
+    <div class="dv-opt" id="2b">
+      <div class="dv-olabel"><a class="dv-oid" href="#2b">2b</a>Roster structure</div>
+      <div class="dv-card" style="width:520px;padding:14px;box-sizing:border-box;">
+        <h3>③ Roster Structure <span class="scribble">fetched from Yahoo, editable</span></h3>
+        <div class="dash">C: [2] &nbsp; LW: [2] &nbsp; RW: [2]</div>
+        <div class="dash">D: [4] &nbsp; G: [2]</div>
+        <div class="dash">Bench: [4] &nbsp; IR: [2]</div>
+        <button class="box">reset to Yahoo defaults</button>
+      </div>
+    </div>
+
+    <div class="dv-opt" id="2c">
+      <div class="dv-olabel"><a class="dv-oid" href="#2c">2c</a>Rankings import + fuzzy-match review</div>
+      <div class="dv-card" style="width:760px;padding:14px;box-sizing:border-box;">
+        <h3>④ Rankings Import</h3>
+        <div class="dash">Upload CSV / paste from Google Sheet &nbsp; <button class="box">choose file</button></div>
+        <div class="dash">Column mapping: name→col A, position→col B, rank/score→col C, tier→col D</div>
+        <h3 style="margin-top:10px;">Alias / Exceptions table</h3>
+        <div class="dash">"Mitchell Marner" → "Mitch Marner" &nbsp; [edit] [+add row]</div>
+        <h3 style="margin-top:10px;">Unmatched at import <span class="tag hot">6</span></h3>
+        <div class="dash">"Alexandre Texier" — no Yahoo match — <span class="tag">suggest: Alex Texier ✓/✗</span></div>
+        <div class="dash">"Tim Stuetzle" — <span class="tag">suggest: Tim Stützle ✓/✗</span></div>
+        <div class="scribble">…review each, confirm or map manually, saves as new alias</div>
+      </div>
+    </div>
+
+    <div class="dv-opt" id="2d">
+      <div class="dv-olabel"><a class="dv-oid" href="#2d">2d</a>Draft-day behavior</div>
+      <div class="dv-card" style="width:480px;padding:14px;box-sizing:border-box;">
+        <h3>⑤ Draft-Day Behavior</h3>
+        <div class="dash">Polling interval: <span class="scribble">[=====slider=====] 8s</span></div>
+        <div class="dash">◉ Auto-detect draft start &nbsp; ○ Manual "Go Live" toggle</div>
+        <div class="dash">☑ Sound when pick approaches &nbsp; ☑ Desktop notification</div>
+      </div>
+    </div>
+
+    <div class="dv-opt" id="2e">
+      <div class="dv-olabel"><a class="dv-oid" href="#2e">2e</a>App / Hosting</div>
+      <div class="dv-card" style="width:480px;padding:14px;box-sizing:border-box;">
+        <h3>⑥ App / Hosting</h3>
+        <div class="dash">Leagues: <span class="tag">My League 2026 ▾</span> <button class="box">+ add league</button></div>
+        <div class="dash">Timezone: America/Toronto ▾</div>
+        <div class="dash">Data: <button class="box">export all</button> <button class="box">reset app</button></div>
+      </div>
+    </div>
+
+    <div class="dv-opt" id="2f">
+      <div class="dv-olabel"><a class="dv-oid" href="#2f">2f</a>Debug log</div>
+      <div class="dv-card" style="width:640px;padding:14px;box-sizing:border-box;">
+        <h3>⑦ Debug Log <span class="scribble">live feed of API calls / errors, for connection confidence</span></h3>
+        <div class="row" style="justify-content:space-between;margin-bottom:6px;">
+          <span class="box cool">● all systems ok</span>
+          <div class="row"><span class="tag">filter: All / Errors / Yahoo calls</span><button class="box">clear</button><button class="box">copy log</button></div>
+        </div>
+        <div class="dash scribble" style="font-family:monospace;">12:04:41 &nbsp;GET draftresults &nbsp;200 OK &nbsp;(212ms)</div>
+        <div class="dash scribble" style="font-family:monospace;">12:04:33 &nbsp;token refresh &nbsp;<span class="tag cool">success</span></div>
+        <div class="dash" style="font-family:monospace;">12:03:58 &nbsp;GET draftresults &nbsp;<span class="tag hot">429 rate limited</span> — backing off</div>
+        <div class="scribble">…scrolling list, newest on top, red rows = errors, timestamps + endpoint + status + latency</div>
+      </div>
+    </div>
+
+  </div>
+  <p class="dv-next">Try next: "pick <a class="dv-oid" href="#1a">1a</a> as the settings shell" · "flesh out <a class="dv-oid" href="#2c">2c</a> matcher more" · "move to polish/hi-fi pass"</p>
+</section>
+
+</x-dc>
+</body>
+</html>

@@ -1,0 +1,17 @@
+services:
+  adl-drafter:
+    build: .
+    image: adl-drafter:latest
+    container_name: adl-drafter
+    restart: unless-stopped
+    ports:
+      - "4000:4000"
+    volumes:
+      - adl-drafter-data:/app/data
+    environment:
+      - NODE_ENV=production
+      - PORT=4000
+      - DATA_DIR=/app/data
+
+volumes:
+  adl-drafter-data:

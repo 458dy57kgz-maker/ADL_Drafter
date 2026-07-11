@@ -1,0 +1,25 @@
+export function mapPlayerRow(row) {
+  return {
+    id: row.id,
+    name: row.name,
+    pos: row.pos,
+    team: row.team,
+    rank: row.rank,
+    overallRank: row.overall_rank,
+    adp: row.adp,
+    tier: row.tier,
+    g: row.g,
+    a: row.a,
+    p: row.p,
+    ppp: row.ppp,
+    plusMinus: row.plus_minus,
+    shots: row.shots,
+    w: row.w,
+    gaa: row.gaa,
+    saves: row.saves,
+    drafted: !!row.drafted,
+    draftedBy: row.drafted_by,
+    mine: !!row.mine,
+    tracked: !!row.tracked,
+  };
+}
