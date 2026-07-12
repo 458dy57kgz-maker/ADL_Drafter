@@ -55,7 +55,8 @@ design/            Original design handoff (reference only, not shipped)
 
 ## Status / next steps
 
-- [ ] Real Yahoo OAuth2 (`server/src/routes/yahoo.js` is currently a stub)
+- [x] Real Yahoo OAuth2 for reverse-proxy mode (`server/src/routes/yahoo.js`) — authorize/callback/refresh all hit Yahoo for real
+- [ ] Paste-the-code fallback mode (no public HTTPS) — UI exists but is explicitly marked unbuilt; Yahoo's oob/manual-code support isn't confirmed yet
 - [ ] Live draft polling job replacing the mock `draft_picks` seed
 - [ ] Real rankings CSV/Google-Sheet import (basic name-matching is wired; fuzzy suggestions are not yet auto-generated)
 - [ ] "Manage Columns" and CSV column-mapping UI are visual-only so far
