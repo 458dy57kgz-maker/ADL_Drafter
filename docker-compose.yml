@@ -5,7 +5,9 @@ services:
     container_name: adl-drafter
     restart: unless-stopped
     ports:
-      - "4000:4000"
+      # Bound to localhost only — reachable via `tailscale serve` (Tailscale
+      # HTTPS on 443) or an SSH tunnel, not directly over the LAN unencrypted.
+      - "127.0.0.1:4000:4000"
     volumes:
       - adl-drafter-data:/app/data
     environment:
