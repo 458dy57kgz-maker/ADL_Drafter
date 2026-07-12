@@ -48,10 +48,13 @@ const DEFAULT_SETTINGS = {
     connected: false,
     username: null,
     connectionMode: 'proxy',
-    redirectUri: 'https://your-domain/api/yahoo/callback',
+    publicUrl: '', // e.g. https://adldrafter.example.com — set before authorizing
+    clientId: '',
+    clientSecret: '',
+    accessToken: null,
+    refreshToken: null,
+    tokenExpiresAt: null, // epoch ms
     lastCall: null,
-    refreshHealthy: false,
-    expiresIn: null,
   },
 };
 
