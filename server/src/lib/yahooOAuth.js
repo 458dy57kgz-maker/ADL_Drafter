@@ -4,7 +4,12 @@
 
 const AUTHORIZE_URL = 'https://api.login.yahoo.com/oauth2/request_auth';
 const TOKEN_URL = 'https://api.login.yahoo.com/oauth2/get_token';
-const USERINFO_URL = 'https://api.login.yahoo.com/openid/v1/userinfo';
+// This app's Yahoo app registration only requests Fantasy Sports Read
+// access, not OpenID/profile scope — the generic /openid/v1/userinfo
+// endpoint 403s for that token regardless of validity. Use the Fantasy
+// Sports API itself both to identify the account and to verify the token,
+// since that's the scope actually granted and the API this app depends on.
+const FANTASY_USERS_URL = 'https://fantasysports.yahooapis.com/fantasy/v2/users;use_login=1/games?format=json';
 
 export function buildAuthorizeUrl({ clientId, redirectUri, state }) {
   const url = new URL(AUTHORIZE_URL);
@@ -54,19 +59,28 @@ export function refreshAccessToken({ clientId, clientSecret, refreshToken, redir
   );
 }
 
-export async function fetchYahooProfile(accessToken) {
-  const res = await fetch(USERINFO_URL, { headers: { Authorization: `Bearer ${accessToken}` } });
-  if (!res.ok) return null;
-  const profile = await res.json();
-  return profile.nickname || profile.given_name || profile.name || null;
+// The Fantasy Sports "users" resource doesn't expose a friendly display
+// name (that requires drilling into a specific league's team/manager data)
+// — the GUID is the only identifier reliably available here, but it's a
+// real per-account value rather than a hardcoded fallback string.
+async function fetchYahooFantasyIdentity(accessToken) {
+  const res = await fetch(FANTASY_USERS_URL, { headers: { Authorization: `Bearer ${accessToken}` } });
+  if (!res.ok) return { ok: false, status: res.status, statusText: res.statusText };
+  const json = await res.json();
+  const guid = json?.fantasy_content?.users?.['0']?.user?.[0]?.guid ?? null;
+  return { ok: true, guid };
 }
 
-// Live check against Yahoo, distinct from fetchYahooProfile: it surfaces the
-// actual HTTP status instead of collapsing every failure to null, so a
-// "Verify" click can tell the user the token is genuinely rejected (401)
-// rather than just re-displaying the locally-cached expiry math.
+export async function fetchYahooUsername(accessToken) {
+  const identity = await fetchYahooFantasyIdentity(accessToken);
+  return identity.ok && identity.guid ? `Yahoo account •••${identity.guid.slice(-6)}` : null;
+}
+
+// Live check against Yahoo, surfacing the actual HTTP status so a "Verify"
+// click can tell the user the token is genuinely rejected rather than just
+// re-displaying the locally-cached expiry math.
 export async function verifyAccessToken(accessToken) {
-  const res = await fetch(USERINFO_URL, { headers: { Authorization: `Bearer ${accessToken}` } });
-  if (res.ok) return { ok: true };
-  return { ok: false, status: res.status, statusText: res.statusText };
+  const identity = await fetchYahooFantasyIdentity(accessToken);
+  if (identity.ok) return { ok: true };
+  return { ok: false, status: identity.status, statusText: identity.statusText };
 }

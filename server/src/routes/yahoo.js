@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import crypto from 'node:crypto';
 import { getSetting, setSetting, logDebug } from '../db/index.js';
-import { buildAuthorizeUrl, exchangeCodeForToken, refreshAccessToken, fetchYahooProfile, verifyAccessToken } from '../lib/yahooOAuth.js';
+import { buildAuthorizeUrl, exchangeCodeForToken, refreshAccessToken, fetchYahooUsername, verifyAccessToken } from '../lib/yahooOAuth.js';
 
 export const yahooRouter = Router();
 
@@ -134,7 +134,7 @@ yahooRouter.get('/callback', async (req, res) => {
       code,
       redirectUri,
     });
-    const username = await fetchYahooProfile(token.access_token);
+    const username = await fetchYahooUsername(token.access_token);
     setSetting('yahoo', {
       connected: true,
       username: username || 'Yahoo user',
