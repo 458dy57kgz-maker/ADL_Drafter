@@ -15,7 +15,10 @@ const PORT = process.env.PORT || 4000;
 
 const app = express();
 app.use(cors());
-app.use(express.json());
+// Default express.json() limit is 100kb — a full real player database
+// (hundreds of rows x 15 stat columns, sent as JSON from Replace Player
+// List) blows past that easily and 413s.
+app.use(express.json({ limit: '10mb' }));
 
 app.use('/api/players', playersRouter);
 app.use('/api/draft', draftRouter);

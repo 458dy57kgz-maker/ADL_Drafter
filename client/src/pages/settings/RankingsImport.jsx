@@ -2,22 +2,29 @@ import { useEffect, useRef, useState } from 'react';
 import { api } from '../../lib/api.js';
 import { parseCSV, guessColumn } from '../../lib/parseCsv.js';
 
+// Synonyms are tried as an exact header match first, in order — the
+// short/ambiguous-looking ones (e.g. 'p_g', 'p_a') are safe there since
+// exact match never risks grabbing the wrong column the way a substring
+// scan would. These specific codes match this app's recurring rankings
+// export (LWLRANK/PLAYER/TEAM/YPOS/YADP/P_G/P_A/P_PTS/P_PPG/P_SOG/P_W/
+// P_SV/P_GAA) so that file auto-maps correctly every time without
+// re-mapping by hand.
 const REPLACE_FIELDS = [
   { key: 'name', label: 'Player name', synonyms: ['name', 'player'], required: true },
-  { key: 'pos', label: 'Position (e.g. "C" or "C,LW" / "C/LW" for dual-eligible)', synonyms: ['pos', 'position'], required: true },
+  { key: 'pos', label: 'Position (e.g. "C" or "C,LW" / "C/LW" for dual-eligible)', synonyms: ['pos', 'position', 'ypos'], required: true },
   { key: 'team', label: 'Team', synonyms: ['team', 'tm', 'club'], required: false },
-  { key: 'rank', label: 'Overall rank (blank = keep file order)', synonyms: ['rank', 'overall', 'ovr', '#'], required: false, type: 'int' },
-  { key: 'adp', label: 'ADP', synonyms: ['adp'], required: false, type: 'int' },
+  { key: 'rank', label: 'Overall rank (blank = keep file order)', synonyms: ['rank', 'overall', 'ovr', '#', 'lwlrank'], required: false, type: 'int' },
+  { key: 'adp', label: 'ADP', synonyms: ['adp', 'yadp'], required: false, type: 'int' },
   { key: 'tier', label: 'Tier', synonyms: ['tier'], required: false, type: 'int' },
-  { key: 'g', label: 'Goals', synonyms: ['g', 'goals'], required: false, type: 'int' },
-  { key: 'a', label: 'Assists', synonyms: ['a', 'assists'], required: false, type: 'int' },
-  { key: 'p', label: 'Points', synonyms: ['p', 'pts', 'points'], required: false, type: 'int' },
-  { key: 'ppp', label: 'Power-play points', synonyms: ['ppp', 'power play points'], required: false, type: 'int' },
+  { key: 'g', label: 'Goals', synonyms: ['g', 'goals', 'p_g'], required: false, type: 'int' },
+  { key: 'a', label: 'Assists', synonyms: ['a', 'assists', 'p_a'], required: false, type: 'int' },
+  { key: 'p', label: 'Points', synonyms: ['p', 'pts', 'points', 'p_pts'], required: false, type: 'int' },
+  { key: 'ppp', label: 'Power-play points', synonyms: ['ppp', 'power play points', 'p_ppg'], required: false, type: 'int' },
   { key: 'plusMinus', label: '+/-', synonyms: ['+/-', 'plusminus', 'plus/minus'], required: false, type: 'int' },
-  { key: 'shots', label: 'Shots', synonyms: ['shots', 'sog'], required: false, type: 'int' },
-  { key: 'w', label: 'Wins (goalies)', synonyms: ['w', 'wins'], required: false, type: 'int' },
-  { key: 'gaa', label: 'GAA (goalies)', synonyms: ['gaa'], required: false, type: 'float' },
-  { key: 'saves', label: 'Saves (goalies)', synonyms: ['saves', 'sv'], required: false, type: 'int' },
+  { key: 'shots', label: 'Shots', synonyms: ['shots', 'sog', 'p_sog'], required: false, type: 'int' },
+  { key: 'w', label: 'Wins (goalies)', synonyms: ['w', 'wins', 'p_w'], required: false, type: 'int' },
+  { key: 'gaa', label: 'GAA (goalies)', synonyms: ['gaa', 'p_gaa'], required: false, type: 'float' },
+  { key: 'saves', label: 'Saves (goalies)', synonyms: ['saves', 'sv', 'p_sv'], required: false, type: 'int' },
 ];
 
 const RANKINGS_FIELDS = [
