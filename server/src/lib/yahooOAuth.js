@@ -60,3 +60,13 @@ export async function fetchYahooProfile(accessToken) {
   const profile = await res.json();
   return profile.nickname || profile.given_name || profile.name || null;
 }
+
+// Live check against Yahoo, distinct from fetchYahooProfile: it surfaces the
+// actual HTTP status instead of collapsing every failure to null, so a
+// "Verify" click can tell the user the token is genuinely rejected (401)
+// rather than just re-displaying the locally-cached expiry math.
+export async function verifyAccessToken(accessToken) {
+  const res = await fetch(USERINFO_URL, { headers: { Authorization: `Bearer ${accessToken}` } });
+  if (res.ok) return { ok: true };
+  return { ok: false, status: res.status, statusText: res.statusText };
+}

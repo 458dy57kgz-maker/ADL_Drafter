@@ -10,7 +10,12 @@ export const leagueRouter = Router();
 // re-pulls fresh league/team/player data. Real Yahoo integration will
 // replace buildMockPlayers() with actual API calls; the archive + reset
 // sequencing stays the same.
+//
+// leagueId/season come from the League settings screen, which the operator
+// edits directly — this route no longer silently bumps the season year on
+// every click, since that left no way to go back to an earlier season.
 leagueRouter.post('/new-season', (req, res) => {
+  const { leagueId, season } = req.body || {};
   const archiveTable = `draft_picks_archive_${Date.now()}`;
   db.exec(`CREATE TABLE "${archiveTable}" AS SELECT * FROM draft_picks`);
 
@@ -28,9 +33,15 @@ leagueRouter.post('/new-season', (req, res) => {
   });
   insertMany(players);
 
-  const league = getSetting('league');
-  setSetting('league', { season: `${Number(league.season.slice(0, 4)) + 1} (nhl)` });
+  const patch = {};
+  if (leagueId && leagueId.trim()) patch.leagueId = leagueId.trim();
+  if (season && season.trim()) patch.season = season.trim();
+  const league = Object.keys(patch).length ? setSetting('league', patch) : getSetting('league');
 
-  logDebug(`New season started — previous draft archived to ${archiveTable}`, 'OK', 'app');
-  res.json({ archived: archiveTable, playerCount: players.length });
+  logDebug(
+    `New season started (league ${league.leagueId}, season ${league.season}) — previous draft archived to ${archiveTable}`,
+    'OK',
+    'app'
+  );
+  res.json({ archived: archiveTable, playerCount: players.length, league });
 });

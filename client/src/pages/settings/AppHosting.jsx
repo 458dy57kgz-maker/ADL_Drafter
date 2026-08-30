@@ -4,10 +4,35 @@ import { api } from '../../lib/api.js';
 export default function AppHosting() {
   const [settings, setSettings] = useState(null);
   const [confirmingReset, setConfirmingReset] = useState(false);
+  const [addingLeague, setAddingLeague] = useState(false);
+  const [newLeagueName, setNewLeagueName] = useState('');
 
   useEffect(() => {
     api.getSettings().then((s) => setSettings(s.hosting));
   }, []);
+
+  async function handleAddLeague() {
+    if (!addingLeague) {
+      setAddingLeague(true);
+      return;
+    }
+    const name = newLeagueName.trim();
+    if (!name) {
+      setAddingLeague(false);
+      return;
+    }
+    const league = { id: `league-${Date.now()}`, name };
+    const leagues = [...(settings.leagues ?? []), league];
+    const s = await api.updateSettings('hosting', { leagues, activeLeagueId: league.id });
+    setSettings(s.hosting);
+    setNewLeagueName('');
+    setAddingLeague(false);
+  }
+
+  async function handleSelectLeague(e) {
+    const s = await api.updateSettings('hosting', { activeLeagueId: e.target.value });
+    setSettings(s.hosting);
+  }
 
   async function handleExport() {
     const res = await fetch('/api/settings/export');
@@ -40,13 +65,31 @@ export default function AppHosting() {
         <div className="settings-row">
           <div style={{ font: '600 13px var(--font-ui)', color: 'var(--text-secondary)' }}>Leagues</div>
           <div style={{ display: 'flex', gap: 8 }}>
-            <select className="field-select" style={{ width: 'auto' }}>
+            <select
+              className="field-select"
+              style={{ width: 'auto' }}
+              value={settings.activeLeagueId ?? settings.leagues?.[0]?.id ?? ''}
+              onChange={handleSelectLeague}
+            >
               {(settings.leagues ?? []).map((l) => (
-                <option key={l.id}>{l.name}</option>
+                <option key={l.id} value={l.id}>
+                  {l.name}
+                </option>
               ))}
             </select>
-            <button type="button" className="btn btn-sm">
-              + Add League
+            {addingLeague && (
+              <input
+                className="field-input"
+                placeholder="League name"
+                autoFocus
+                value={newLeagueName}
+                onChange={(e) => setNewLeagueName(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleAddLeague()}
+                style={{ width: 140 }}
+              />
+            )}
+            <button type="button" className="btn btn-sm" onClick={handleAddLeague}>
+              {addingLeague ? 'Save' : '+ Add League'}
             </button>
           </div>
         </div>

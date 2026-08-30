@@ -8,7 +8,6 @@ import { round, nextPickForSlot, slotForPick } from '../lib/draftMath.js';
 export const draftRouter = Router();
 
 const POS_ORDER = ['C', 'LW', 'RW', 'D', 'G'];
-const POS_TOTAL = { C: 20, LW: 20, RW: 20, D: 30, G: 20 }; // rostered-pool size per position across the league
 
 function contribText(p) {
   if (p.pos === 'G') return `W${p.w} GAA${p.gaa}`;
@@ -40,10 +39,13 @@ function buildState() {
   POS_ORDER.forEach((pos) => {
     const avail = players.filter((p) => p.pos === pos && !p.drafted).sort((a, b) => a.rank - b.rank);
     const left = avail.length;
-    const total = POS_TOTAL[pos];
+    // Rostered-pool size per position across the league — derived from the
+    // actual roster settings instead of a hardcoded guess, so it tracks
+    // whatever teamCount/rosterSlots are really configured.
+    const total = (rosterSlots[pos] ?? 0) * teamCount;
     const taken = Math.max(0, total - left);
     lanes[pos] = {
-      scarcity: { left, taken, takenPct: Math.round((taken / total) * 100), ...scarcityStyle(left) },
+      scarcity: { left, taken, takenPct: total ? Math.round((taken / total) * 100) : 0, ...scarcityStyle(left) },
       players: avail.map((p) => ({
         id: p.id,
         name: p.name,
@@ -89,7 +91,7 @@ function buildState() {
 
   const tracked = players
     .filter((p) => p.tracked)
-    .map((p) => ({ id: p.id, name: p.name, pos: p.pos, drafted: p.drafted && !p.mine, draftedBy: p.draftedBy }));
+    .map((p) => ({ id: p.id, name: p.name, pos: p.pos, drafted: p.drafted, draftedBy: p.draftedBy }));
 
   return {
     pickInfo: { pickNum: currentPick, round: currentRound, picksUntilMe },

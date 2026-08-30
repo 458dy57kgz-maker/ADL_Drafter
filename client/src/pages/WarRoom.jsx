@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { api } from '../lib/api.js';
 import { usePolling } from '../lib/usePolling.js';
 import './WarRoom.css';
@@ -7,7 +7,18 @@ const POS_ORDER = ['C', 'LW', 'RW', 'D', 'G'];
 
 export default function WarRoom() {
   const [expandedPos, setExpandedPos] = useState({ C: 3, LW: 3, RW: 3, D: 3, G: 3 });
-  const { data, error } = usePolling(api.getDraftState, 8, []);
+  // Seed with the draft-day default (server/src/db/index.js) and switch to
+  // whatever Draft-Day Behavior actually has saved once the first poll
+  // lands — passing it back into `deps` restarts the interval timer so a
+  // changed slider value takes effect without a page reload.
+  const [pollInterval, setPollInterval] = useState(8);
+  const { data, error } = usePolling(api.getDraftState, pollInterval, [pollInterval]);
+
+  useEffect(() => {
+    if (data?.pollInterval && data.pollInterval !== pollInterval) {
+      setPollInterval(data.pollInterval);
+    }
+  }, [data, pollInterval]);
 
   async function handleToggleTrack(playerId, tracked) {
     await api.updatePlayer(playerId, { tracked: !tracked });
@@ -31,8 +42,7 @@ export default function WarRoom() {
     return <div className="war-room war-room--empty">Loading draft state…</div>;
   }
 
-  const { pickInfo, yahooConnected, pollInterval, lanes, roster, targets, scarcity, liveFeed, tracked } =
-    data;
+  const { pickInfo, yahooConnected, lanes, roster, targets, scarcity, liveFeed, tracked } = data;
 
   return (
     <div className="war-room">

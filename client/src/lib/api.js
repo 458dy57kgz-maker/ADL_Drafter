@@ -47,6 +47,7 @@ export const api = {
   yahooConnect: (payload) =>
     request('/yahoo/connect', { method: 'POST', body: JSON.stringify(payload) }),
   yahooReconnect: () => request('/yahoo/reconnect', { method: 'POST' }),
+  yahooVerify: () => request('/yahoo/verify', { method: 'POST' }),
 
   startNewSeason: (payload) =>
     request('/league/new-season', { method: 'POST', body: JSON.stringify(payload) }),

@@ -42,6 +42,7 @@ const DEFAULT_SETTINGS = {
   draftDay: { pollInterval: 8, draftMode: 'auto', notifSound: true, notifDesktop: true },
   hosting: {
     leagues: [{ id: 'default', name: 'My League 2026' }],
+    activeLeagueId: 'default',
     timezone: 'America/Toronto',
   },
   yahoo: {

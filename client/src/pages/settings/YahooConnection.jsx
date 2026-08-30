@@ -10,6 +10,8 @@ export default function YahooConnection() {
   const [copied, setCopied] = useState(false);
   const [banner, setBanner] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [verifying, setVerifying] = useState(false);
+  const [verifyResult, setVerifyResult] = useState(null);
 
   useEffect(() => {
     api
@@ -45,8 +47,22 @@ export default function YahooConnection() {
     }
   }
 
+  async function handleVerify() {
+    setVerifying(true);
+    setVerifyResult(null);
+    try {
+      const r = await api.yahooVerify();
+      setVerifyResult(r);
+    } catch (err) {
+      setVerifyResult({ verified: false, error: err.message, checkedAt: new Date().toLocaleTimeString() });
+    } finally {
+      setVerifying(false);
+    }
+  }
+
   async function handleConnect() {
-    if (!clientId.trim() || !clientSecret.trim()) {
+    const secretOk = clientSecret.trim() || status?.hasClientSecret;
+    if (!clientId.trim() || !secretOk) {
       setBanner({ kind: 'error', text: 'Client ID and Client Secret are both required.' });
       return;
     }
@@ -123,18 +139,37 @@ export default function YahooConnection() {
             Last call: <span className="mono" style={{ color: 'var(--text-primary)' }}>{status?.lastCall ?? '—'}</span>
           </div>
           <div>
-            Auto-refresh:{' '}
+            Not expired (local check):{' '}
             <span style={{ color: status?.refreshHealthy ? 'var(--success)' : 'var(--danger-text)' }}>
-              {status?.refreshHealthy ? 'healthy' : 'needs attention'}
+              {status?.refreshHealthy ? 'yes' : 'no — needs attention'}
             </span>
           </div>
           <div>
             Token expires: <span className="mono" style={{ color: 'var(--text-primary)' }}>{status?.expiresIn ?? '—'}</span>
           </div>
         </div>
-        <button type="button" className="btn" style={{ marginTop: 12 }} onClick={handleReconnect}>
-          Reconnect
-        </button>
+        <div style={{ font: '500 11.5px var(--font-ui)', color: 'var(--text-faint)', marginTop: 6 }}>
+          The line above only checks the stored expiry time — it never actually asks Yahoo. Use "Verify Live" to
+          confirm the token really works.
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 12 }}>
+          <button type="button" className="btn" onClick={handleReconnect}>
+            Reconnect
+          </button>
+          <button type="button" className="btn" onClick={handleVerify} disabled={verifying}>
+            {verifying ? 'Checking with Yahoo…' : 'Verify Live'}
+          </button>
+          {verifyResult && (
+            <span
+              className="mono"
+              style={{ font: '600 12px var(--font-mono)', color: verifyResult.verified ? 'var(--success)' : 'var(--danger-text)' }}
+            >
+              {verifyResult.verified
+                ? `Verified live at ${verifyResult.checkedAt}`
+                : `${verifyResult.error} (checked ${verifyResult.checkedAt})`}
+            </span>
+          )}
+        </div>
       </div>
 
       <div className="card">

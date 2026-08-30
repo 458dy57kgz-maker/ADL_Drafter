@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import crypto from 'node:crypto';
 import { getSetting, setSetting, logDebug } from '../db/index.js';
-import { buildAuthorizeUrl, exchangeCodeForToken, refreshAccessToken, fetchYahooProfile } from '../lib/yahooOAuth.js';
+import { buildAuthorizeUrl, exchangeCodeForToken, refreshAccessToken, fetchYahooProfile, verifyAccessToken } from '../lib/yahooOAuth.js';
 
 export const yahooRouter = Router();
 
@@ -72,9 +72,15 @@ yahooRouter.get('/status', async (req, res) => {
 });
 
 // Step 1: save credentials + connection config (no network call yet).
+// clientSecret may be omitted to keep the previously saved secret — the UI
+// tells the user they can leave it blank once one is already on file, so a
+// blank submit must not wipe it or block the rest of the save (e.g. a
+// Public URL update).
 yahooRouter.post('/connect', (req, res) => {
   const { clientId, clientSecret, connectionMode, publicUrl } = req.body;
-  if (!clientId || !clientSecret) {
+  const existing = getSetting('yahoo');
+  const effectiveSecret = clientSecret || existing.clientSecret;
+  if (!clientId || !effectiveSecret) {
     return res.status(400).json({ error: 'clientId and clientSecret are required' });
   }
   if (connectionMode === 'proxy' && !publicUrl) {
@@ -82,7 +88,7 @@ yahooRouter.post('/connect', (req, res) => {
   }
   const updated = setSetting('yahoo', {
     clientId,
-    clientSecret,
+    clientSecret: effectiveSecret,
     connectionMode: connectionMode || 'proxy',
     publicUrl: publicUrl || '',
   });
@@ -143,6 +149,24 @@ yahooRouter.get('/callback', async (req, res) => {
     logDebug(`Yahoo token exchange failed: ${err.message}`, 'ERROR', 'yahoo');
     res.status(500).send(`Yahoo connection failed: ${err.message}`);
   }
+});
+
+// "Auto-refresh: healthy" above is only a local check (token present, not
+// past its stored expiry) — it never actually asks Yahoo. This makes a real
+// authenticated call so the user can tell the difference.
+yahooRouter.post('/verify', async (req, res) => {
+  const yahoo = await ensureFreshToken(getSetting('yahoo'));
+  if (!yahoo.connected || !yahoo.accessToken) {
+    return res.json({ verified: false, checkedAt: new Date().toLocaleTimeString(), error: 'Not connected' });
+  }
+  const result = await verifyAccessToken(yahoo.accessToken);
+  const checkedAt = new Date().toLocaleTimeString();
+  if (result.ok) {
+    logDebug('Yahoo token verified live', 'OK', 'yahoo');
+    return res.json({ verified: true, checkedAt });
+  }
+  logDebug(`Yahoo token verification failed: ${result.status} ${result.statusText}`, 'ERROR', 'yahoo');
+  res.json({ verified: false, checkedAt, error: `Yahoo rejected the token (${result.status} ${result.statusText})` });
 });
 
 yahooRouter.post('/reconnect', async (req, res) => {

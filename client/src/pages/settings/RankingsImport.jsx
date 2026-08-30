@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { api } from '../../lib/api.js';
 
 export default function RankingsImport() {
@@ -6,6 +6,8 @@ export default function RankingsImport() {
   const [unmatched, setUnmatched] = useState([]);
   const [newAliasFrom, setNewAliasFrom] = useState('');
   const [newAliasTo, setNewAliasTo] = useState('');
+  const [importResult, setImportResult] = useState(null);
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     api.getAliases().then(setAliases);
@@ -27,6 +29,7 @@ export default function RankingsImport() {
 
   function handleFileChosen(e) {
     const file = e.target.files?.[0];
+    e.target.value = ''; // allow re-choosing the same filename later
     if (!file) return;
     const reader = new FileReader();
     reader.onload = async () => {
@@ -35,7 +38,8 @@ export default function RankingsImport() {
         .map((line) => line.split(','))
         .filter((r) => r.length > 1);
       const result = await api.importRankings(rows);
-      setUnmatched(result.unmatched ?? []);
+      setUnmatched((prev) => [...prev, ...(result.unmatched ?? [])]);
+      setImportResult({ file: file.name, matched: result.matched, unmatched: result.unmatched?.length ?? 0 });
     };
     reader.readAsText(file);
   }
@@ -48,10 +52,21 @@ export default function RankingsImport() {
 
       <div className="card" style={{ marginBottom: 14 }}>
         <div className="card-title">Upload CSV or paste from Google Sheet</div>
-        <label className="btn" style={{ display: 'inline-block' }}>
+        <button type="button" className="btn" onClick={() => fileInputRef.current?.click()}>
           Choose File
-          <input type="file" accept=".csv" onChange={handleFileChosen} style={{ display: 'none' }} />
-        </label>
+        </button>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".csv"
+          onChange={handleFileChosen}
+          style={{ position: 'absolute', width: 1, height: 1, padding: 0, overflow: 'hidden', clip: 'rect(0,0,0,0)', border: 0 }}
+        />
+        {importResult && (
+          <div style={{ font: '600 12px var(--font-ui)', color: 'var(--text-secondary)', marginTop: 10 }}>
+            "{importResult.file}" — {importResult.matched} matched, {importResult.unmatched} unmatched
+          </div>
+        )}
         <div style={{ font: '500 12px var(--font-ui)', color: 'var(--text-faint)', marginTop: 10 }}>
           Column mapping — name → col A · position → col B · rank/score → col C · tier → col D
         </div>
