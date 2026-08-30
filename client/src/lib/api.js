@@ -17,6 +17,7 @@ export const api = {
   getPlayers: () => request('/players'),
   updatePlayer: (id, patch) =>
     request(`/players/${id}`, { method: 'PATCH', body: JSON.stringify(patch) }),
+  replacePlayers: (players) => request('/players/replace', { method: 'POST', body: JSON.stringify({ players }) }),
 
   getDraftState: () => request('/draft/state'),
   getPickFeed: () => request('/draft/picks'),

@@ -9,6 +9,49 @@ playersRouter.get('/', (req, res) => {
   res.json(rows.map(mapPlayerRow));
 });
 
+// Replaces the entire player pool (mock or otherwise) with an uploaded list —
+// wipes any in-progress draft along with it, since picks reference players
+// that are about to stop existing. Overall rank follows upload order (a
+// rankings export is assumed sorted best-to-worst); positional rank is
+// recomputed per position group from that same order, since a typical
+// rankings CSV only carries one overall-rank column, not a per-position one.
+playersRouter.post('/replace', (req, res) => {
+  const { players } = req.body;
+  if (!Array.isArray(players) || players.length === 0) {
+    return res.status(400).json({ error: 'players array is required' });
+  }
+  for (const p of players) {
+    if (!p.name || !p.pos) return res.status(400).json({ error: 'every player needs a name and position' });
+  }
+
+  db.exec('DELETE FROM draft_picks; DELETE FROM players;');
+
+  const insertPlayer = db.prepare(`
+    INSERT INTO players
+      (name, pos, team, rank, overall_rank, tier, g, a, p, ppp, plus_minus, shots, w, gaa, saves, drafted, drafted_by, mine, tracked)
+    VALUES
+      (@name, @pos, @team, @rank, @overallRank, @tier, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL, 0, 0)
+  `);
+  const insertMany = db.transaction((rows) => {
+    const posCounters = {};
+    rows.forEach((p, i) => {
+      posCounters[p.pos] = (posCounters[p.pos] ?? 0) + 1;
+      insertPlayer.run({
+        name: p.name,
+        pos: p.pos,
+        team: p.team || null,
+        rank: posCounters[p.pos],
+        overallRank: i + 1,
+        tier: p.tier ?? null,
+      });
+    });
+  });
+  insertMany(players);
+
+  logDebug(`Player pool replaced with ${players.length} uploaded players`, 'OK', 'app');
+  res.json({ playerCount: players.length });
+});
+
 const PATCHABLE_FIELDS = { tier: 'tier', tracked: 'tracked' };
 
 playersRouter.patch('/:id', (req, res) => {

@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { db, getSetting, setSetting, logDebug } from '../db/index.js';
+import { suggestClosestName } from '../lib/textMatch.js';
 
 export const settingsRouter = Router();
 
@@ -95,29 +96,40 @@ settingsRouter.post('/rankings/unmatched/:id', (req, res) => {
   res.status(204).end();
 });
 
+// rows: [{ name, rank, tier }] — rank/tier are optional and, when present,
+// overwrite the matched player's own values. A matched row that carries no
+// rank/tier just confirms the name and changes nothing else.
 settingsRouter.post('/rankings/import', (req, res) => {
-  const { rows } = req.body; // array of [name, pos, rank/score, tier]
+  const { rows } = req.body;
   let matched = 0;
   const unmatched = [];
 
-  const playerNames = db.prepare('SELECT id, name FROM players').all();
-  const byName = new Map(playerNames.map((p) => [p.name.toLowerCase(), p.id]));
+  const players = db.prepare('SELECT id, name FROM players').all();
+  const byName = new Map(players.map((p) => [p.name.toLowerCase(), p]));
+  const allNames = players.map((p) => p.name);
   const aliases = new Map(
     db.prepare('SELECT from_name, to_name FROM name_aliases').all().map((a) => [a.from_name.toLowerCase(), a.to_name])
   );
 
+  const updatePlayer = db.prepare(
+    'UPDATE players SET overall_rank = COALESCE(@overallRank, overall_rank), tier = COALESCE(@tier, tier) WHERE id = @id'
+  );
   const insertUnmatched = db.prepare('INSERT INTO unmatched_players (rankings_name, suggestion) VALUES (?, ?)');
 
   for (const row of rows) {
-    const [name] = row;
+    const name = (row.name || '').trim();
     if (!name) continue;
-    const key = name.trim().toLowerCase();
-    const aliased = aliases.get(key);
-    if (byName.has(key) || (aliased && byName.has(aliased.toLowerCase()))) {
+    const key = name.toLowerCase();
+    const aliasedTo = aliases.get(key);
+    const target = byName.get(key) || (aliasedTo && byName.get(aliasedTo.toLowerCase()));
+
+    if (target) {
       matched++;
+      updatePlayer.run({ id: target.id, overallRank: row.rank ?? null, tier: row.tier ?? null });
     } else {
-      const suggestionId = insertUnmatched.run(name.trim(), null).lastInsertRowid;
-      unmatched.push({ id: suggestionId, rankingsName: name.trim(), suggestion: null });
+      const suggestion = suggestClosestName(name, allNames);
+      const suggestionId = insertUnmatched.run(name, suggestion).lastInsertRowid;
+      unmatched.push({ id: suggestionId, rankingsName: name, suggestion });
     }
   }
 
