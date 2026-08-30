@@ -4,22 +4,45 @@ import { parseCSV, guessColumn } from '../../lib/parseCsv.js';
 
 const REPLACE_FIELDS = [
   { key: 'name', label: 'Player name', synonyms: ['name', 'player'], required: true },
-  { key: 'pos', label: 'Position', synonyms: ['pos', 'position'], required: true },
+  { key: 'pos', label: 'Position (e.g. "C" or "C,LW" / "C/LW" for dual-eligible)', synonyms: ['pos', 'position'], required: true },
   { key: 'team', label: 'Team', synonyms: ['team', 'tm', 'club'], required: false },
-  { key: 'rank', label: 'Overall rank (blank = keep file order)', synonyms: ['rank', 'overall', 'ovr', '#'], required: false },
-  { key: 'tier', label: 'Tier', synonyms: ['tier'], required: false },
+  { key: 'rank', label: 'Overall rank (blank = keep file order)', synonyms: ['rank', 'overall', 'ovr', '#'], required: false, type: 'int' },
+  { key: 'adp', label: 'ADP', synonyms: ['adp'], required: false, type: 'int' },
+  { key: 'tier', label: 'Tier', synonyms: ['tier'], required: false, type: 'int' },
+  { key: 'g', label: 'Goals', synonyms: ['g', 'goals'], required: false, type: 'int' },
+  { key: 'a', label: 'Assists', synonyms: ['a', 'assists'], required: false, type: 'int' },
+  { key: 'p', label: 'Points', synonyms: ['p', 'pts', 'points'], required: false, type: 'int' },
+  { key: 'ppp', label: 'Power-play points', synonyms: ['ppp', 'power play points'], required: false, type: 'int' },
+  { key: 'plusMinus', label: '+/-', synonyms: ['+/-', 'plusminus', 'plus/minus'], required: false, type: 'int' },
+  { key: 'shots', label: 'Shots', synonyms: ['shots', 'sog'], required: false, type: 'int' },
+  { key: 'w', label: 'Wins (goalies)', synonyms: ['w', 'wins'], required: false, type: 'int' },
+  { key: 'gaa', label: 'GAA (goalies)', synonyms: ['gaa'], required: false, type: 'float' },
+  { key: 'saves', label: 'Saves (goalies)', synonyms: ['saves', 'sv'], required: false, type: 'int' },
 ];
 
 const RANKINGS_FIELDS = [
   { key: 'name', label: 'Player name', synonyms: ['name', 'player'], required: true },
-  { key: 'rank', label: 'Your rank/score (optional — overwrites overall rank on match)', synonyms: ['rank', 'score', 'overall', 'ovr'], required: false },
-  { key: 'tier', label: 'Tier (optional — overwrites tier on match)', synonyms: ['tier'], required: false },
+  { key: 'rank', label: 'Your rank/score (optional — overwrites overall rank on match)', synonyms: ['rank', 'score', 'overall', 'ovr'], required: false, type: 'int' },
+  { key: 'tier', label: 'Tier (optional — overwrites tier on match)', synonyms: ['tier'], required: false, type: 'int' },
 ];
 
 function guessMapping(headers, fields) {
   const mapping = {};
   for (const f of fields) mapping[f.key] = guessColumn(headers, f.synonyms);
   return mapping;
+}
+
+function parseFieldValue(field, raw) {
+  if (raw === '' || raw == null) return null;
+  if (field.type === 'float') {
+    const n = Number(raw);
+    return Number.isFinite(n) ? n : null;
+  }
+  if (field.type === 'int') {
+    const n = Number(String(raw).replace(/,/g, ''));
+    return Number.isFinite(n) ? Math.round(n) : null;
+  }
+  return raw || null;
 }
 
 function buildRows(dataRows, mapping, fields) {
@@ -29,7 +52,7 @@ function buildRows(dataRows, mapping, fields) {
       for (const f of fields) {
         const idx = mapping[f.key];
         const raw = idx >= 0 && idx < row.length ? row[idx] : '';
-        obj[f.key] = f.key === 'rank' || f.key === 'tier' ? (raw === '' ? null : Number(raw)) : raw || null;
+        obj[f.key] = parseFieldValue(f, raw);
       }
       return obj;
     })

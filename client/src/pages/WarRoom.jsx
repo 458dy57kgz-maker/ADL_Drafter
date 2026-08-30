@@ -12,7 +12,13 @@ export default function WarRoom() {
   // lands — passing it back into `deps` restarts the interval timer so a
   // changed slider value takes effect without a page reload.
   const [pollInterval, setPollInterval] = useState(8);
-  const { data, error } = usePolling(api.getDraftState, pollInterval, [pollInterval]);
+  const { data, error, refetch } = usePolling(api.getDraftState, pollInterval, [pollInterval]);
+
+  // Instant star feedback: the click flips this local override immediately,
+  // rather than waiting for the poll's next tick (up to `pollInterval`
+  // seconds away) to reflect the change — that lag was reading as "did my
+  // click not register?" and inviting a double-click that undid it.
+  const [trackedOverrides, setTrackedOverrides] = useState({});
 
   useEffect(() => {
     if (data?.pollInterval && data.pollInterval !== pollInterval) {
@@ -20,8 +26,37 @@ export default function WarRoom() {
     }
   }, [data, pollInterval]);
 
+  // Drop an override once fresh server data confirms the same value, so the
+  // map doesn't grow stale/unbounded across a long draft session.
+  useEffect(() => {
+    if (!data) return;
+    const allPlayers = Object.values(data.lanes ?? {}).flatMap((lane) => lane.players);
+    setTrackedOverrides((prev) => {
+      const next = { ...prev };
+      let changed = false;
+      for (const p of allPlayers) {
+        if (p.id in next && next[p.id] === p.tracked) {
+          delete next[p.id];
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, [data]);
+
+  function trackedFor(p) {
+    return p.id in trackedOverrides ? trackedOverrides[p.id] : p.tracked;
+  }
+
   async function handleToggleTrack(playerId, tracked) {
-    await api.updatePlayer(playerId, { tracked: !tracked });
+    const next = !tracked;
+    setTrackedOverrides((prev) => ({ ...prev, [playerId]: next }));
+    try {
+      await api.updatePlayer(playerId, { tracked: next });
+      refetch();
+    } catch {
+      setTrackedOverrides((prev) => ({ ...prev, [playerId]: tracked }));
+    }
   }
 
   function expandLane(pos) {
@@ -106,13 +141,13 @@ export default function WarRoom() {
                         type="button"
                         className="track-toggle"
                         style={
-                          p.tracked
+                          trackedFor(p)
                             ? { background: 'var(--accent)', color: 'var(--accent-on-text)', borderColor: 'var(--accent)' }
                             : { background: 'transparent', color: 'var(--text-faint)', borderColor: 'rgba(255,255,255,0.15)' }
                         }
-                        onClick={() => handleToggleTrack(p.id, p.tracked)}
+                        onClick={() => handleToggleTrack(p.id, trackedFor(p))}
                       >
-                        {p.tracked ? '★' : '☆'}
+                        {trackedFor(p) ? '★' : '☆'}
                       </button>
                     </div>
                   </div>

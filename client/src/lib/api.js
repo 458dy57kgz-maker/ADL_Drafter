@@ -21,6 +21,8 @@ export const api = {
 
   getDraftState: () => request('/draft/state'),
   getPickFeed: () => request('/draft/picks'),
+  pickPlayer: (playerId) => request('/draft/pick', { method: 'POST', body: JSON.stringify({ playerId }) }),
+  undoPick: () => request('/draft/undo', { method: 'POST' }),
 
   getSettings: () => request('/settings'),
   updateSettings: (section, patch) =>

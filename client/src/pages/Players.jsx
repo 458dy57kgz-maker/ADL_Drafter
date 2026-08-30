@@ -56,7 +56,7 @@ export default function Players() {
 
   const rows = useMemo(() => {
     let filtered = players;
-    if (posFilter !== 'ALL') filtered = filtered.filter((p) => p.pos === posFilter);
+    if (posFilter !== 'ALL') filtered = filtered.filter((p) => p.posList?.includes(posFilter));
     if (draftedFilter === 'hide') filtered = filtered.filter((p) => !p.drafted);
     if (search.trim()) {
       const q = search.trim().toLowerCase();
@@ -146,7 +146,7 @@ export default function Players() {
                   <td className="mono">{p.ppp ?? '–'}</td>
                   <td className="mono">{p.plusMinus ?? '–'}</td>
                   <td className="mono">{p.shots ?? '–'}</td>
-                  <td className="mono">{p.pos === 'G' ? `${p.w}/${p.gaa}/${p.saves}` : '–'}</td>
+                  <td className="mono">{p.posList?.includes('G') ? `${p.w}/${p.gaa}/${p.saves}` : '–'}</td>
                   <td className="players-table__status" style={{ color: draftedColor(p) }}>
                     {draftedText(p)}
                   </td>

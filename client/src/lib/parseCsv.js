@@ -46,11 +46,20 @@ export function parseCSV(text) {
     .filter((r) => r.some((cell) => cell !== ''));
 }
 
-// Best-effort column guess by header name, tried in priority order.
+// Best-effort column guess by header name, tried in priority order. Exact
+// match first — required for short synonyms like 'g' or 'a' (goals/assists),
+// where substring matching would just grab the first header containing that
+// letter anywhere (e.g. "Name" for 'a'). Substring matching is a fallback,
+// and only for synonyms long enough that a stray substring hit is unlikely.
 export function guessColumn(headers, synonyms) {
-  const lower = headers.map((h) => h.toLowerCase());
+  const lower = headers.map((h) => h.toLowerCase().trim());
   for (const syn of synonyms) {
-    const idx = lower.findIndex((h) => h.includes(syn));
+    const idx = lower.findIndex((h) => h === syn.toLowerCase());
+    if (idx !== -1) return idx;
+  }
+  for (const syn of synonyms) {
+    if (syn.length < 3) continue;
+    const idx = lower.findIndex((h) => h.includes(syn.toLowerCase()));
     if (idx !== -1) return idx;
   }
   return -1;

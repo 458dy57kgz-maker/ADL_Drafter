@@ -1,8 +1,20 @@
+// Positions are stored as a single comma-separated string (e.g. "C,LW") to
+// support multi-position-eligible players without a schema migration to a
+// junction table — this is the one place that parses it, so every consumer
+// works off `posList` instead of re-parsing `pos` themselves.
+export function normalizePosList(raw) {
+  return String(raw ?? '')
+    .split(/[,/]/)
+    .map((s) => s.trim().toUpperCase())
+    .filter(Boolean);
+}
+
 export function mapPlayerRow(row) {
   return {
     id: row.id,
     name: row.name,
     pos: row.pos,
+    posList: normalizePosList(row.pos),
     team: row.team,
     rank: row.rank,
     overallRank: row.overall_rank,

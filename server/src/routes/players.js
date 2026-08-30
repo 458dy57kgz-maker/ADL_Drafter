@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { db, logDebug } from '../db/index.js';
-import { mapPlayerRow } from '../lib/mapPlayer.js';
+import { mapPlayerRow, normalizePosList } from '../lib/mapPlayer.js';
 
 export const playersRouter = Router();
 
@@ -32,21 +32,38 @@ playersRouter.post('/replace', (req, res) => {
 
   const insertPlayer = db.prepare(`
     INSERT INTO players
-      (name, pos, team, rank, overall_rank, tier, g, a, p, ppp, plus_minus, shots, w, gaa, saves, drafted, drafted_by, mine, tracked)
+      (name, pos, team, rank, overall_rank, adp, tier, g, a, p, ppp, plus_minus, shots, w, gaa, saves, drafted, drafted_by, mine, tracked)
     VALUES
-      (@name, @pos, @team, @rank, @overallRank, @tier, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL, 0, 0)
+      (@name, @pos, @team, @rank, @overallRank, @adp, @tier, @g, @a, @p, @ppp, @plusMinus, @shots, @w, @gaa, @saves, 0, NULL, 0, 0)
   `);
   const insertMany = db.transaction((rows) => {
+    // Every position a player is eligible for gets its own running rank
+    // counter (a C/LW player advances both), but the single `rank` column
+    // can only hold one number — it takes whichever position is listed
+    // first in the cell (e.g. "C,LW" treats C as primary).
     const posCounters = {};
     rows.forEach((p, i) => {
-      posCounters[p.pos] = (posCounters[p.pos] ?? 0) + 1;
+      const posList = normalizePosList(p.pos);
+      posList.forEach((pos) => {
+        posCounters[pos] = (posCounters[pos] ?? 0) + 1;
+      });
       insertPlayer.run({
         name: p.name,
-        pos: p.pos,
+        pos: posList.join(','),
         team: p.team || null,
-        rank: posCounters[p.pos],
-        overallRank: i + 1,
+        rank: posCounters[posList[0]] ?? null,
+        overallRank: p.rank ?? i + 1,
+        adp: p.adp ?? null,
         tier: p.tier ?? null,
+        g: p.g ?? null,
+        a: p.a ?? null,
+        p: p.p ?? null,
+        ppp: p.ppp ?? null,
+        plusMinus: p.plusMinus ?? null,
+        shots: p.shots ?? null,
+        w: p.w ?? null,
+        gaa: p.gaa ?? null,
+        saves: p.saves ?? null,
       });
     });
   });

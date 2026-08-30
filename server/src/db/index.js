@@ -36,6 +36,11 @@ const DEFAULT_SETTINGS = {
       { id: 't10', name: 'Offside Outlaws' },
     ],
     myTeamSlot: 3,
+    // The seeded team names above look like real data, so this flag is the
+    // only way to tell "never confirmed by the user" apart from "already
+    // set up" — Manual Draft Mode's setup step uses it to decide whether to
+    // show the team-entry screen.
+    teamsConfigured: false,
   },
   rosterSlots: { C: 2, LW: 2, RW: 2, D: 4, G: 2, BENCH: 4, IR: 2 },
   targets: { goals: 200, assists: 220, ppp: 90, plusMinus: 120, shots: 1400, wins: 30, saves: 900 },
