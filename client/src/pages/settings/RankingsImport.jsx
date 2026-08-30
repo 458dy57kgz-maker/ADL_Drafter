@@ -104,6 +104,8 @@ export default function RankingsImport() {
 
   const rankingsUpload = useFileUpload(RANKINGS_FIELDS);
   const [importResult, setImportResult] = useState(null);
+  const [importError, setImportError] = useState(null);
+  const [replaceError, setReplaceError] = useState(null);
 
   useEffect(() => {
     api.getAliases().then(setAliases);
@@ -128,19 +130,30 @@ export default function RankingsImport() {
       setReplaceConfirming(true);
       return;
     }
-    const rows = buildRows(replaceUpload.parsed.dataRows, replaceUpload.mapping, REPLACE_FIELDS);
-    const result = await api.replacePlayers(rows);
-    setReplaceResult({ fileName: replaceUpload.parsed.fileName, playerCount: result.playerCount });
-    setReplaceConfirming(false);
-    replaceUpload.reset();
+    setReplaceError(null);
+    try {
+      const rows = buildRows(replaceUpload.parsed.dataRows, replaceUpload.mapping, REPLACE_FIELDS);
+      const result = await api.replacePlayers(rows);
+      setReplaceResult({ fileName: replaceUpload.parsed.fileName, playerCount: result.playerCount, skipped: result.skipped });
+      setReplaceConfirming(false);
+      replaceUpload.reset();
+    } catch (err) {
+      setReplaceError(err.message);
+      setReplaceConfirming(false);
+    }
   }
 
   async function handleRankingsImport() {
-    const rows = buildRows(rankingsUpload.parsed.dataRows, rankingsUpload.mapping, RANKINGS_FIELDS);
-    const result = await api.importRankings(rows);
-    setUnmatched((prev) => [...prev, ...(result.unmatched ?? [])]);
-    setImportResult({ file: rankingsUpload.parsed.fileName, matched: result.matched, unmatched: result.unmatched?.length ?? 0 });
-    rankingsUpload.reset();
+    setImportError(null);
+    try {
+      const rows = buildRows(rankingsUpload.parsed.dataRows, rankingsUpload.mapping, RANKINGS_FIELDS);
+      const result = await api.importRankings(rows);
+      setUnmatched((prev) => [...prev, ...(result.unmatched ?? [])]);
+      setImportResult({ file: rankingsUpload.parsed.fileName, matched: result.matched, unmatched: result.unmatched?.length ?? 0 });
+      rankingsUpload.reset();
+    } catch (err) {
+      setImportError(err.message);
+    }
   }
 
   const replaceMappingValid =
@@ -201,7 +214,13 @@ export default function RankingsImport() {
         )}
         {replaceResult && (
           <div style={{ font: '600 12px var(--font-ui)', color: 'var(--success)', marginTop: 10 }}>
-            Player pool replaced from "{replaceResult.fileName}" — {replaceResult.playerCount} players loaded.
+            Player pool replaced from "{replaceResult.fileName}" — {replaceResult.playerCount} players loaded
+            {replaceResult.skipped ? `, ${replaceResult.skipped} rows skipped (missing name or position)` : ''}.
+          </div>
+        )}
+        {replaceError && (
+          <div style={{ font: '600 12px var(--font-ui)', color: 'var(--danger-text)', marginTop: 10 }}>
+            {replaceError}
           </div>
         )}
       </div>
@@ -254,6 +273,11 @@ export default function RankingsImport() {
         {importResult && (
           <div style={{ font: '600 12px var(--font-ui)', color: 'var(--text-secondary)', marginTop: 10 }}>
             "{importResult.file}" — {importResult.matched} matched, {importResult.unmatched} unmatched
+          </div>
+        )}
+        {importError && (
+          <div style={{ font: '600 12px var(--font-ui)', color: 'var(--danger-text)', marginTop: 10 }}>
+            {importError}
           </div>
         )}
       </div>

@@ -20,8 +20,12 @@ playersRouter.post('/replace', (req, res) => {
   if (!Array.isArray(players) || players.length === 0) {
     return res.status(400).json({ error: 'players array is required' });
   }
-  for (const p of players) {
-    if (!p.name || !p.pos) return res.status(400).json({ error: 'every player needs a name and position' });
+  // A real bulk export will often have a stray blank cell somewhere — skip
+  // those rows rather than rejecting the whole upload over one bad row.
+  const valid = players.filter((p) => p.name && p.pos);
+  const skipped = players.length - valid.length;
+  if (valid.length === 0) {
+    return res.status(400).json({ error: 'no rows had both a name and a position after mapping' });
   }
 
   db.exec('DELETE FROM draft_picks; DELETE FROM players;');
@@ -46,10 +50,10 @@ playersRouter.post('/replace', (req, res) => {
       });
     });
   });
-  insertMany(players);
+  insertMany(valid);
 
-  logDebug(`Player pool replaced with ${players.length} uploaded players`, 'OK', 'app');
-  res.json({ playerCount: players.length });
+  logDebug(`Player pool replaced with ${valid.length} uploaded players (${skipped} skipped)`, 'OK', 'app');
+  res.json({ playerCount: valid.length, skipped });
 });
 
 const PATCHABLE_FIELDS = { tier: 'tier', tracked: 'tracked' };
