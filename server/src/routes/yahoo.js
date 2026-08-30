@@ -165,8 +165,13 @@ yahooRouter.post('/verify', async (req, res) => {
     logDebug('Yahoo token verified live', 'OK', 'yahoo');
     return res.json({ verified: true, checkedAt });
   }
-  logDebug(`Yahoo token verification failed: ${result.status} ${result.statusText}`, 'ERROR', 'yahoo');
-  res.json({ verified: false, checkedAt, error: `Yahoo rejected the token (${result.status} ${result.statusText})` });
+  logDebug(`Yahoo token verification failed: ${result.status} ${result.statusText} — ${result.body}`, 'ERROR', 'yahoo');
+  res.json({
+    verified: false,
+    checkedAt,
+    error: `Yahoo rejected the token (${result.status} ${result.statusText})`,
+    detail: result.body,
+  });
 });
 
 yahooRouter.post('/reconnect', async (req, res) => {

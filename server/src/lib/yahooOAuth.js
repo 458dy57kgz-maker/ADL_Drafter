@@ -65,7 +65,13 @@ export function refreshAccessToken({ clientId, clientSecret, refreshToken, redir
 // real per-account value rather than a hardcoded fallback string.
 async function fetchYahooFantasyIdentity(accessToken) {
   const res = await fetch(FANTASY_USERS_URL, { headers: { Authorization: `Bearer ${accessToken}` } });
-  if (!res.ok) return { ok: false, status: res.status, statusText: res.statusText };
+  if (!res.ok) {
+    // Yahoo's error body (XML or JSON, depending on why it rejected the
+    // call) is the only way to tell a scope problem apart from a bad
+    // request or a WAF block — a bare status code isn't enough to diagnose.
+    const body = await res.text().catch(() => '');
+    return { ok: false, status: res.status, statusText: res.statusText, body: body.slice(0, 400) };
+  }
   const json = await res.json();
   const guid = json?.fantasy_content?.users?.['0']?.user?.[0]?.guid ?? null;
   return { ok: true, guid };
@@ -82,5 +88,5 @@ export async function fetchYahooUsername(accessToken) {
 export async function verifyAccessToken(accessToken) {
   const identity = await fetchYahooFantasyIdentity(accessToken);
   if (identity.ok) return { ok: true };
-  return { ok: false, status: identity.status, statusText: identity.statusText };
+  return { ok: false, status: identity.status, statusText: identity.statusText, body: identity.body };
 }

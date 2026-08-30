@@ -170,6 +170,20 @@ export default function YahooConnection() {
             </span>
           )}
         </div>
+        {verifyResult && !verifyResult.verified && verifyResult.detail && (
+          <div
+            className="mono"
+            style={{
+              marginTop: 8,
+              font: '500 11px var(--font-mono)',
+              color: 'var(--text-faint)',
+              whiteSpace: 'pre-wrap',
+              wordBreak: 'break-all',
+            }}
+          >
+            {verifyResult.detail}
+          </div>
+        )}
       </div>
 
       <div className="card">
