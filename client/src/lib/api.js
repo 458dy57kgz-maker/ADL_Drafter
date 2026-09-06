@@ -17,12 +17,16 @@ export const api = {
   getPlayers: () => request('/players'),
   updatePlayer: (id, patch) =>
     request(`/players/${id}`, { method: 'PATCH', body: JSON.stringify(patch) }),
-  replacePlayers: (players) => request('/players/replace', { method: 'POST', body: JSON.stringify({ players }) }),
+  previewImport: (players) =>
+    request('/players/import/preview', { method: 'POST', body: JSON.stringify({ players }) }),
+  importPlayers: (players, removeMissing) =>
+    request('/players/import', { method: 'POST', body: JSON.stringify({ players, removeMissing }) }),
 
   getDraftState: () => request('/draft/state'),
   getPickFeed: () => request('/draft/picks'),
   pickPlayer: (playerId) => request('/draft/pick', { method: 'POST', body: JSON.stringify({ playerId }) }),
   undoPick: () => request('/draft/undo', { method: 'POST' }),
+  resetDraft: () => request('/draft/reset', { method: 'POST' }),
 
   getSettings: () => request('/settings'),
   updateSettings: (section, patch) =>
@@ -39,9 +43,7 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ decision }),
     }),
-
-  importRankings: (rows) =>
-    request('/settings/rankings/import', { method: 'POST', body: JSON.stringify({ rows }) }),
+  clearUnmatched: () => request('/settings/rankings/unmatched', { method: 'DELETE' }),
 
   getDebugLog: () => request('/debug/log'),
   clearDebugLog: () => request('/debug/log', { method: 'DELETE' }),
@@ -52,6 +54,5 @@ export const api = {
   yahooReconnect: () => request('/yahoo/reconnect', { method: 'POST' }),
   yahooVerify: () => request('/yahoo/verify', { method: 'POST' }),
 
-  startNewSeason: (payload) =>
-    request('/league/new-season', { method: 'POST', body: JSON.stringify(payload) }),
+  pullLeagueTeams: () => request('/league/pull-teams', { method: 'POST' }),
 };

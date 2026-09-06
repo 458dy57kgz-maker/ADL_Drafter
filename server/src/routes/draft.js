@@ -45,11 +45,14 @@ function buildState() {
       .filter((p) => p.posList.includes(pos) && !p.drafted)
       .sort((a, b) => a.overallRank - b.overallRank);
     const left = avail.length;
-    // Rostered-pool size per position across the league — derived from the
-    // actual roster settings instead of a hardcoded guess, so it tracks
-    // whatever teamCount/rosterSlots are really configured.
+    // How many the league still needs at this position, from the actual
+    // roster settings rather than a hardcoded guess.
     const total = (rosterSlots[pos] ?? 0) * teamCount;
-    const taken = Math.max(0, total - left);
+    // Counted directly rather than derived as (total - left): subtracting
+    // only holds if the pool happens to be exactly `total` players deep, so
+    // it reported a full sweep of phantom picks whenever the pool was
+    // smaller — an empty pool showed every position as fully drafted.
+    const taken = players.filter((p) => p.posList.includes(pos) && p.drafted).length;
     lanes[pos] = {
       scarcity: { left, taken, takenPct: total ? Math.round((taken / total) * 100) : 0, ...scarcityStyle(left) },
       players: avail.map((p) => ({
@@ -118,6 +121,7 @@ function buildState() {
     },
     yahooConnected: !!yahoo.connected,
     pollInterval: draftDay.pollInterval,
+    mockDraftMode: !!draftDay.mockDraftMode,
     lanes,
     roster: { slots: rosterSlotRows, benchCount: rosterSlots.BENCH, irCount: rosterSlots.IR },
     targets: targetRows,
@@ -149,8 +153,8 @@ draftRouter.post('/pick', (req, res) => {
   if (player.drafted) return res.status(409).json({ error: 'player already drafted' });
 
   const league = getSetting('league');
-  if (!league.teamsConfigured) {
-    return res.status(400).json({ error: 'teams are not set up yet — open Manual Draft Mode to configure them' });
+  if (!league.teams?.length) {
+    return res.status(400).json({ error: 'No teams set up yet — add them in Settings > League first.' });
   }
 
   const teamCount = league.teamCount;
@@ -192,4 +196,19 @@ draftRouter.post('/undo', (req, res) => {
 
   logDebug(`Undo pick #${last.pick_num} (${last.player_name})`, 'OK', 'app');
   res.json({ undonePickNum: last.pick_num, playerId: last.player_id });
+});
+
+// Clears every pick and hands all players back to the pool, leaving the
+// player list itself untouched — that's the whole point when mock drafting,
+// where you re-run the same board over and over.
+draftRouter.post('/reset', (req, res) => {
+  const clearedPicks = db.prepare('SELECT COUNT(*) AS n FROM draft_picks').get().n;
+
+  db.transaction(() => {
+    db.exec('DELETE FROM draft_picks');
+    db.exec('UPDATE players SET drafted = 0, drafted_by = NULL, mine = 0');
+  })();
+
+  logDebug(`Draft reset — ${clearedPicks} picks cleared, player list kept`, 'OK', 'app');
+  res.json({ clearedPicks });
 });

@@ -90,3 +90,35 @@ export async function verifyAccessToken(accessToken) {
   if (identity.ok) return { ok: true };
   return { ok: false, status: identity.status, statusText: identity.statusText, body: identity.body };
 }
+
+// Pulls the team list for one league. UNVERIFIED against a live league —
+// this account's Yahoo app has not been granted Fantasy Sports API access
+// yet (every call currently comes back 403 "not authorized"), so the
+// response shape below follows Yahoo's documented JSON structure but has
+// never been exercised against real data. Errors are surfaced verbatim
+// rather than swallowed, so a wrong assumption here shows up as a readable
+// failure instead of silently producing an empty team list.
+export async function fetchLeagueTeams(accessToken, leagueKey) {
+  const url = `https://fantasysports.yahooapis.com/fantasy/v2/league/${encodeURIComponent(leagueKey)}/teams?format=json`;
+  const res = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    return { ok: false, status: res.status, statusText: res.statusText, body: body.slice(0, 400) };
+  }
+
+  const json = await res.json();
+  const teamsNode = json?.fantasy_content?.league?.[1]?.teams ?? {};
+  const teams = [];
+  for (const [key, value] of Object.entries(teamsNode)) {
+    if (key === 'count') continue;
+    // Each team is an array of single-key fragments; flatten to find the
+    // ones carrying team_key and name.
+    const fragments = value?.team?.[0];
+    if (!Array.isArray(fragments)) continue;
+    const merged = Object.assign({}, ...fragments.filter((f) => f && typeof f === 'object'));
+    if (merged.team_key && merged.name) {
+      teams.push({ id: merged.team_key, name: merged.name });
+    }
+  }
+  return { ok: true, teams };
+}

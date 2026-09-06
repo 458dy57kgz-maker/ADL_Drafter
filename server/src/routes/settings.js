@@ -1,16 +1,33 @@
 import { Router } from 'express';
 import { db, getSetting, setSetting, logDebug } from '../db/index.js';
-import { suggestClosestName } from '../lib/textMatch.js';
 
 export const settingsRouter = Router();
 
 const SECTIONS = ['league', 'rosterSlots', 'targets', 'draftDay', 'hosting', 'yahoo'];
 const SECTION_ALIASES = { roster: null, hosting: 'hosting', draftday: 'draftDay' }; // sidebar-key -> settings-key
 
-settingsRouter.get('/', (req, res) => {
+// The yahoo section holds the client secret and both OAuth tokens. The
+// /api/yahoo routes redact those before responding; this bundle endpoint and
+// the export file have to do the same, or the secrets leak out through the
+// side door instead.
+function readSettingsBundle() {
   const all = {};
   for (const section of SECTIONS) all[section] = getSetting(section);
-  res.json(all);
+  const yahoo = all.yahoo ?? {};
+  all.yahoo = {
+    connected: yahoo.connected,
+    username: yahoo.username,
+    connectionMode: yahoo.connectionMode,
+    publicUrl: yahoo.publicUrl,
+    clientId: yahoo.clientId,
+    hasClientSecret: !!yahoo.clientSecret,
+    lastCall: yahoo.lastCall,
+  };
+  return all;
+}
+
+settingsRouter.get('/', (req, res) => {
+  res.json(readSettingsBundle());
 });
 
 settingsRouter.patch('/:section', (req, res) => {
@@ -24,12 +41,6 @@ settingsRouter.patch('/:section', (req, res) => {
     if (req.body.targets) result.targets = setSetting('targets', req.body.targets);
     logDebug('Roster settings updated', 'OK', 'app');
     return res.json(result);
-  }
-
-  if (req.params.section === 'league' && req.body.refreshSeason) {
-    const league = setSetting('league', { season: getSetting('league').season });
-    logDebug('League season refreshed from Yahoo', 'OK', 'yahoo');
-    return res.json({ league });
   }
 
   if (req.params.section === 'hosting' && req.body.reset) {
@@ -49,8 +60,7 @@ settingsRouter.patch('/:section', (req, res) => {
 settingsRouter.get('/export', (req, res) => {
   const players = db.prepare('SELECT * FROM players').all();
   const picks = db.prepare('SELECT * FROM draft_picks').all();
-  const settings = {};
-  for (const section of SECTIONS) settings[section] = getSetting(section);
+  const settings = readSettingsBundle();
   const aliases = db.prepare('SELECT * FROM name_aliases').all();
 
   res.setHeader('Content-Type', 'application/json');
@@ -83,6 +93,12 @@ settingsRouter.get('/rankings/unmatched', (req, res) => {
   res.json(rows.map((r) => ({ id: r.id, rankingsName: r.rankings_name, suggestion: r.suggestion })));
 });
 
+settingsRouter.delete('/rankings/unmatched', (req, res) => {
+  const { changes } = db.prepare('DELETE FROM unmatched_players WHERE resolved = 0').run();
+  logDebug(`Cleared ${changes} unmatched import entries`, 'OK', 'app');
+  res.json({ cleared: changes });
+});
+
 settingsRouter.post('/rankings/unmatched/:id', (req, res) => {
   const { decision } = req.body; // 'accept' | 'reject'
   const row = db.prepare('SELECT * FROM unmatched_players WHERE id = ?').get(Number(req.params.id));
@@ -96,43 +112,5 @@ settingsRouter.post('/rankings/unmatched/:id', (req, res) => {
   res.status(204).end();
 });
 
-// rows: [{ name, rank, tier }] — rank/tier are optional and, when present,
-// overwrite the matched player's own values. A matched row that carries no
-// rank/tier just confirms the name and changes nothing else.
-settingsRouter.post('/rankings/import', (req, res) => {
-  const { rows } = req.body;
-  let matched = 0;
-  const unmatched = [];
-
-  const players = db.prepare('SELECT id, name FROM players').all();
-  const byName = new Map(players.map((p) => [p.name.toLowerCase(), p]));
-  const allNames = players.map((p) => p.name);
-  const aliases = new Map(
-    db.prepare('SELECT from_name, to_name FROM name_aliases').all().map((a) => [a.from_name.toLowerCase(), a.to_name])
-  );
-
-  const updatePlayer = db.prepare(
-    'UPDATE players SET overall_rank = COALESCE(@overallRank, overall_rank), tier = COALESCE(@tier, tier) WHERE id = @id'
-  );
-  const insertUnmatched = db.prepare('INSERT INTO unmatched_players (rankings_name, suggestion) VALUES (?, ?)');
-
-  for (const row of rows) {
-    const name = (row.name || '').trim();
-    if (!name) continue;
-    const key = name.toLowerCase();
-    const aliasedTo = aliases.get(key);
-    const target = byName.get(key) || (aliasedTo && byName.get(aliasedTo.toLowerCase()));
-
-    if (target) {
-      matched++;
-      updatePlayer.run({ id: target.id, overallRank: row.rank ?? null, tier: row.tier ?? null });
-    } else {
-      const suggestion = suggestClosestName(name, allNames);
-      const suggestionId = insertUnmatched.run(name, suggestion).lastInsertRowid;
-      unmatched.push({ id: suggestionId, rankingsName: name, suggestion });
-    }
-  }
-
-  logDebug(`Rankings import: ${matched} matched, ${unmatched.length} unmatched`, 'OK', 'app');
-  res.json({ matched, unmatched });
-});
+// The CSV import itself lives in routes/players.js — one import handles
+// adding, updating and removing, so there's no separate rankings-only path.

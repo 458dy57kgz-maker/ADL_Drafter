@@ -5,9 +5,11 @@ import Roster from './settings/Roster.jsx';
 import RankingsImport from './settings/RankingsImport.jsx';
 import DraftDayBehavior from './settings/DraftDayBehavior.jsx';
 import AppHosting from './settings/AppHosting.jsx';
-import DebugLog from './settings/DebugLog.jsx';
 import './Settings.css';
 
+// The debug log lives at the bottom of the Yahoo Connection page rather than
+// in its own section — nearly everything it records is a Yahoo call, so it's
+// most useful next to the thing it's diagnosing.
 const SECTIONS = [
   { key: 'yahoo', label: 'Yahoo Connection', Component: YahooConnection },
   { key: 'league', label: 'League', Component: League },
@@ -15,7 +17,6 @@ const SECTIONS = [
   { key: 'rankings', label: 'Rankings Import', Component: RankingsImport },
   { key: 'draftday', label: 'Draft-Day Behavior', Component: DraftDayBehavior },
   { key: 'hosting', label: 'App / Hosting', Component: AppHosting },
-  { key: 'debug', label: 'Debug Log', Component: DebugLog },
 ];
 
 export default function Settings() {

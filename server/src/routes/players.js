@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { db, logDebug } from '../db/index.js';
 import { mapPlayerRow, normalizePosList } from '../lib/mapPlayer.js';
+import { suggestClosestName } from '../lib/textMatch.js';
 
 export const playersRouter = Router();
 
@@ -9,68 +10,201 @@ playersRouter.get('/', (req, res) => {
   res.json(rows.map(mapPlayerRow));
 });
 
-// Replaces the entire player pool (mock or otherwise) with an uploaded list —
-// wipes any in-progress draft along with it, since picks reference players
-// that are about to stop existing. Overall rank follows upload order (a
-// rankings export is assumed sorted best-to-worst); positional rank is
-// recomputed per position group from that same order, since a typical
-// rankings CSV only carries one overall-rank column, not a per-position one.
-playersRouter.post('/replace', (req, res) => {
+// --- Player list import ----------------------------------------------------
+//
+// One import covers all three cases, keyed on player name (case-insensitive,
+// honouring the alias table): rows matching an existing player update it,
+// rows that don't are added, and players absent from the file are offered
+// for removal. That's why there's no separate "replace" vs "rankings
+// overlay" import — "replace everything" is just this import with every
+// existing player missing from the file.
+//
+// A field only overwrites when the file actually carries a value for it, so
+// importing a file with just names and ranks won't blank out the stats
+// already stored against those players.
+
+const STAT_FIELDS = ['adp', 'tier', 'g', 'a', 'p', 'ppp', 'plusMinus', 'shots', 'w', 'gaa', 'saves'];
+const COLUMN_FOR = { plusMinus: 'plus_minus' };
+
+function loadMatchIndex() {
+  const existing = db.prepare('SELECT id, name, drafted FROM players').all();
+  const byName = new Map(existing.map((p) => [p.name.trim().toLowerCase(), p]));
+  const aliases = db.prepare('SELECT from_name, to_name FROM name_aliases').all();
+  // An alias maps a name as it appears in one source to the name stored
+  // here, so an import spelling it differently updates the right player
+  // instead of quietly creating a duplicate.
+  for (const a of aliases) {
+    const target = byName.get(String(a.to_name).trim().toLowerCase());
+    if (target) byName.set(String(a.from_name).trim().toLowerCase(), target);
+  }
+  return { existing, byName };
+}
+
+function partition(rows) {
+  const { existing, byName } = loadMatchIndex();
+  const toUpdate = [];
+  const toAdd = [];
+  const matchedIds = new Set();
+  const skipped = [];
+
+  for (const row of rows) {
+    const name = String(row.name ?? '').trim();
+    if (!name) continue;
+    const target = byName.get(name.toLowerCase());
+    if (target) {
+      matchedIds.add(target.id);
+      toUpdate.push({ row, target });
+    } else if (row.pos) {
+      toAdd.push(row);
+    } else {
+      // Nothing to match and no position to create a record from.
+      skipped.push(name);
+    }
+  }
+
+  const missing = existing.filter((p) => !matchedIds.has(p.id));
+  return { toAdd, toUpdate, missing, skipped };
+}
+
+// Positional rank can't be carried in from a file (one column can't hold a
+// player's rank at C and at LW), so it's recomputed across the whole pool
+// after any import, walking overall-rank order.
+function recomputePositionalRanks() {
+  const rows = db.prepare('SELECT id, pos FROM players ORDER BY overall_rank ASC, id ASC').all();
+  const update = db.prepare('UPDATE players SET rank = ? WHERE id = ?');
+  const counters = {};
+  for (const row of rows) {
+    const posList = normalizePosList(row.pos);
+    for (const pos of posList) counters[pos] = (counters[pos] ?? 0) + 1;
+    update.run(posList.length ? counters[posList[0]] : null, row.id);
+  }
+}
+
+playersRouter.post('/import/preview', (req, res) => {
   const { players } = req.body;
   if (!Array.isArray(players) || players.length === 0) {
     return res.status(400).json({ error: 'players array is required' });
   }
-  // A real bulk export will often have a stray blank cell somewhere — skip
-  // those rows rather than rejecting the whole upload over one bad row.
-  const valid = players.filter((p) => p.name && p.pos);
-  const skipped = players.length - valid.length;
-  if (valid.length === 0) {
-    return res.status(400).json({ error: 'no rows had both a name and a position after mapping' });
+
+  const { toAdd, toUpdate, missing, skipped } = partition(players);
+  res.json({
+    add: toAdd.length,
+    update: toUpdate.length,
+    skipped: skipped.length,
+    missing: {
+      count: missing.length,
+      examples: missing.slice(0, 3).map((p) => p.name),
+      draftedCount: missing.filter((p) => p.drafted).length,
+    },
+  });
+});
+
+playersRouter.post('/import', (req, res) => {
+  const { players, removeMissing } = req.body;
+  if (!Array.isArray(players) || players.length === 0) {
+    return res.status(400).json({ error: 'players array is required' });
   }
 
-  db.exec('DELETE FROM draft_picks; DELETE FROM players;');
+  const { toAdd, toUpdate, missing, skipped } = partition(players);
+  if (toAdd.length === 0 && toUpdate.length === 0) {
+    return res.status(400).json({ error: 'no usable rows — new players need a name and a position' });
+  }
 
   const insertPlayer = db.prepare(`
     INSERT INTO players
       (name, pos, team, rank, overall_rank, adp, tier, g, a, p, ppp, plus_minus, shots, w, gaa, saves, drafted, drafted_by, mine, tracked)
     VALUES
-      (@name, @pos, @team, @rank, @overallRank, @adp, @tier, @g, @a, @p, @ppp, @plusMinus, @shots, @w, @gaa, @saves, 0, NULL, 0, 0)
+      (@name, @pos, @team, NULL, @overallRank, @adp, @tier, @g, @a, @p, @ppp, @plusMinus, @shots, @w, @gaa, @saves, 0, NULL, 0, 0)
   `);
-  const insertMany = db.transaction((rows) => {
-    // Every position a player is eligible for gets its own running rank
-    // counter (a C/LW player advances both), but the single `rank` column
-    // can only hold one number — it takes whichever position is listed
-    // first in the cell (e.g. "C,LW" treats C as primary).
-    const posCounters = {};
-    rows.forEach((p, i) => {
-      const posList = normalizePosList(p.pos);
-      posList.forEach((pos) => {
-        posCounters[pos] = (posCounters[pos] ?? 0) + 1;
-      });
+  const deletePlayer = db.prepare('DELETE FROM players WHERE id = ?');
+  const deletePicksFor = db.prepare('DELETE FROM draft_picks WHERE player_id = ?');
+  const maxRank = db.prepare('SELECT COALESCE(MAX(overall_rank), 0) AS n FROM players').get().n;
+  // Captured before the insert pass, so a freshly added name can't be
+  // suggested as the near-match for itself.
+  const existingNamesBefore = db.prepare('SELECT name FROM players').all().map((r) => r.name);
+
+  const apply = db.transaction(() => {
+    for (const { row, target } of toUpdate) {
+      const sets = [];
+      const values = { id: target.id };
+      if (row.pos) {
+        sets.push('pos = @pos');
+        values.pos = normalizePosList(row.pos).join(',');
+      }
+      if (row.team) {
+        sets.push('team = @team');
+        values.team = row.team;
+      }
+      if (row.rank != null) {
+        sets.push('overall_rank = @overallRank');
+        values.overallRank = row.rank;
+      }
+      for (const field of STAT_FIELDS) {
+        if (row[field] != null) {
+          const column = COLUMN_FOR[field] ?? field;
+          sets.push(`${column} = @${field}`);
+          values[field] = row[field];
+        }
+      }
+      if (sets.length) db.prepare(`UPDATE players SET ${sets.join(', ')} WHERE id = @id`).run(values);
+    }
+
+    toAdd.forEach((row, i) => {
       insertPlayer.run({
-        name: p.name,
-        pos: posList.join(','),
-        team: p.team || null,
-        rank: posCounters[posList[0]] ?? null,
-        overallRank: p.rank ?? i + 1,
-        adp: p.adp ?? null,
-        tier: p.tier ?? null,
-        g: p.g ?? null,
-        a: p.a ?? null,
-        p: p.p ?? null,
-        ppp: p.ppp ?? null,
-        plusMinus: p.plusMinus ?? null,
-        shots: p.shots ?? null,
-        w: p.w ?? null,
-        gaa: p.gaa ?? null,
-        saves: p.saves ?? null,
+        name: String(row.name).trim(),
+        pos: normalizePosList(row.pos).join(','),
+        team: row.team || null,
+        overallRank: row.rank ?? maxRank + i + 1,
+        adp: row.adp ?? null,
+        tier: row.tier ?? null,
+        g: row.g ?? null,
+        a: row.a ?? null,
+        p: row.p ?? null,
+        ppp: row.ppp ?? null,
+        plusMinus: row.plusMinus ?? null,
+        shots: row.shots ?? null,
+        w: row.w ?? null,
+        gaa: row.gaa ?? null,
+        saves: row.saves ?? null,
       });
     });
-  });
-  insertMany(valid);
 
-  logDebug(`Player pool replaced with ${valid.length} uploaded players (${skipped} skipped)`, 'OK', 'app');
-  res.json({ playerCount: valid.length, skipped });
+    if (removeMissing) {
+      for (const p of missing) {
+        // Drop any pick referencing the player too, so the feed can't point
+        // at a row that no longer exists.
+        deletePicksFor.run(p.id);
+        deletePlayer.run(p.id);
+      }
+    }
+
+    recomputePositionalRanks();
+  });
+  apply();
+
+  // A newly added name that closely resembles one already in the pool is
+  // usually a spelling variant rather than a genuinely new player, and has
+  // just become a duplicate. Flag those for review instead of blocking the
+  // import — accepting one records an alias so the next import matches it.
+  const priorNames = existingNamesBefore;
+  const insertUnmatched = db.prepare('INSERT INTO unmatched_players (rankings_name, suggestion) VALUES (?, ?)');
+  let flagged = 0;
+  for (const row of toAdd) {
+    const name = String(row.name).trim();
+    const suggestion = suggestClosestName(name, priorNames);
+    if (suggestion) {
+      insertUnmatched.run(name, suggestion);
+      flagged++;
+    }
+  }
+
+  const removed = removeMissing ? missing.length : 0;
+  logDebug(
+    `Player import: ${toAdd.length} added, ${toUpdate.length} updated, ${removed} removed, ${skipped.length} skipped, ${flagged} flagged as possible duplicates`,
+    'OK',
+    'app'
+  );
+  res.json({ added: toAdd.length, updated: toUpdate.length, removed, skipped: skipped.length, flagged });
 });
 
 const PATCHABLE_FIELDS = { tier: 'tier', tracked: 'tracked' };

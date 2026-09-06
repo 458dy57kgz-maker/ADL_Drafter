@@ -67,32 +67,6 @@
   margin-bottom: 10px;
 }
 
-.manual-draft__team-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 6px;
-}
-
-.manual-draft__team-input {
-  flex: 1;
-  width: auto;
-}
-
-.manual-draft__my-team {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font: 600 11px var(--font-ui);
-  color: var(--text-secondary);
-  white-space: nowrap;
-}
-
-.manual-draft__save {
-  width: 100%;
-  margin-top: 8px;
-}
-
 .manual-draft__status {
   font: 600 12px var(--font-ui);
   color: var(--text-secondary);

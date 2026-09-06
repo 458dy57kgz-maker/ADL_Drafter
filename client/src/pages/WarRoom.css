@@ -32,6 +32,59 @@
   gap: 14px;
 }
 
+.mock-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font: 600 12px var(--font-ui);
+  color: var(--text-secondary);
+  cursor: pointer;
+  user-select: none;
+}
+
+/* The native checkbox stays in the DOM for keyboard/screen-reader use; the
+   painted track below is what's actually visible. */
+.mock-toggle input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.mock-toggle__track {
+  width: 34px;
+  height: 19px;
+  border-radius: 999px;
+  background: var(--bg-row);
+  border: 1px solid var(--border-hairline-strong);
+  padding: 2px;
+  display: flex;
+  transition: background 120ms ease, border-color 120ms ease;
+}
+
+.mock-toggle__thumb {
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: var(--text-faint);
+  transition: transform 120ms ease, background 120ms ease;
+}
+
+.mock-toggle input:checked + .mock-toggle__track {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.mock-toggle input:checked + .mock-toggle__track .mock-toggle__thumb {
+  background: var(--accent-on-text);
+  transform: translateX(15px);
+}
+
+.mock-toggle input:focus-visible + .mock-toggle__track {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
 .pick-chip {
   background: var(--accent);
   color: var(--accent-on-text);

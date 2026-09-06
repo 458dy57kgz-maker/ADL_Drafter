@@ -19,23 +19,17 @@ function matchScore(name, query) {
 export default function ManualDraftOverlay({ open, onClose }) {
   const [minimized, setMinimized] = useState(false);
   const [league, setLeague] = useState(null);
-  const [teamNames, setTeamNames] = useState([]);
-  const [myTeamIndex, setMyTeamIndex] = useState(0);
-  const [savingSetup, setSavingSetup] = useState(false);
   const [search, setSearch] = useState('');
   const [actionError, setActionError] = useState(null);
 
   const { data: draftState, refetch: refetchDraft } = usePolling(api.getDraftState, open ? 10 : 0, [open]);
   const { data: players, refetch: refetchPlayers } = usePolling(api.getPlayers, open ? 10 : 0, [open]);
 
+  // Teams are owned by Settings > League — this overlay used to carry its own
+  // setup screen, which meant two places to edit the same list.
   useEffect(() => {
     if (!open) return;
-    api.getSettings().then((s) => {
-      setLeague(s.league);
-      setTeamNames((s.league.teams ?? []).map((t) => t.name));
-      const idx = (s.league.teams ?? []).findIndex((t) => t.id === s.league.myTeamId);
-      setMyTeamIndex(idx >= 0 ? idx : 0);
-    });
+    api.getSettings().then((s) => setLeague(s.league));
   }, [open]);
 
   useEffect(() => {
@@ -57,31 +51,6 @@ export default function ManualDraftOverlay({ open, onClose }) {
       .sort((a, b) => b.score - a.score || a.p.overallRank - b.p.overallRank)
       .slice(0, 8);
   }, [players, search]);
-
-  async function handleSaveSetup() {
-    if (teamNames.some((n) => !n.trim())) {
-      setActionError('Every team needs a name.');
-      return;
-    }
-    setSavingSetup(true);
-    setActionError(null);
-    try {
-      const teams = league.teams.map((t, i) => ({ ...t, name: teamNames[i].trim() }));
-      const myTeamId = teams[myTeamIndex].id;
-      const updated = await api.updateSettings('league', {
-        teams,
-        myTeamId,
-        myTeamSlot: myTeamIndex + 1,
-        teamsConfigured: true,
-      });
-      setLeague(updated.league);
-      refetchDraft();
-    } catch (err) {
-      setActionError(err.message);
-    } finally {
-      setSavingSetup(false);
-    }
-  }
 
   async function handlePick(playerId) {
     setActionError(null);
@@ -122,30 +91,16 @@ export default function ManualDraftOverlay({ open, onClose }) {
         </div>
       </div>
 
-      {!minimized && league && !league.teamsConfigured && (
+      {!minimized && league && !league.teams?.length && (
         <div className="manual-draft__body">
-          <div className="manual-draft__hint">Set up your 10 teams and pick which one is yours.</div>
-          {teamNames.map((name, i) => (
-            <div key={i} className="manual-draft__team-row">
-              <input
-                className="field-input manual-draft__team-input"
-                value={name}
-                onChange={(e) => setTeamNames((prev) => prev.map((n, j) => (j === i ? e.target.value : n)))}
-              />
-              <label className="manual-draft__my-team">
-                <input type="radio" name="myTeam" checked={myTeamIndex === i} onChange={() => setMyTeamIndex(i)} />
-                Me
-              </label>
-            </div>
-          ))}
-          {actionError && <div className="manual-draft__error">{actionError}</div>}
-          <button type="button" className="btn btn-primary manual-draft__save" onClick={handleSaveSetup} disabled={savingSetup}>
-            {savingSetup ? 'Saving…' : 'Start Draft'}
-          </button>
+          <div className="manual-draft__hint">
+            No teams set up yet. Add them in Settings → League (in draft order, and mark which one is yours), then
+            come back here to make picks.
+          </div>
         </div>
       )}
 
-      {!minimized && league && league.teamsConfigured && (
+      {!minimized && league && league.teams?.length > 0 && (
         <div className="manual-draft__body">
           <div className="manual-draft__status">
             {draftState ? (

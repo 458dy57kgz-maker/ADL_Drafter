@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '../lib/api.js';
 import { usePolling } from '../lib/usePolling.js';
+import ConfirmDialog from '../components/ConfirmDialog.jsx';
 import './WarRoom.css';
 
 const POS_ORDER = ['C', 'LW', 'RW', 'D', 'G'];
@@ -19,6 +20,10 @@ export default function WarRoom() {
   // seconds away) to reflect the change — that lag was reading as "did my
   // click not register?" and inviting a double-click that undid it.
   const [trackedOverrides, setTrackedOverrides] = useState({});
+  const [pending, setPending] = useState(null); // 'toggle' | 'reset'
+  const [resetBusy, setResetBusy] = useState(false);
+  const [resetError, setResetError] = useState(null);
+  const mockDraftMode = !!data?.mockDraftMode;
 
   useEffect(() => {
     if (data?.pollInterval && data.pollInterval !== pollInterval) {
@@ -63,6 +68,26 @@ export default function WarRoom() {
     setExpandedPos((prev) => ({ ...prev, [pos]: prev[pos] + 2 }));
   }
 
+  // Both switching Mock Draft mode and the in-mode Reset button wipe the
+  // draft, so both go through the same confirmation. `pending` is which one
+  // asked, so the dialog can say what's actually about to happen.
+  async function runPendingAction() {
+    setResetBusy(true);
+    try {
+      if (pending === 'toggle') {
+        await api.updateSettings('draftday', { mockDraftMode: !mockDraftMode });
+      }
+      await api.resetDraft();
+      refetch();
+      setPending(null);
+    } catch (err) {
+      setResetError(err.message);
+      setPending(null);
+    } finally {
+      setResetBusy(false);
+    }
+  }
+
   if (error) {
     return (
       <div className="war-room war-room--empty">
@@ -88,6 +113,18 @@ export default function WarRoom() {
           <div className="picks-until-pill">{pickInfo.picksUntilMe} picks until you</div>
         </div>
         <div className="war-room__header-right">
+          <label className="mock-toggle" title="Mock Draft mode — switching either way starts a fresh draft">
+            <input type="checkbox" checked={mockDraftMode} onChange={() => setPending('toggle')} />
+            <span className="mock-toggle__track">
+              <span className="mock-toggle__thumb" />
+            </span>
+            Mock Draft
+          </label>
+          {mockDraftMode && (
+            <button type="button" className="btn btn-sm btn-danger" onClick={() => setPending('reset')}>
+              Reset Draft
+            </button>
+          )}
           <div className="yahoo-status">
             <span className={`status-dot${yahooConnected ? '' : ' status-dot--off'}`} />
             {yahooConnected ? 'Yahoo connected' : 'Yahoo disconnected'}
@@ -95,6 +132,26 @@ export default function WarRoom() {
           <div className="poll-chip mono">poll {pollInterval}s</div>
         </div>
       </header>
+
+      {resetError && (
+        <div className="card" style={{ marginBottom: 12, color: 'var(--danger-text)', font: '600 12px var(--font-ui)' }}>
+          {resetError}
+        </div>
+      )}
+
+      <ConfirmDialog
+        open={pending !== null}
+        busy={resetBusy}
+        title={pending === 'reset' ? 'Reset the draft?' : mockDraftMode ? 'Turn off Mock Draft mode?' : 'Turn on Mock Draft mode?'}
+        body={
+          pending === 'reset'
+            ? 'Every pick made so far will be cleared and all players returned to the pool. Your player list and rankings are kept.'
+            : `Switching Mock Draft mode ${mockDraftMode ? 'off' : 'on'} starts a fresh draft: every pick made so far will be cleared and all players returned to the pool. Your player list and rankings are kept.`
+        }
+        confirmLabel={pending === 'reset' ? 'Reset draft' : 'Switch and reset'}
+        onConfirm={runPendingAction}
+        onCancel={() => setPending(null)}
+      />
 
       <div className="war-room__lanes-section">
         <div className="section-eyebrow">Best Available — next per position</div>

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from '../../lib/api.js';
+import DebugLog from './DebugLog.jsx';
 
 export default function YahooConnection() {
   const [status, setStatus] = useState(null);
@@ -12,6 +13,11 @@ export default function YahooConnection() {
   const [saving, setSaving] = useState(false);
   const [verifying, setVerifying] = useState(false);
   const [verifyResult, setVerifyResult] = useState(null);
+  // League ID lives here rather than on the League page: it's a Yahoo
+  // identifier, and it's what the League page's "Pull teams" call needs.
+  const [leagueId, setLeagueId] = useState('');
+  const [savedLeagueId, setSavedLeagueId] = useState('');
+  const [savingLeagueId, setSavingLeagueId] = useState(false);
 
   useEffect(() => {
     api
@@ -23,6 +29,11 @@ export default function YahooConnection() {
         setPublicUrl(s.publicUrl ?? '');
       })
       .catch(() => setStatus({ connected: false }));
+
+    api.getSettings().then((s) => {
+      setLeagueId(s.league?.leagueId ?? '');
+      setSavedLeagueId(s.league?.leagueId ?? '');
+    });
 
     // Land here after Yahoo redirects back through /api/yahoo/callback.
     const params = new URLSearchParams(window.location.search);
@@ -37,6 +48,18 @@ export default function YahooConnection() {
       window.history.replaceState({}, '', `${window.location.pathname}${params.toString() ? `?${params}` : ''}`);
     }
   }, []);
+
+  async function handleSaveLeagueId() {
+    setSavingLeagueId(true);
+    try {
+      await api.updateSettings('league', { leagueId: leagueId.trim() });
+      setSavedLeagueId(leagueId.trim());
+    } catch (err) {
+      setBanner({ kind: 'error', text: err.message });
+    } finally {
+      setSavingLeagueId(false);
+    }
+  }
 
   async function handleReconnect() {
     try {
@@ -129,6 +152,30 @@ export default function YahooConnection() {
           {banner.text}
         </div>
       )}
+
+      <div className="card" style={{ marginBottom: 16 }}>
+        <div className="section-eyebrow" style={{ marginBottom: 10 }}>
+          League
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ font: '600 12.5px var(--font-ui)', color: 'var(--text-secondary)' }}>League ID</div>
+          <input
+            className="field-input mono"
+            style={{ width: 160 }}
+            placeholder="e.g. 27653"
+            value={leagueId}
+            onChange={(e) => setLeagueId(e.target.value)}
+          />
+          {leagueId.trim() !== savedLeagueId && (
+            <button type="button" className="btn btn-sm" onClick={handleSaveLeagueId} disabled={savingLeagueId}>
+              {savingLeagueId ? 'Saving…' : 'Save'}
+            </button>
+          )}
+        </div>
+        <div style={{ font: '500 11.5px var(--font-ui)', color: 'var(--text-faint)', marginTop: 8 }}>
+          The numeric ID from your league's Yahoo URL. Settings → League uses it to pull the real team list.
+        </div>
+      </div>
 
       <div className="card" style={{ marginBottom: 16 }}>
         <div className="section-eyebrow" style={{ marginBottom: 10 }}>
@@ -280,6 +327,10 @@ export default function YahooConnection() {
         <button type="button" className="btn btn-primary" style={{ marginTop: 14 }} onClick={handleConnect} disabled={saving}>
           {saving ? 'Saving…' : 'Save & Connect'}
         </button>
+      </div>
+
+      <div style={{ marginTop: 16 }}>
+        <DebugLog />
       </div>
     </div>
   );
