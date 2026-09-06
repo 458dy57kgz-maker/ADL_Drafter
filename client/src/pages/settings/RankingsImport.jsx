@@ -27,6 +27,7 @@ const IMPORT_FIELDS = [
   { key: 'ppp', label: 'Power-play points', synonyms: ['ppp', 'power play points', 'p_ppg'], required: false, type: 'int' },
   { key: 'plusMinus', label: '+/-', synonyms: ['+/-', 'plusminus', 'plus/minus'], required: false, type: 'int' },
   { key: 'shots', label: 'Shots', synonyms: ['shots', 'sog', 'p_sog'], required: false, type: 'int' },
+  { key: 'blocks', label: 'Blocks', synonyms: ['blk', 'blocks', 'p_blk', 'blocked shots'], required: false, type: 'int' },
   { key: 'w', label: 'Wins (goalies)', synonyms: ['w', 'wins', 'p_w'], required: false, type: 'int' },
   { key: 'gaa', label: 'GAA (goalies)', synonyms: ['gaa', 'p_gaa'], required: false, type: 'float' },
   { key: 'saves', label: 'Saves (goalies)', synonyms: ['saves', 'sv', 'p_sv'], required: false, type: 'int' },

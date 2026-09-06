@@ -23,7 +23,7 @@ playersRouter.get('/', (req, res) => {
 // importing a file with just names and ranks won't blank out the stats
 // already stored against those players.
 
-const STAT_FIELDS = ['adp', 'tier', 'g', 'a', 'p', 'ppp', 'plusMinus', 'shots', 'w', 'gaa', 'saves'];
+const STAT_FIELDS = ['adp', 'tier', 'g', 'a', 'p', 'ppp', 'plusMinus', 'shots', 'blocks', 'w', 'gaa', 'saves'];
 const COLUMN_FOR = { plusMinus: 'plus_minus' };
 
 function loadMatchIndex() {
@@ -112,9 +112,9 @@ playersRouter.post('/import', (req, res) => {
 
   const insertPlayer = db.prepare(`
     INSERT INTO players
-      (name, pos, team, rank, overall_rank, adp, tier, g, a, p, ppp, plus_minus, shots, w, gaa, saves, drafted, drafted_by, mine, tracked)
+      (name, pos, team, rank, overall_rank, adp, tier, g, a, p, ppp, plus_minus, shots, blocks, w, gaa, saves, drafted, drafted_by, mine, tracked)
     VALUES
-      (@name, @pos, @team, NULL, @overallRank, @adp, @tier, @g, @a, @p, @ppp, @plusMinus, @shots, @w, @gaa, @saves, 0, NULL, 0, 0)
+      (@name, @pos, @team, NULL, @overallRank, @adp, @tier, @g, @a, @p, @ppp, @plusMinus, @shots, @blocks, @w, @gaa, @saves, 0, NULL, 0, 0)
   `);
   const deletePlayer = db.prepare('DELETE FROM players WHERE id = ?');
   const deletePicksFor = db.prepare('DELETE FROM draft_picks WHERE player_id = ?');
@@ -163,6 +163,7 @@ playersRouter.post('/import', (req, res) => {
         ppp: row.ppp ?? null,
         plusMinus: row.plusMinus ?? null,
         shots: row.shots ?? null,
+        blocks: row.blocks ?? null,
         w: row.w ?? null,
         gaa: row.gaa ?? null,
         saves: row.saves ?? null,
@@ -226,6 +227,7 @@ const PATCHABLE_FIELDS = {
   ppp: 'ppp',
   plusMinus: 'plus_minus',
   shots: 'shots',
+  blocks: 'blocks',
   w: 'w',
   gaa: 'gaa',
   saves: 'saves',

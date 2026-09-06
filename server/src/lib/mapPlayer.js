@@ -26,6 +26,7 @@ export function mapPlayerRow(row) {
     ppp: row.ppp,
     plusMinus: row.plus_minus,
     shots: row.shots,
+    blocks: row.blocks,
     w: row.w,
     gaa: row.gaa,
     saves: row.saves,

@@ -19,6 +19,7 @@ const EDITABLE_COLUMNS = [
   { key: 'ppp', label: 'PPP', type: 'int', width: 48 },
   { key: 'plusMinus', label: '+/-', type: 'int', width: 48 },
   { key: 'shots', label: 'Sh', type: 'int', width: 52 },
+  { key: 'blocks', label: 'Blk', type: 'int', width: 52 },
   { key: 'w', label: 'W', type: 'int', width: 48 },
   { key: 'gaa', label: 'GAA', type: 'float', width: 54 },
   { key: 'saves', label: 'SV', type: 'int', width: 56 },

@@ -15,6 +15,23 @@ db.pragma('journal_mode = WAL');
 const schema = fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf8');
 db.exec(schema);
 
+// schema.sql only uses CREATE TABLE IF NOT EXISTS, so a column added to it
+// never reaches a database that already exists. Each entry here is a column
+// introduced after the initial schema; adding one is idempotent, so this can
+// run on every boot.
+const ADDED_COLUMNS = [{ table: 'players', column: 'blocks', type: 'INTEGER' }];
+
+function migrate() {
+  for (const { table, column, type } of ADDED_COLUMNS) {
+    const existing = db.prepare(`PRAGMA table_info(${table})`).all().map((c) => c.name);
+    if (!existing.includes(column)) {
+      db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${type}`);
+    }
+  }
+}
+
+migrate();
+
 const DEFAULT_SETTINGS = {
   league: {
     leagueId: '',
