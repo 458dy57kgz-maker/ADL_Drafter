@@ -45,7 +45,7 @@ const DEFAULT_SETTINGS = {
     myTeamSlot: 1,
   },
   rosterSlots: { C: 2, LW: 2, RW: 2, D: 4, G: 2, BENCH: 4, IR: 2 },
-  targets: { goals: 200, assists: 220, ppp: 90, plusMinus: 120, shots: 1400, wins: 30, saves: 900 },
+  targets: { goals: 200, assists: 220, ppp: 90, plusMinus: 120, shots: 1400, blocks: 120, wins: 30, saves: 900 },
   draftDay: { pollInterval: 8, draftMode: 'auto', notifSound: true, notifDesktop: true, mockDraftMode: false },
   hosting: {
     leagues: [{ id: 'default', name: 'My League 2026' }],
@@ -76,9 +76,27 @@ const DEFAULT_SETTINGS = {
 // existing database instead of being silently skipped forever.
 function seedMissingSettings() {
   const insertSetting = db.prepare('INSERT OR IGNORE INTO settings (section, data) VALUES (?, ?)');
+  const updateSetting = db.prepare('UPDATE settings SET data = ? WHERE section = ?');
+  const readSetting = db.prepare('SELECT data FROM settings WHERE section = ?');
+
   db.transaction(() => {
-    for (const [section, data] of Object.entries(DEFAULT_SETTINGS)) {
-      insertSetting.run(section, JSON.stringify(data));
+    for (const [section, defaults] of Object.entries(DEFAULT_SETTINGS)) {
+      insertSetting.run(section, JSON.stringify(defaults));
+
+      // Backfill keys added to a section after this database was created.
+      // INSERT OR IGNORE only covers whole new sections, so without this a
+      // newly added setting — a new scoring category, say — stays undefined
+      // forever on an existing install. Only absent keys are filled; a value
+      // already stored always wins.
+      const stored = JSON.parse(readSetting.get(section).data);
+      let changed = false;
+      for (const [key, value] of Object.entries(defaults)) {
+        if (!(key in stored)) {
+          stored[key] = value;
+          changed = true;
+        }
+      }
+      if (changed) updateSetting.run(JSON.stringify(stored), section);
     }
   })();
 }

@@ -8,6 +8,7 @@ const TARGET_LABELS = {
   ppp: 'PPP',
   plusMinus: '+/-',
   shots: 'Shots',
+  blocks: 'Blocks',
   wins: 'Wins',
   saves: 'Saves',
 };

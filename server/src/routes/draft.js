@@ -90,6 +90,7 @@ function buildState() {
     { label: 'PPP', current: sumSkater('ppp'), goal: targets.ppp },
     { label: '+/-', current: sumSkater('plusMinus'), goal: targets.plusMinus },
     { label: 'Shots', current: sumSkater('shots'), goal: targets.shots },
+    { label: 'Blocks', current: sumSkater('blocks'), goal: targets.blocks },
     { label: 'Wins', current: sumGoalie('w'), goal: targets.wins },
     { label: 'Saves', current: sumGoalie('saves'), goal: targets.saves },
   ].map((t) => ({ ...t, pct: t.goal ? Math.min(100, Math.round((t.current / t.goal) * 100)) : 0 }));

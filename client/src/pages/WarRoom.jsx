@@ -232,6 +232,7 @@ export default function WarRoom() {
             <div>PPP</div>
             <div>+/-</div>
             <div>SH</div>
+            <div>BLK</div>
           </div>
           {roster.slots.map((slot, i) => (
             <div className="roster-row" key={i}>
@@ -248,6 +249,7 @@ export default function WarRoom() {
               <div className="mono">{slot.player?.ppp ?? '–'}</div>
               <div className="mono">{slot.player?.plusMinus ?? '–'}</div>
               <div className="mono">{slot.player?.shots ?? '–'}</div>
+              <div className="mono">{slot.player?.blocks ?? '–'}</div>
             </div>
           ))}
           <div className="roster-footer">
