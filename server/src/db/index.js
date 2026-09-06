@@ -19,7 +19,11 @@ db.exec(schema);
 // never reaches a database that already exists. Each entry here is a column
 // introduced after the initial schema; adding one is idempotent, so this can
 // run on every boot.
-const ADDED_COLUMNS = [{ table: 'players', column: 'blocks', type: 'INTEGER' }];
+const ADDED_COLUMNS = [
+  { table: 'players', column: 'blocks', type: 'INTEGER' },
+  { table: 'players', column: 'ong', type: 'INTEGER' },
+  { table: 'players', column: 'vorp', type: 'REAL' },
+];
 
 function migrate() {
   for (const { table, column, type } of ADDED_COLUMNS) {

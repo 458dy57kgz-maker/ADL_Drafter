@@ -7,7 +7,9 @@ import './WarRoom.css';
 const POS_ORDER = ['C', 'LW', 'RW', 'D', 'G'];
 
 export default function WarRoom() {
-  const [expandedPos, setExpandedPos] = useState({ C: 3, LW: 3, RW: 3, D: 3, G: 3 });
+  // The lanes are the one section that grows with the window, so they open
+  // with enough rows to fill a tall monitor rather than the old three.
+  const [expandedPos, setExpandedPos] = useState({ C: 8, LW: 8, RW: 8, D: 8, G: 8 });
   // Seed with the draft-day default (server/src/db/index.js) and switch to
   // whatever Draft-Day Behavior actually has saved once the first poll
   // lands — passing it back into `deps` restarts the interval timer so a
@@ -65,7 +67,7 @@ export default function WarRoom() {
   }
 
   function expandLane(pos) {
-    setExpandedPos((prev) => ({ ...prev, [pos]: prev[pos] + 2 }));
+    setExpandedPos((prev) => ({ ...prev, [pos]: prev[pos] + 5 }));
   }
 
   // Both switching Mock Draft mode and the in-mode Reset button wipe the
@@ -153,6 +155,21 @@ export default function WarRoom() {
         onCancel={() => setPending(null)}
       />
 
+      <div className="war-room__picks-row">
+        {[
+          { key: 'best', title: 'Best Pick', hint: 'The pick the algorithm rates highest for you right now.' },
+          { key: 'next', title: 'Next Best Pick', hint: 'The runner-up — what you fall to if the best pick is gone.' },
+        ].map((box) => (
+          <div className="card pick-box" key={box.key}>
+            <div className="card-title">{box.title}</div>
+            <div className="pick-box__placeholder">
+              <div className="pick-box__placeholder-line">{box.hint}</div>
+              <div className="pick-box__placeholder-note">Waiting on the scoring algorithm</div>
+            </div>
+          </div>
+        ))}
+      </div>
+
       <div className="war-room__lanes-section">
         <div className="section-eyebrow">Best Available — next per position</div>
         <div className="lanes-grid">
@@ -220,6 +237,31 @@ export default function WarRoom() {
         </div>
       </div>
 
+      {/* Targets sit between the lanes and the roster as a single thin band:
+          eight rings, each filling toward its season goal. The number in the
+          middle is what the roster has so far; the target only appears on
+          hover, since during a draft the running total is what you actually
+          read and the goal is the occasional check. */}
+      <div className="card targets-strip">
+        <div className="targets-strip__title">Target Progress</div>
+        <div className="targets-strip__rings">
+          {targets.map((t) => (
+            <div className="target-ring-wrap" key={t.label}>
+              <div
+                className="target-ring"
+                style={{ '--pct': t.pct }}
+                data-goal={`Target ${t.goal}`}
+                role="img"
+                aria-label={`${t.label}: ${t.current} of ${t.goal}`}
+              >
+                <div className="target-ring__inner mono">{t.current}</div>
+              </div>
+              <div className="target-ring__label">{t.label}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
       <div className="war-room__bottom-grid">
         <div className="card roster-card">
           <div className="card-title">My Roster</div>
@@ -235,7 +277,7 @@ export default function WarRoom() {
             <div>BLK</div>
           </div>
           {roster.slots.map((slot, i) => (
-            <div className="roster-row" key={i}>
+            <div className={`roster-row${slot.pos === 'BN' ? ' roster-row--bench' : ''}`} key={i}>
               <div className="mono roster-row__pos">{slot.pos}</div>
               <div
                 className="roster-row__name"
@@ -252,30 +294,11 @@ export default function WarRoom() {
               <div className="mono">{slot.player?.blocks ?? '–'}</div>
             </div>
           ))}
-          <div className="roster-footer">
-            Bench x{roster.benchCount} · IR x{roster.irCount} — empty
-          </div>
+          <div className="roster-footer">IR x{roster.irCount} — empty</div>
         </div>
 
-        <div className="card targets-card">
-          <div className="card-title">Target Progress</div>
-          {targets.map((t) => (
-            <div className="target-row" key={t.label}>
-              <div className="target-row__labels">
-                <div>{t.label}</div>
-                <div className="mono">
-                  {t.current} / {t.goal}
-                </div>
-              </div>
-              <div className="progress-track">
-                <div className="progress-fill" style={{ width: `${t.pct}%` }} />
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <div className="card side-card">
-          <div>
+        <div className="side-col">
+          <div className="card">
             <div className="card-title">Position Scarcity</div>
             {POS_ORDER.map((pos) => {
               const sc = scarcity[pos];
@@ -297,30 +320,38 @@ export default function WarRoom() {
               );
             })}
           </div>
-          <div>
-            <div className="card-title">Live Pick Feed</div>
-            {liveFeed.map((f) => (
-              <div className="feed-row" key={f.pickNum}>
-                <span className="mono feed-row__num">#{f.pickNum}</span> {f.team} → {f.playerName} ({f.pos})
-              </div>
-            ))}
-          </div>
-          <div>
-            <div className="card-title">Tracked Players</div>
-            {tracked.map((tr) => (
-              <div className="tracked-row" key={tr.id}>
-                <div>
-                  {tr.name} <span className="tracked-row__pos">— {tr.pos}</span>
+
+          {/* The feed and the tracked list used to share a third column. With
+              the bottom band down to two, they sit side by side under
+              scarcity — each scrolls in place so the band's height stays
+              fixed no matter how long the draft runs. */}
+          <div className="side-col__pair">
+            <div className="card side-col__scroller">
+              <div className="card-title">Live Pick Feed</div>
+              {liveFeed.map((f) => (
+                <div className="feed-row" key={f.pickNum}>
+                  <span className="mono feed-row__num">#{f.pickNum}</span> {f.team} → {f.playerName} ({f.pos})
                 </div>
-                <div
-                  className="tracked-row__status"
-                  style={{ color: tr.drafted ? 'var(--danger-text)' : 'var(--success-text)' }}
-                >
-                  {tr.drafted ? `Taken by ${tr.draftedBy}` : 'Still available'}
+              ))}
+              {liveFeed.length === 0 && <div className="feed-row feed-row--empty">No picks yet</div>}
+            </div>
+            <div className="card side-col__scroller">
+              <div className="card-title">Tracked Players</div>
+              {tracked.map((tr) => (
+                <div className="tracked-row" key={tr.id}>
+                  <div>
+                    {tr.name} <span className="tracked-row__pos">— {tr.pos}</span>
+                  </div>
+                  <div
+                    className="tracked-row__status"
+                    style={{ color: tr.drafted ? 'var(--danger-text)' : 'var(--success-text)' }}
+                  >
+                    {tr.drafted ? `Taken by ${tr.draftedBy}` : 'Still available'}
+                  </div>
                 </div>
-              </div>
-            ))}
-            {tracked.length === 0 && <div className="tracked-row tracked-row--empty">No players tracked yet</div>}
+              ))}
+              {tracked.length === 0 && <div className="tracked-row tracked-row--empty">No players tracked yet</div>}
+            </div>
           </div>
         </div>
       </div>

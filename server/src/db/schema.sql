@@ -14,6 +14,8 @@ CREATE TABLE IF NOT EXISTS players (
   plus_minus INTEGER,
   shots INTEGER,
   blocks INTEGER,
+  ong INTEGER,
+  vorp REAL,
   w INTEGER,
   gaa REAL,
   saves INTEGER,

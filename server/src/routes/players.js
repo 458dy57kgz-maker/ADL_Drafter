@@ -1,13 +1,20 @@
 import { Router } from 'express';
-import { db, logDebug } from '../db/index.js';
+import { db, getSetting, logDebug } from '../db/index.js';
 import { mapPlayerRow, normalizePosList } from '../lib/mapPlayer.js';
 import { suggestClosestName } from '../lib/textMatch.js';
 
 export const playersRouter = Router();
 
+// DIFF is derived from the league's team count, so every read of a player
+// has to carry it through — otherwise the column comes back null.
+function teamCount() {
+  return getSetting('league').teamCount;
+}
+
 playersRouter.get('/', (req, res) => {
   const rows = db.prepare('SELECT * FROM players ORDER BY overall_rank ASC').all();
-  res.json(rows.map(mapPlayerRow));
+  const teams = teamCount();
+  res.json(rows.map((row) => mapPlayerRow(row, teams)));
 });
 
 // --- Player list import ----------------------------------------------------
@@ -23,7 +30,7 @@ playersRouter.get('/', (req, res) => {
 // importing a file with just names and ranks won't blank out the stats
 // already stored against those players.
 
-const STAT_FIELDS = ['adp', 'tier', 'g', 'a', 'p', 'ppp', 'plusMinus', 'shots', 'blocks', 'w', 'gaa', 'saves'];
+const STAT_FIELDS = ['adp', 'tier', 'g', 'a', 'p', 'ppp', 'plusMinus', 'shots', 'blocks', 'ong', 'vorp', 'w', 'gaa', 'saves'];
 const COLUMN_FOR = { plusMinus: 'plus_minus' };
 
 function loadMatchIndex() {
@@ -112,9 +119,9 @@ playersRouter.post('/import', (req, res) => {
 
   const insertPlayer = db.prepare(`
     INSERT INTO players
-      (name, pos, team, rank, overall_rank, adp, tier, g, a, p, ppp, plus_minus, shots, blocks, w, gaa, saves, drafted, drafted_by, mine, tracked)
+      (name, pos, team, rank, overall_rank, adp, tier, g, a, p, ppp, plus_minus, shots, blocks, ong, vorp, w, gaa, saves, drafted, drafted_by, mine, tracked)
     VALUES
-      (@name, @pos, @team, NULL, @overallRank, @adp, @tier, @g, @a, @p, @ppp, @plusMinus, @shots, @blocks, @w, @gaa, @saves, 0, NULL, 0, 0)
+      (@name, @pos, @team, NULL, @overallRank, @adp, @tier, @g, @a, @p, @ppp, @plusMinus, @shots, @blocks, @ong, @vorp, @w, @gaa, @saves, 0, NULL, 0, 0)
   `);
   const deletePlayer = db.prepare('DELETE FROM players WHERE id = ?');
   const deletePicksFor = db.prepare('DELETE FROM draft_picks WHERE player_id = ?');
@@ -164,6 +171,8 @@ playersRouter.post('/import', (req, res) => {
         plusMinus: row.plusMinus ?? null,
         shots: row.shots ?? null,
         blocks: row.blocks ?? null,
+        ong: row.ong ?? null,
+        vorp: row.vorp ?? null,
         w: row.w ?? null,
         gaa: row.gaa ?? null,
         saves: row.saves ?? null,
@@ -228,6 +237,8 @@ const PATCHABLE_FIELDS = {
   plusMinus: 'plus_minus',
   shots: 'shots',
   blocks: 'blocks',
+  ong: 'ong',
+  vorp: 'vorp',
   w: 'w',
   gaa: 'gaa',
   saves: 'saves',
@@ -261,5 +272,5 @@ playersRouter.patch('/:id', (req, res) => {
   db.prepare(`UPDATE players SET ${sets.join(', ')} WHERE id = @id`).run({ ...values, id });
   const updated = db.prepare('SELECT * FROM players WHERE id = ?').get(id);
   logDebug(`Player ${updated.name} updated (${Object.keys(req.body).join(', ')})`, 'OK', 'app');
-  res.json(mapPlayerRow(updated));
+  res.json(mapPlayerRow(updated, teamCount()));
 });

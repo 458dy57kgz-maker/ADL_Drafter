@@ -134,25 +134,89 @@
   border-radius: 6px;
 }
 
-.war-room__lanes-section {
-  padding: 16px 22px 10px;
+/* Best Pick / Next Best Pick — a fixed band across the top, half the width
+   each. Capped rather than sized to content so the placeholder and a filled-
+   in recommendation occupy the same space and nothing below it shifts. */
+.war-room__picks-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  padding: 14px 22px 0;
   flex: none;
+}
+
+.pick-box {
+  max-height: 300px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow: hidden;
+}
+
+.pick-box__placeholder {
+  flex: 1;
+  min-height: 120px;
+  border: 1px dashed var(--border-hairline-strong);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 12px;
+  text-align: center;
+}
+
+.pick-box__placeholder-line {
+  font: 500 12.5px var(--font-ui);
+  color: var(--text-muted);
+  max-width: 46ch;
+}
+
+.pick-box__placeholder-note {
+  font: 600 10.5px var(--font-ui);
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+/* The only section that grows: everything above and below it is fixed, so
+   extra window height lands here as more visible players per position. */
+.war-room__lanes-section {
+  padding: 14px 22px 10px;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 .lanes-grid {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 12px;
-  margin-top: 10px;
+  flex: 1;
+  min-height: 0;
 }
 
 .lane-card {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  min-height: 230px;
+  gap: 6px;
+  min-height: 0;
   min-width: 0;
   padding: 12px;
+  overflow-y: auto;
+}
+
+/* The position and its scarcity count stay visible while the list scrolls —
+   a lane of names with no header is unreadable at a glance mid-draft. */
+.lane-card__header {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--bg-card);
+  padding-bottom: 4px;
 }
 
 .lane-card__header {
@@ -247,25 +311,140 @@
   border: none;
 }
 
+/* Pinned to the bottom of the page and sized to its content — it never
+   takes more room than the roster and scarcity actually need, and never
+   less, so the lanes above get every remaining pixel. */
 .war-room__bottom-grid {
   display: grid;
-  grid-template-columns: 1.15fr 0.9fr 1fr;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
   gap: 14px;
-  padding: 6px 22px 22px;
-  flex: 1;
-  min-height: 0;
+  padding: 10px 22px 18px;
+  flex: none;
+  align-items: start;
 }
 
-.roster-card,
-.targets-card,
-.side-card {
-  overflow: auto;
+.roster-card {
+  overflow: visible;
 }
 
-.side-card {
+.side-col {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 12px;
+  min-width: 0;
+}
+
+.side-col__pair {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  min-width: 0;
+}
+
+.side-col__scroller {
+  max-height: 190px;
+  overflow-y: auto;
+  min-width: 0;
+}
+
+/* --- Target Progress: one thin full-width band of rings ------------------ */
+.targets-strip {
+  flex: none;
+  margin: 0 22px;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 7px 16px;
+}
+
+.targets-strip__title {
+  font: 700 11px var(--font-ui);
+  letter-spacing: 0.7px;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  white-space: nowrap;
+}
+
+.targets-strip__rings {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+}
+
+.target-ring-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+/* The conic sweep is the fill: --pct percent of the ring in the accent
+   colour, the remainder in the track colour, with the panel-coloured disc
+   punched out of the middle to leave a ring rather than a pie. */
+.target-ring {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: conic-gradient(var(--accent) calc(var(--pct) * 1%), var(--track-bg) 0);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+}
+
+.target-ring__inner {
+  width: 33px;
+  height: 33px;
+  border-radius: 50%;
+  background: var(--bg-card);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font: 700 11.5px var(--font-mono);
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.target-ring__label {
+  font: 600 10.5px var(--font-ui);
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+/* Hover reveals the goal. Written as its own bubble rather than a `title`
+   so it appears immediately — a half-second native tooltip delay is too
+   slow to be worth reaching for between picks. */
+.target-ring::after {
+  content: attr(data-goal);
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 3px 8px;
+  border-radius: 5px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-hairline-strong);
+  color: var(--text-primary);
+  font: 600 11px var(--font-mono);
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 90ms ease;
+}
+
+.target-ring:hover::after {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .target-ring::after {
+    transition: none;
+  }
 }
 
 .roster-header {
@@ -278,15 +457,24 @@
   margin-bottom: 4px;
 }
 
+.roster-row--bench .roster-row__pos {
+  color: var(--text-faint);
+}
+
+.roster-row--bench {
+  background: transparent;
+  border: 1px solid var(--border-hairline);
+}
+
 .roster-row {
   display: grid;
   grid-template-columns: 28px minmax(0, 1fr) repeat(7, minmax(0, 1fr));
   gap: 2px 4px;
   align-items: center;
-  padding: 6px;
-  border-radius: 6px;
+  padding: 4px 6px;
+  border-radius: 5px;
   background: var(--bg-input);
-  margin-bottom: 4px;
+  margin-bottom: 2px;
   min-width: 0;
   font: 500 11px var(--font-mono);
   color: var(--text-secondary);
@@ -309,18 +497,6 @@
   font: 500 11px var(--font-ui);
   color: var(--text-faint);
   margin-top: 4px;
-}
-
-.target-row {
-  margin-bottom: 10px;
-}
-
-.target-row__labels {
-  display: flex;
-  justify-content: space-between;
-  font: 500 11.5px var(--font-ui);
-  color: var(--text-secondary);
-  margin-bottom: 3px;
 }
 
 .progress-track {
@@ -404,4 +580,8 @@
 
 .tracked-row__status {
   font: 600 11px var(--font-ui);
+}
+
+.feed-row--empty {
+  color: var(--text-faint);
 }

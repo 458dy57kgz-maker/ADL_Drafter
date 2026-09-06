@@ -140,3 +140,11 @@
   -moz-appearance: textfield;
   appearance: textfield;
 }
+
+/* Diff is computed, not stored, so it gets no input box — the absence of one
+   is the signal that it isn't typed into. */
+.players-table__derived {
+  font: 700 11.5px var(--font-mono) !important;
+  text-align: center;
+  white-space: nowrap;
+}

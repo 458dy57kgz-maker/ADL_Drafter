@@ -24,11 +24,14 @@ function buildState() {
   const draftDay = getSetting('draftDay');
   const yahoo = getSetting('yahoo');
 
-  const players = db.prepare('SELECT * FROM players ORDER BY overall_rank ASC').all().map(mapPlayerRow);
+  const teamCount = league.teamCount;
+  const players = db
+    .prepare('SELECT * FROM players ORDER BY overall_rank ASC')
+    .all()
+    .map((row) => mapPlayerRow(row, teamCount));
 
   const pickCount = db.prepare('SELECT COUNT(*) AS n FROM draft_picks').get().n;
   const currentPick = pickCount + 1;
-  const teamCount = league.teamCount;
   const currentRound = round(currentPick, teamCount);
   const mySlot = league.myTeamSlot ?? 1;
   const isMyTurnNow = slotForPick(currentPick, teamCount) === mySlot;
@@ -81,6 +84,17 @@ function buildState() {
       rosterSlotRows.push({ pos, player });
     }
   });
+
+  // Anyone left over once the starting slots are full sits on the bench —
+  // a third centre in a two-C league doesn't vanish from the roster view, he
+  // just shows up here. The row count is the configured bench size, but it
+  // stretches if more players are somehow assigned than there are seats, so
+  // a drafted player is never invisible.
+  const benched = mine.filter((p) => !assignedIds.has(p.id));
+  const benchRows = Math.max(rosterSlots.BENCH ?? 0, benched.length);
+  for (let i = 0; i < benchRows; i++) {
+    rosterSlotRows.push({ pos: 'BN', player: benched[i] ?? null });
+  }
 
   const sumSkater = (key) => mine.filter((p) => !p.posList.includes('G')).reduce((acc, p) => acc + (p[key] || 0), 0);
   const sumGoalie = (key) => mine.filter((p) => p.posList.includes('G')).reduce((acc, p) => acc + (p[key] || 0), 0);
@@ -179,7 +193,7 @@ draftRouter.post('/pick', (req, res) => {
   })();
 
   logDebug(`Manual pick #${pickNum}: ${team.name} -> ${player.name} (${player.pos})`, 'OK', 'app');
-  const updated = mapPlayerRow(db.prepare('SELECT * FROM players WHERE id = ?').get(player.id));
+  const updated = mapPlayerRow(db.prepare('SELECT * FROM players WHERE id = ?').get(player.id), teamCount);
   res.status(201).json({ pickNum, round: pickRound, team: team.name, player: updated });
 });
 

@@ -6,12 +6,16 @@ import './Players.css';
 // because imports match on it — renaming here would detach the player from
 // the next import of the same sheet. Status is derived from draft state
 // (drafted / by whom), which the draft itself owns.
-const EDITABLE_COLUMNS = [
+const COLUMNS = [
   { key: 'pos', label: 'Pos', type: 'text', width: 62 },
   { key: 'team', label: 'Team', type: 'text', width: 58 },
   { key: 'overallRank', label: 'Overall', type: 'int', width: 58 },
   { key: 'rank', label: 'Pos Rank', type: 'int', width: 58 },
   { key: 'adp', label: 'ADP', type: 'int', width: 52 },
+  // Derived on the server from overall rank, ADP and the league's team
+  // count — editable only by changing one of those, which is why it's the
+  // one numeric column with no input.
+  { key: 'diff', label: 'Diff', type: 'float', width: 54, readOnly: true },
   { key: 'tier', label: 'Tier', type: 'int', width: 48, accent: true },
   { key: 'g', label: 'G', type: 'int', width: 48 },
   { key: 'a', label: 'A', type: 'int', width: 48 },
@@ -20,12 +24,14 @@ const EDITABLE_COLUMNS = [
   { key: 'plusMinus', label: '+/-', type: 'int', width: 48 },
   { key: 'shots', label: 'Sh', type: 'int', width: 52 },
   { key: 'blocks', label: 'Blk', type: 'int', width: 52 },
+  { key: 'ong', label: 'ONG', type: 'int', width: 52 },
+  { key: 'vorp', label: 'VORP', type: 'float', width: 62, step: '0.001' },
   { key: 'w', label: 'W', type: 'int', width: 48 },
   { key: 'gaa', label: 'GAA', type: 'float', width: 54 },
   { key: 'saves', label: 'SV', type: 'int', width: 56 },
 ];
 
-const SORT_COLUMNS = [{ key: 'name', label: 'Name' }, ...EDITABLE_COLUMNS, { key: 'status', label: 'Status' }];
+const SORT_COLUMNS = [{ key: 'name', label: 'Name' }, ...COLUMNS, { key: 'status', label: 'Status' }];
 
 function draftedText(p) {
   if (!p.drafted) return 'Available';
@@ -35,6 +41,17 @@ function draftedText(p) {
 function draftedColor(p) {
   if (!p.drafted) return 'var(--success-text)';
   return p.mine ? 'var(--gold)' : 'var(--text-muted)';
+}
+
+// Green is the bargain direction. A negative DIFF means the field drafts the
+// player later than I rate him — I can get my own #5 at pick 20 — while a
+// positive one means he goes before I'd ever want him, so he's someone
+// else's reach, not mine.
+function diffColor(diff) {
+  if (diff == null) return 'var(--text-faint)';
+  if (diff < 0) return 'var(--success-text)';
+  if (diff > 0) return 'var(--danger-text)';
+  return 'var(--text-muted)';
 }
 
 function coerce(type, raw) {
@@ -117,7 +134,7 @@ export default function Players() {
       <div className="players-page__header">
         <div className="players-page__title">Players — Full Data</div>
         <div style={{ font: '500 11.5px var(--font-ui)', color: 'var(--text-faint)' }}>
-          Every field except the name is editable — changes save when you leave the cell.
+          Every field except the name and Diff is editable — changes save when you leave the cell. Diff is (Overall − ADP) ÷ teams, recalculated as you edit.
         </div>
       </div>
 
@@ -164,23 +181,29 @@ export default function Players() {
               rows.map((p, i) => (
                 <tr key={p.id} style={{ background: i % 2 === 1 ? 'var(--bg-row-alt)' : 'transparent' }}>
                   <td className="players-table__name">{p.name}</td>
-                  {EDITABLE_COLUMNS.map((col) => (
-                    <td key={col.key}>
-                      <input
-                        className={`cell-input${col.accent ? ' cell-input--accent' : ''}`}
-                        style={{ width: col.width }}
-                        type={col.type === 'text' ? 'text' : 'number'}
-                        step={col.type === 'float' ? '0.01' : '1'}
-                        value={p[col.key] ?? ''}
-                        onFocus={() => {
-                          focusValue.current = coerce(col.type, p[col.key] ?? '');
-                        }}
-                        onChange={(e) => handleCellChange(p.id, col.key, col.type, e.target.value)}
-                        onBlur={(e) => handleCellBlur(p.id, col.key, col.type, e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
-                      />
-                    </td>
-                  ))}
+                  {COLUMNS.map((col) =>
+                    col.readOnly ? (
+                      <td key={col.key} className="players-table__derived" style={{ color: diffColor(p.diff) }}>
+                        {p[col.key] == null ? '–' : p[col.key].toFixed(1)}
+                      </td>
+                    ) : (
+                      <td key={col.key}>
+                        <input
+                          className={`cell-input${col.accent ? ' cell-input--accent' : ''}`}
+                          style={{ width: col.width }}
+                          type={col.type === 'text' ? 'text' : 'number'}
+                          step={col.step ?? (col.type === 'float' ? '0.01' : '1')}
+                          value={p[col.key] ?? ''}
+                          onFocus={() => {
+                            focusValue.current = coerce(col.type, p[col.key] ?? '');
+                          }}
+                          onChange={(e) => handleCellChange(p.id, col.key, col.type, e.target.value)}
+                          onBlur={(e) => handleCellBlur(p.id, col.key, col.type, e.target.value)}
+                          onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
+                        />
+                      </td>
+                    )
+                  )}
                   <td className="players-table__status" style={{ color: draftedColor(p) }}>
                     {draftedText(p)}
                   </td>

@@ -11,6 +11,10 @@ import ConfirmDialog from '../../components/ConfirmDialog.jsx';
 // P_SV/P_GAA) so that file auto-maps correctly every time without
 // re-mapping by hand.
 //
+// DIFF is deliberately absent: it's derived from the overall rank, the ADP
+// and the league's team count, so it recalculates itself whenever any of
+// those change rather than going stale as an imported snapshot.
+//
 // Only the name is required: a file that's just names and new rankings is a
 // valid update of players already in the pool. Position is only needed for
 // rows that turn out to be brand-new players, which the server enforces.
@@ -28,6 +32,8 @@ const IMPORT_FIELDS = [
   { key: 'plusMinus', label: '+/-', synonyms: ['+/-', 'plusminus', 'plus/minus'], required: false, type: 'int' },
   { key: 'shots', label: 'Shots', synonyms: ['shots', 'sog', 'p_sog'], required: false, type: 'int' },
   { key: 'blocks', label: 'Blocks', synonyms: ['blk', 'blocks', 'p_blk', 'blocked shots'], required: false, type: 'int' },
+  { key: 'ong', label: 'Off-night games', synonyms: ['ong', 'off night games', 'offnight', 'p_ong'], required: false, type: 'int' },
+  { key: 'vorp', label: 'VORP — value over replacement at the position', synonyms: ['vorp', 'value over replacement', 'p_vorp'], required: false, type: 'float' },
   { key: 'w', label: 'Wins (goalies)', synonyms: ['w', 'wins', 'p_w'], required: false, type: 'int' },
   { key: 'gaa', label: 'GAA (goalies)', synonyms: ['gaa', 'p_gaa'], required: false, type: 'float' },
   { key: 'saves', label: 'Saves (goalies)', synonyms: ['saves', 'sv', 'p_sv'], required: false, type: 'int' },
