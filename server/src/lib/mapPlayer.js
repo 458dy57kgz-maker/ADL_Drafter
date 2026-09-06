@@ -43,6 +43,7 @@ export function mapPlayerRow(row, teamCount = null) {
     shots: row.shots,
     blocks: row.blocks,
     ong: row.ong,
+    gp: row.gp,
     vorp: row.vorp,
     diff: computeDiff(row.overall_rank, row.adp, teamCount),
     w: row.w,

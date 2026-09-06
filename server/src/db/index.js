@@ -22,6 +22,7 @@ db.exec(schema);
 const ADDED_COLUMNS = [
   { table: 'players', column: 'blocks', type: 'INTEGER' },
   { table: 'players', column: 'ong', type: 'INTEGER' },
+  { table: 'players', column: 'gp', type: 'INTEGER' },
   { table: 'players', column: 'vorp', type: 'REAL' },
 ];
 

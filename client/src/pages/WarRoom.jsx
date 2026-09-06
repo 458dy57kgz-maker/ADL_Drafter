@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { api } from '../lib/api.js';
 import { usePolling } from '../lib/usePolling.js';
 import ConfirmDialog from '../components/ConfirmDialog.jsx';
+import { BestPickCard, NextBestPickCard } from '../components/DraftPlanPanel.jsx';
+import { useDraftPlan } from '../lib/useDraftPlan.js';
 import './WarRoom.css';
 
 const POS_ORDER = ['C', 'LW', 'RW', 'D', 'G'];
@@ -26,6 +28,8 @@ export default function WarRoom() {
   const [resetBusy, setResetBusy] = useState(false);
   const [resetError, setResetError] = useState(null);
   const mockDraftMode = !!data?.mockDraftMode;
+  // The value engine runs off the same polled state, in a worker.
+  const { plan, quick, status: planStatus, error: planError, fixturePickInfo } = useDraftPlan(data);
 
   useEffect(() => {
     if (data?.pollInterval && data.pollInterval !== pollInterval) {
@@ -156,18 +160,15 @@ export default function WarRoom() {
       />
 
       <div className="war-room__picks-row">
-        {[
-          { key: 'best', title: 'Best Pick', hint: 'The pick the algorithm rates highest for you right now.' },
-          { key: 'next', title: 'Next Best Pick', hint: 'The runner-up — what you fall to if the best pick is gone.' },
-        ].map((box) => (
-          <div className="card pick-box" key={box.key}>
-            <div className="card-title">{box.title}</div>
-            <div className="pick-box__placeholder">
-              <div className="pick-box__placeholder-line">{box.hint}</div>
-              <div className="pick-box__placeholder-note">Waiting on the scoring algorithm</div>
-            </div>
-          </div>
-        ))}
+        <BestPickCard
+          plan={plan}
+          quick={quick}
+          status={planStatus}
+          error={planError}
+          pickInfo={fixturePickInfo ?? pickInfo}
+          coverage={data.coverage}
+        />
+        <NextBestPickCard plan={plan} />
       </div>
 
       <div className="war-room__lanes-section">

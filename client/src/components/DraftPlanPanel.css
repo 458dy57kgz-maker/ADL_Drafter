@@ -1,0 +1,362 @@
+/* The recommendation panel. Both cards live inside the War Room's fixed
+   300px-tall top row, so everything here is sized to fit that band and
+   scrolls internally rather than pushing the lanes below it around. */
+
+.pick-box__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.pick-box__head .card-title {
+  margin-bottom: 0;
+}
+
+/* 2px accent border marks this card as the instruction. The forecast card
+   beside it deliberately keeps the plain hairline. */
+.pick-box--now {
+  border: 2px solid var(--accent);
+}
+
+.plan-pill {
+  font: 600 10.5px var(--font-ui);
+  letter-spacing: 0.4px;
+  padding: 3px 10px;
+  border-radius: var(--radius-pill);
+  background: var(--bg-row);
+  border: 1px solid var(--border-hairline-strong);
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.plan-pill--live {
+  background: var(--success-bg);
+  border-color: var(--success-border);
+  color: var(--success-text);
+}
+
+.plan-state {
+  font: 500 11px var(--font-mono);
+  color: var(--text-faint);
+  margin-top: 4px;
+}
+
+.plan-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 6px;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.takenow__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.plan-player {
+  color: var(--text-primary);
+  line-height: 1.2;
+}
+
+.plan-player--lg {
+  font: 500 18px var(--font-ui);
+}
+
+.plan-meta {
+  font: 500 11px var(--font-mono);
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.takenow__value {
+  text-align: right;
+  flex: none;
+}
+
+.takenow__value-num {
+  font: 700 26px var(--font-mono);
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.takenow__value-unit {
+  font: 600 9.5px var(--font-ui);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  margin-top: 3px;
+}
+
+.plan-divider {
+  height: 1px;
+  background: var(--border-hairline);
+}
+
+/* Three across on the wide War Room card, stacking down to a single column
+   in a ~380px space without a second set of rules. */
+.factors {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 8px 10px;
+}
+
+.factor {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  min-width: 0;
+}
+
+.factor__icon {
+  width: 15px;
+  height: 15px;
+  flex: none;
+  margin-top: 1px;
+  fill: none;
+  stroke: var(--factor-color, var(--text-secondary));
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.factor__text {
+  min-width: 0;
+}
+
+.factor__label {
+  font: 600 12px var(--font-ui);
+  color: var(--text-secondary);
+}
+
+.factor__detail {
+  margin-top: 3px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+}
+
+.factor__cat {
+  font: 500 10.5px var(--font-mono);
+  color: var(--text-faint);
+}
+
+.factor__cat strong {
+  color: var(--text-secondary);
+}
+
+.factor__bar {
+  width: 100%;
+  min-width: 90px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--track-bg);
+  overflow: hidden;
+}
+
+.factor__bar-fill {
+  height: 100%;
+  background: var(--warning-text);
+}
+
+.takenow__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: auto;
+  padding-top: 2px;
+}
+
+.takenow__market {
+  font: 500 11px var(--font-ui);
+  color: var(--text-faint);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.edge-pill {
+  flex: none;
+  font: 700 11px var(--font-mono);
+  padding: 3px 10px;
+  border-radius: var(--radius-pill);
+  background: var(--success-bg);
+  border: 1px solid var(--success-border);
+  color: var(--success-text);
+}
+
+/* A near-tie gets a neutral pill, never the green one. */
+.edge-pill--close {
+  background: var(--bg-row);
+  border-color: var(--border-hairline-strong);
+  color: var(--text-muted);
+  font: 700 11px var(--font-ui);
+}
+
+/* The runner-up on a close call is shown at the same weight as the pick, not
+   as a footnote — that equality is the whole point of the branch. */
+.close-call {
+  border: 1px solid var(--border-hairline-strong);
+  border-radius: 8px;
+  padding: 6px 10px;
+  background: var(--bg-input);
+}
+
+.close-call__label {
+  font: 600 10.5px var(--font-ui);
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  margin-bottom: 3px;
+}
+
+.plan-provisional {
+  font: 500 11.5px var(--font-ui);
+  color: var(--text-faint);
+  font-style: italic;
+}
+
+.plan-empty {
+  font: 500 12px var(--font-ui);
+  color: var(--text-faint);
+  padding: 12px 0;
+}
+
+.plan-warning {
+  font: 500 11.5px var(--font-ui);
+  color: var(--warning-text);
+  background: var(--warning-bg);
+  border: 1px solid var(--warning-border);
+  border-radius: 7px;
+  padding: 7px 10px;
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.plan-warning--data {
+  color: var(--danger-text);
+  background: var(--danger-bg-alt);
+  border-color: var(--danger-border);
+  font: 500 11px var(--font-ui);
+  padding: 5px 9px;
+  margin-top: 6px;
+}
+
+.plan-warning--goalie {
+  margin-top: 2px;
+}
+
+.plan-audit {
+  font: 500 11px var(--font-ui);
+  color: var(--text-faint);
+  margin-top: 2px;
+}
+
+.plan-audit strong {
+  color: var(--text-muted);
+}
+
+/* --- Next Best Pick ------------------------------------------------------ */
+
+.plan-avail {
+  font: 600 11px var(--font-mono);
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.then-headline {
+  font: 500 16px var(--font-ui);
+  color: var(--text-primary);
+  margin-top: 6px;
+}
+
+.then-headline strong {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.plan-note {
+  font: 500 11.5px var(--font-ui);
+  color: var(--text-faint);
+  margin-top: 2px;
+}
+
+.turn-message {
+  font: 500 14px var(--font-ui);
+  color: var(--text-primary);
+  line-height: 1.45;
+  margin-top: 8px;
+  max-width: 62ch;
+}
+
+.outlook {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.outlook-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.outlook-row__pos {
+  width: 26px;
+  font: 700 11px var(--font-mono);
+  color: var(--text-muted);
+}
+
+.outlook-row__track {
+  flex: 1;
+  height: 8px;
+  border-radius: 4px;
+  background: var(--track-bg);
+  overflow: hidden;
+}
+
+.outlook-row__fill {
+  height: 100%;
+  background: var(--text-muted);
+}
+
+.outlook-row__value {
+  width: 46px;
+  text-align: right;
+  font: 600 11px var(--font-mono);
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.chip {
+  font: 500 11px var(--font-ui);
+  color: var(--text-secondary);
+  background: var(--bg-input);
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-chip);
+  padding: 3px 8px;
+  white-space: nowrap;
+}
+
+.chip__pct {
+  color: var(--text-faint);
+  font-size: 10.5px;
+}

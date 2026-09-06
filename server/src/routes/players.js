@@ -11,6 +11,44 @@ function teamCount() {
   return getSetting('league').teamCount;
 }
 
+// The recommendation engine degrades silently rather than erroring when
+// `blocks` or `vorp` are thin: blocks is a scoring category that lives almost
+// entirely in defensemen, and vorp defines the replacement baseline every
+// surplus is measured against. Neither absence throws, so the import has to
+// say so out loud. Goalies are excluded from the skater-stat denominators.
+export function poolCoverage() {
+  const rows = db.prepare('SELECT pos, blocks, vorp, gp FROM players').all();
+  const skaters = rows.filter((r) => !normalizePosList(r.pos).includes('G'));
+  const pct = (n, d) => (d ? Math.round((n / d) * 100) : 100);
+  const blocks = pct(skaters.filter((r) => r.blocks != null).length, skaters.length);
+  const vorp = pct(rows.filter((r) => r.vorp != null).length, rows.length);
+  const gp = pct(rows.filter((r) => r.gp != null).length, rows.length);
+  const warnings = [];
+  if (skaters.length && blocks < 90) warnings.push(`Blocks are set on only ${blocks}% of skaters — blocks is a scoring category, and the model is wrong without it.`);
+  if (rows.length && vorp < 90) warnings.push(`VORP is set on only ${vorp}% of players — the replacement baseline falls back to a depth estimate, which flattens every surplus.`);
+  return { blocks, vorp, gp, skaters: skaters.length, players: rows.length, warnings };
+}
+
+// A cheap fingerprint of everything the value engine reads. The client keys
+// its (expensive) context build on this, so a rebuild happens after an import
+// or a hand edit and at no other time. Summing rather than hashing is enough
+// here — any single field changing moves at least one of these sums.
+export function poolVersion() {
+  const r = db
+    .prepare(
+      `SELECT COUNT(*) n, COALESCE(SUM(id),0) a, COALESCE(SUM(overall_rank),0) b,
+              COALESCE(SUM(adp),0) c, COALESCE(SUM(ROUND(COALESCE(vorp,0)*1000)),0) d,
+              COALESCE(SUM(blocks),0) e, COALESCE(SUM(ong),0) f, COALESCE(SUM(gp),0) g,
+              COALESCE(SUM(g),0) h, COALESCE(SUM(a),0) i, COALESCE(SUM(p),0) j,
+              COALESCE(SUM(ppp),0) k, COALESCE(SUM(plus_minus),0) l, COALESCE(SUM(shots),0) m,
+              COALESCE(SUM(w),0) o, COALESCE(SUM(ROUND(COALESCE(gaa,0)*100)),0) q,
+              COALESCE(SUM(saves),0) t, COALESCE(SUM(LENGTH(pos)),0) u
+         FROM players`
+    )
+    .get();
+  return Object.values(r).join('.');
+}
+
 playersRouter.get('/', (req, res) => {
   const rows = db.prepare('SELECT * FROM players ORDER BY overall_rank ASC').all();
   const teams = teamCount();
@@ -30,7 +68,7 @@ playersRouter.get('/', (req, res) => {
 // importing a file with just names and ranks won't blank out the stats
 // already stored against those players.
 
-const STAT_FIELDS = ['adp', 'tier', 'g', 'a', 'p', 'ppp', 'plusMinus', 'shots', 'blocks', 'ong', 'vorp', 'w', 'gaa', 'saves'];
+const STAT_FIELDS = ['adp', 'tier', 'g', 'a', 'p', 'ppp', 'plusMinus', 'shots', 'blocks', 'ong', 'gp', 'vorp', 'w', 'gaa', 'saves'];
 const COLUMN_FOR = { plusMinus: 'plus_minus' };
 
 function loadMatchIndex() {
@@ -103,6 +141,7 @@ playersRouter.post('/import/preview', (req, res) => {
       examples: missing.slice(0, 3).map((p) => p.name),
       draftedCount: missing.filter((p) => p.drafted).length,
     },
+    coverage: poolCoverage(),
   });
 });
 
@@ -119,9 +158,9 @@ playersRouter.post('/import', (req, res) => {
 
   const insertPlayer = db.prepare(`
     INSERT INTO players
-      (name, pos, team, rank, overall_rank, adp, tier, g, a, p, ppp, plus_minus, shots, blocks, ong, vorp, w, gaa, saves, drafted, drafted_by, mine, tracked)
+      (name, pos, team, rank, overall_rank, adp, tier, g, a, p, ppp, plus_minus, shots, blocks, ong, gp, vorp, w, gaa, saves, drafted, drafted_by, mine, tracked)
     VALUES
-      (@name, @pos, @team, NULL, @overallRank, @adp, @tier, @g, @a, @p, @ppp, @plusMinus, @shots, @blocks, @ong, @vorp, @w, @gaa, @saves, 0, NULL, 0, 0)
+      (@name, @pos, @team, NULL, @overallRank, @adp, @tier, @g, @a, @p, @ppp, @plusMinus, @shots, @blocks, @ong, @gp, @vorp, @w, @gaa, @saves, 0, NULL, 0, 0)
   `);
   const deletePlayer = db.prepare('DELETE FROM players WHERE id = ?');
   const deletePicksFor = db.prepare('DELETE FROM draft_picks WHERE player_id = ?');
@@ -172,6 +211,7 @@ playersRouter.post('/import', (req, res) => {
         shots: row.shots ?? null,
         blocks: row.blocks ?? null,
         ong: row.ong ?? null,
+        gp: row.gp ?? null,
         vorp: row.vorp ?? null,
         w: row.w ?? null,
         gaa: row.gaa ?? null,
@@ -214,7 +254,9 @@ playersRouter.post('/import', (req, res) => {
     'OK',
     'app'
   );
-  res.json({ added: toAdd.length, updated: toUpdate.length, removed, skipped: skipped.length, flagged });
+  const coverage = poolCoverage();
+  for (const w of coverage.warnings) logDebug(w, 'WARN', 'app');
+  res.json({ added: toAdd.length, updated: toUpdate.length, removed, skipped: skipped.length, flagged, coverage });
 });
 
 // Everything the Players grid lets you edit in place, so a small correction
@@ -238,6 +280,7 @@ const PATCHABLE_FIELDS = {
   shots: 'shots',
   blocks: 'blocks',
   ong: 'ong',
+  gp: 'gp',
   vorp: 'vorp',
   w: 'w',
   gaa: 'gaa',

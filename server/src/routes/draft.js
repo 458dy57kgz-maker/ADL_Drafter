@@ -4,6 +4,7 @@ import { mapPlayerRow } from '../lib/mapPlayer.js';
 import { rankDeltaStyle } from '../lib/rankDelta.js';
 import { scarcityStyle } from '../lib/scarcity.js';
 import { round, nextPickForSlot, slotForPick } from '../lib/draftMath.js';
+import { poolCoverage, poolVersion } from './players.js';
 
 export const draftRouter = Router();
 
@@ -135,6 +136,20 @@ function buildState() {
       isMyTurnNow,
     },
     yahooConnected: !!yahoo.connected,
+    // Everything the client-side value engine needs to decide whether to
+    // rebuild its context, plus the data-quality warnings the panel shows.
+    poolVersion: poolVersion(),
+    coverage: poolCoverage(),
+    engineConfig: {
+      teamCount,
+      mySlot,
+      slots: { C: rosterSlots.C, LW: rosterSlots.LW, RW: rosterSlots.RW, D: rosterSlots.D, G: rosterSlots.G },
+      benchSlots: rosterSlots.BENCH ?? 0,
+      // Draft rounds are starters plus bench: IR isn't drafted into.
+      totalRounds:
+        (rosterSlots.C ?? 0) + (rosterSlots.LW ?? 0) + (rosterSlots.RW ?? 0) +
+        (rosterSlots.D ?? 0) + (rosterSlots.G ?? 0) + (rosterSlots.BENCH ?? 0),
+    },
     pollInterval: draftDay.pollInterval,
     mockDraftMode: !!draftDay.mockDraftMode,
     lanes,

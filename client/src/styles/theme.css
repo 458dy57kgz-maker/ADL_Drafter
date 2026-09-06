@@ -41,6 +41,10 @@
   --warning-text: #f2c34d;
   --warning-border: #4a3a22;
 
+  /* Schedule / off-night accent — distinct from the app's warm accent so an
+     off-night edge doesn't read as a recommendation. */
+  --teal-text: #6fcfc4;
+
   /* Shape */
   --radius-card: 10px;
   --radius-chip: 6px;

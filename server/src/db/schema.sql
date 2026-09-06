@@ -15,6 +15,7 @@ CREATE TABLE IF NOT EXISTS players (
   shots INTEGER,
   blocks INTEGER,
   ong INTEGER,
+  gp INTEGER,
   vorp REAL,
   w INTEGER,
   gaa REAL,

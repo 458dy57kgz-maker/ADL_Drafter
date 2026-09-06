@@ -153,33 +153,6 @@
   overflow: hidden;
 }
 
-.pick-box__placeholder {
-  flex: 1;
-  min-height: 120px;
-  border: 1px dashed var(--border-hairline-strong);
-  border-radius: 8px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 12px;
-  text-align: center;
-}
-
-.pick-box__placeholder-line {
-  font: 500 12.5px var(--font-ui);
-  color: var(--text-muted);
-  max-width: 46ch;
-}
-
-.pick-box__placeholder-note {
-  font: 600 10.5px var(--font-ui);
-  letter-spacing: 0.6px;
-  text-transform: uppercase;
-  color: var(--text-faint);
-}
-
 /* The only section that grows: everything above and below it is fixed, so
    extra window height lands here as more visible players per position. */
 .war-room__lanes-section {
@@ -354,7 +327,7 @@
   display: flex;
   align-items: center;
   gap: 18px;
-  padding: 7px 16px;
+  padding: 6px 16px;
 }
 
 .targets-strip__title {
@@ -387,8 +360,8 @@
    punched out of the middle to leave a ring rather than a pie. */
 .target-ring {
   position: relative;
-  width: 44px;
-  height: 44px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   background: conic-gradient(var(--accent) calc(var(--pct) * 1%), var(--track-bg) 0);
   display: flex;
@@ -398,14 +371,14 @@
 }
 
 .target-ring__inner {
-  width: 33px;
-  height: 33px;
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
   background: var(--bg-card);
   display: flex;
   align-items: center;
   justify-content: center;
-  font: 700 11.5px var(--font-mono);
+  font: 700 11px var(--font-mono);
   color: var(--text-primary);
   font-variant-numeric: tabular-nums;
 }

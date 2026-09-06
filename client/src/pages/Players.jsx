@@ -25,6 +25,7 @@ const COLUMNS = [
   { key: 'shots', label: 'Sh', type: 'int', width: 52 },
   { key: 'blocks', label: 'Blk', type: 'int', width: 52 },
   { key: 'ong', label: 'ONG', type: 'int', width: 52 },
+  { key: 'gp', label: 'GP', type: 'int', width: 48 },
   { key: 'vorp', label: 'VORP', type: 'float', width: 62, step: '0.001' },
   { key: 'w', label: 'W', type: 'int', width: 48 },
   { key: 'gaa', label: 'GAA', type: 'float', width: 54 },

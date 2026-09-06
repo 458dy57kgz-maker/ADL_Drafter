@@ -33,6 +33,7 @@ const IMPORT_FIELDS = [
   { key: 'shots', label: 'Shots', synonyms: ['shots', 'sog', 'p_sog'], required: false, type: 'int' },
   { key: 'blocks', label: 'Blocks', synonyms: ['blk', 'blocks', 'p_blk', 'blocked shots'], required: false, type: 'int' },
   { key: 'ong', label: 'Off-night games', synonyms: ['ong', 'off night games', 'offnight', 'p_ong'], required: false, type: 'int' },
+  { key: 'gp', label: 'Games played — projected; the denominator for off-night games and GAA', synonyms: ['gp', 'games', 'games played', 'p_gp'], required: false, type: 'int' },
   { key: 'vorp', label: 'VORP — value over replacement at the position', synonyms: ['vorp', 'value over replacement', 'p_vorp'], required: false, type: 'float' },
   { key: 'w', label: 'Wins (goalies)', synonyms: ['w', 'wins', 'p_w'], required: false, type: 'int' },
   { key: 'gaa', label: 'GAA (goalies)', synonyms: ['gaa', 'p_gaa'], required: false, type: 'float' },
