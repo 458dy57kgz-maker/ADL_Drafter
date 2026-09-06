@@ -94,26 +94,49 @@
   white-space: nowrap;
 }
 
-.players-table__pos {
-  color: var(--text-muted) !important;
-  font-weight: 600 !important;
-}
-
-.players-table__team {
-  color: var(--text-faint) !important;
-}
-
 .players-table__status {
   font: 600 11px var(--font-ui) !important;
   white-space: nowrap;
 }
 
-.tier-input {
-  width: 44px;
-  background: var(--warning-bg);
-  border: 1px solid var(--warning-border);
-  color: var(--gold);
-  font: 600 11.5px var(--font-mono);
+/* Editable grid cells read as plain text until hovered or focused, so a
+   dense table of inputs doesn't turn into a wall of boxes. */
+.cell-input {
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-secondary);
+  font: 500 11.5px var(--font-mono);
   padding: 3px 6px;
   border-radius: 5px;
+}
+
+.cell-input:hover {
+  border-color: var(--border-hairline-strong);
+}
+
+.cell-input:focus {
+  outline: none;
+  background: var(--bg-input);
+  border-color: var(--accent);
+  color: var(--text-primary);
+}
+
+.cell-input--accent {
+  background: var(--warning-bg);
+  border-color: var(--warning-border);
+  color: var(--gold);
+  font-weight: 600;
+}
+
+/* Spinners steal width in an already-dense grid; the value is still
+   editable by typing and by arrow keys. */
+.cell-input[type='number']::-webkit-inner-spin-button,
+.cell-input[type='number']::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.cell-input[type='number'] {
+  -moz-appearance: textfield;
+  appearance: textfield;
 }

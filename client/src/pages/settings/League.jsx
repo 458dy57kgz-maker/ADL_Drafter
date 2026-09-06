@@ -15,6 +15,8 @@ export default function League() {
   const [saving, setSaving] = useState(false);
   const [pulling, setPulling] = useState(false);
   const [message, setMessage] = useState(null);
+  const [dragIndex, setDragIndex] = useState(null);
+  const [overIndex, setOverIndex] = useState(null);
 
   useEffect(() => {
     api.getSettings().then((s) => {
@@ -40,6 +42,20 @@ export default function League() {
   function removeTeam(id) {
     setTeams((prev) => prev.filter((t) => t.id !== id));
     if (myTeamId === id) setMyTeamId(null);
+  }
+
+  // List position is the draft slot, so reordering here is how draft order
+  // gets set. Reordering stays available even for a Yahoo-pulled list —
+  // Yahoo's team order isn't the draft order, so it's the one thing about a
+  // pulled list that still has to be set by hand.
+  function handleDrop(targetIndex) {
+    if (dragIndex === null || dragIndex === targetIndex) return;
+    setTeams((prev) => {
+      const next = [...prev];
+      const [moved] = next.splice(dragIndex, 1);
+      next.splice(targetIndex, 0, moved);
+      return next;
+    });
   }
 
   async function handleSave() {
@@ -135,15 +151,65 @@ export default function League() {
           )}
         </div>
 
-        {teams.length === 0 && (
+        {teams.length === 0 ? (
           <div style={{ font: '500 12.5px var(--font-ui)', color: 'var(--text-faint)', marginBottom: 10 }}>
-            No teams yet. Add one for each team in your league, in draft order.
+            No teams yet. Add one for each team in your league.
+          </div>
+        ) : (
+          <div style={{ font: '500 11.5px var(--font-ui)', color: 'var(--text-faint)', marginBottom: 10 }}>
+            Drag the ⠿ handle to set draft order — position 1 picks first.
           </div>
         )}
 
         {teams.map((t, i) => (
-          <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-            <div className="mono" style={{ width: 22, font: '500 12px var(--font-mono)', color: 'var(--text-faint)' }}>
+          <div
+            key={t.id}
+            onDragOver={(e) => {
+              e.preventDefault();
+              if (overIndex !== i) setOverIndex(i);
+            }}
+            onDrop={(e) => {
+              e.preventDefault();
+              handleDrop(i);
+              setDragIndex(null);
+              setOverIndex(null);
+            }}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              marginBottom: 6,
+              borderRadius: 7,
+              opacity: dragIndex === i ? 0.4 : 1,
+              boxShadow: overIndex === i && dragIndex !== null && dragIndex !== i ? 'inset 0 2px 0 var(--accent)' : 'none',
+            }}
+          >
+            <div
+              className="mono"
+              draggable
+              title="Drag to change draft order"
+              onDragStart={(e) => {
+                setDragIndex(i);
+                // Firefox won't start a drag without data on the transfer.
+                e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('text/plain', String(i));
+              }}
+              onDragEnd={() => {
+                setDragIndex(null);
+                setOverIndex(null);
+              }}
+              style={{
+                width: 30,
+                flex: 'none',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 4,
+                font: '500 12px var(--font-mono)',
+                color: 'var(--text-faint)',
+                cursor: 'grab',
+              }}
+            >
+              <span style={{ letterSpacing: '-1px' }}>⠿</span>
               {i + 1}
             </div>
             <input

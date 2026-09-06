@@ -207,7 +207,30 @@ playersRouter.post('/import', (req, res) => {
   res.json({ added: toAdd.length, updated: toUpdate.length, removed, skipped: skipped.length, flagged });
 });
 
-const PATCHABLE_FIELDS = { tier: 'tier', tracked: 'tracked' };
+// Everything the Players grid lets you edit in place, so a small correction
+// doesn't mean re-importing the whole file. `name` is deliberately absent —
+// it's the key imports match on, so renaming here would quietly detach a
+// player from every future import. `drafted`/`drafted_by`/`mine` are absent
+// too: those are draft state, owned by the pick/undo/reset routes, and
+// setting them directly would leave players and draft_picks disagreeing.
+const PATCHABLE_FIELDS = {
+  pos: 'pos',
+  team: 'team',
+  rank: 'rank',
+  overallRank: 'overall_rank',
+  adp: 'adp',
+  tier: 'tier',
+  g: 'g',
+  a: 'a',
+  p: 'p',
+  ppp: 'ppp',
+  plusMinus: 'plus_minus',
+  shots: 'shots',
+  w: 'w',
+  gaa: 'gaa',
+  saves: 'saves',
+  tracked: 'tracked',
+};
 
 playersRouter.patch('/:id', (req, res) => {
   const id = Number(req.params.id);
@@ -218,8 +241,17 @@ playersRouter.patch('/:id', (req, res) => {
   const values = {};
   for (const [key, column] of Object.entries(PATCHABLE_FIELDS)) {
     if (key in req.body) {
+      let value = req.body[key];
+      if (typeof value === 'boolean') value = value ? 1 : 0;
+      // Keep hand-typed positions in the same canonical shape the importer
+      // writes, so "c/lw" still matches the C and LW lanes.
+      if (key === 'pos') {
+        const posList = normalizePosList(value);
+        if (posList.length === 0) return res.status(400).json({ error: 'position cannot be empty' });
+        value = posList.join(',');
+      }
       sets.push(`${column} = @${column}`);
-      values[column] = typeof req.body[key] === 'boolean' ? (req.body[key] ? 1 : 0) : req.body[key];
+      values[column] = value;
     }
   }
   if (sets.length === 0) return res.status(400).json({ error: 'no patchable fields provided' });

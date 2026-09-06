@@ -1,23 +1,30 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { api } from '../lib/api.js';
 import './Players.css';
 
-const GRID_COLUMNS = [
-  { key: 'name', label: 'Name' },
-  { key: 'pos', label: 'Pos' },
-  { key: 'team', label: 'Team' },
-  { key: 'rank', label: 'Rank' },
-  { key: 'adp', label: 'ADP' },
-  { key: 'tier', label: 'Tier' },
-  { key: 'g', label: 'G' },
-  { key: 'a', label: 'A' },
-  { key: 'p', label: 'P' },
-  { key: 'ppp', label: 'PPP' },
-  { key: 'plusMinus', label: '+/-' },
-  { key: 'shots', label: 'Sh' },
-  { key: 'goalieLine', label: 'W/GAA/SV' },
-  { key: 'status', label: 'Status' },
+// Every column except the name is editable in place. `name` stays fixed
+// because imports match on it — renaming here would detach the player from
+// the next import of the same sheet. Status is derived from draft state
+// (drafted / by whom), which the draft itself owns.
+const EDITABLE_COLUMNS = [
+  { key: 'pos', label: 'Pos', type: 'text', width: 62 },
+  { key: 'team', label: 'Team', type: 'text', width: 58 },
+  { key: 'overallRank', label: 'Overall', type: 'int', width: 58 },
+  { key: 'rank', label: 'Pos Rank', type: 'int', width: 58 },
+  { key: 'adp', label: 'ADP', type: 'int', width: 52 },
+  { key: 'tier', label: 'Tier', type: 'int', width: 48, accent: true },
+  { key: 'g', label: 'G', type: 'int', width: 48 },
+  { key: 'a', label: 'A', type: 'int', width: 48 },
+  { key: 'p', label: 'P', type: 'int', width: 48 },
+  { key: 'ppp', label: 'PPP', type: 'int', width: 48 },
+  { key: 'plusMinus', label: '+/-', type: 'int', width: 48 },
+  { key: 'shots', label: 'Sh', type: 'int', width: 52 },
+  { key: 'w', label: 'W', type: 'int', width: 48 },
+  { key: 'gaa', label: 'GAA', type: 'float', width: 54 },
+  { key: 'saves', label: 'SV', type: 'int', width: 56 },
 ];
+
+const SORT_COLUMNS = [{ key: 'name', label: 'Name' }, ...EDITABLE_COLUMNS, { key: 'status', label: 'Status' }];
 
 function draftedText(p) {
   if (!p.drafted) return 'Available';
@@ -29,13 +36,30 @@ function draftedColor(p) {
   return p.mine ? 'var(--gold)' : 'var(--text-muted)';
 }
 
+function coerce(type, raw) {
+  if (raw === '' || raw == null) return null;
+  if (type === 'float') {
+    const n = Number(raw);
+    return Number.isFinite(n) ? n : null;
+  }
+  if (type === 'int') {
+    const n = Number(String(raw).replace(/,/g, ''));
+    return Number.isFinite(n) ? Math.round(n) : null;
+  }
+  return String(raw).trim() || null;
+}
+
 export default function Players() {
   const [players, setPlayers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [posFilter, setPosFilter] = useState('ALL');
   const [draftedFilter, setDraftedFilter] = useState('hide');
   const [search, setSearch] = useState('');
-  const [sort, setSort] = useState({ col: 'rank', dir: 'asc' });
+  const [sort, setSort] = useState({ col: 'overallRank', dir: 'asc' });
+  const [saveError, setSaveError] = useState(null);
+  // Value at focus time, so blur only sends a PATCH when something actually
+  // changed — tabbing through a row shouldn't fire a dozen requests.
+  const focusValue = useRef(null);
 
   useEffect(() => {
     api
@@ -44,10 +68,23 @@ export default function Players() {
       .finally(() => setLoading(false));
   }, []);
 
-  async function handleTierChange(id, value) {
-    const tier = Number(value) || 0;
-    setPlayers((prev) => prev.map((p) => (p.id === id ? { ...p, tier } : p)));
-    await api.updatePlayer(id, { tier });
+  function handleCellChange(id, key, type, raw) {
+    const value = coerce(type, raw);
+    setPlayers((prev) => prev.map((p) => (p.id === id ? { ...p, [key]: value } : p)));
+  }
+
+  async function handleCellBlur(id, key, type, raw) {
+    const value = coerce(type, raw);
+    if (value === focusValue.current) return;
+    setSaveError(null);
+    try {
+      const updated = await api.updatePlayer(id, { [key]: value });
+      // Take the server's copy back: it normalises things like "c/lw" into
+      // the stored form, so the grid shows what's actually saved.
+      setPlayers((prev) => prev.map((p) => (p.id === id ? updated : p)));
+    } catch (err) {
+      setSaveError(err.message);
+    }
   }
 
   function toggleSort(col) {
@@ -63,8 +100,8 @@ export default function Players() {
       filtered = filtered.filter((p) => p.name.toLowerCase().includes(q));
     }
     const sorted = [...filtered].sort((a, b) => {
-      const av = a[sort.col];
-      const bv = b[sort.col];
+      const av = sort.col === 'status' ? draftedText(a) : a[sort.col];
+      const bv = sort.col === 'status' ? draftedText(b) : b[sort.col];
       if (av == null && bv == null) return 0;
       if (av == null) return 1;
       if (bv == null) return -1;
@@ -78,13 +115,8 @@ export default function Players() {
     <div className="players-page">
       <div className="players-page__header">
         <div className="players-page__title">Players — Full Data</div>
-        <div className="players-page__actions">
-          <button type="button" className="btn">
-            Manage Columns
-          </button>
-          <button type="button" className="btn btn-primary">
-            Save
-          </button>
+        <div style={{ font: '500 11.5px var(--font-ui)', color: 'var(--text-faint)' }}>
+          Every field except the name is editable — changes save when you leave the cell.
         </div>
       </div>
 
@@ -109,13 +141,16 @@ export default function Players() {
           onChange={(e) => setSearch(e.target.value)}
         />
         <div className="players-page__count">{rows.length} players shown</div>
+        {saveError && (
+          <div style={{ font: '600 11.5px var(--font-ui)', color: 'var(--danger-text)' }}>{saveError}</div>
+        )}
       </div>
 
       <div className="players-page__table-wrap">
         <table className="players-table">
           <thead>
             <tr>
-              {GRID_COLUMNS.map((col) => (
+              {SORT_COLUMNS.map((col) => (
                 <th key={col.key} onClick={() => toggleSort(col.key)}>
                   {col.label}
                   {sort.col === col.key ? (sort.dir === 'asc' ? ' ▲' : ' ▼') : ''}
@@ -128,25 +163,23 @@ export default function Players() {
               rows.map((p, i) => (
                 <tr key={p.id} style={{ background: i % 2 === 1 ? 'var(--bg-row-alt)' : 'transparent' }}>
                   <td className="players-table__name">{p.name}</td>
-                  <td className="mono players-table__pos">{p.pos}</td>
-                  <td className="mono players-table__team">{p.team}</td>
-                  <td className="mono">{p.rank}</td>
-                  <td className="mono">{p.adp}</td>
-                  <td>
-                    <input
-                      type="number"
-                      className="mono tier-input"
-                      value={p.tier}
-                      onChange={(e) => handleTierChange(p.id, e.target.value)}
-                    />
-                  </td>
-                  <td className="mono">{p.g ?? '–'}</td>
-                  <td className="mono">{p.a ?? '–'}</td>
-                  <td className="mono">{p.p ?? '–'}</td>
-                  <td className="mono">{p.ppp ?? '–'}</td>
-                  <td className="mono">{p.plusMinus ?? '–'}</td>
-                  <td className="mono">{p.shots ?? '–'}</td>
-                  <td className="mono">{p.posList?.includes('G') ? `${p.w}/${p.gaa}/${p.saves}` : '–'}</td>
+                  {EDITABLE_COLUMNS.map((col) => (
+                    <td key={col.key}>
+                      <input
+                        className={`cell-input${col.accent ? ' cell-input--accent' : ''}`}
+                        style={{ width: col.width }}
+                        type={col.type === 'text' ? 'text' : 'number'}
+                        step={col.type === 'float' ? '0.01' : '1'}
+                        value={p[col.key] ?? ''}
+                        onFocus={() => {
+                          focusValue.current = coerce(col.type, p[col.key] ?? '');
+                        }}
+                        onChange={(e) => handleCellChange(p.id, col.key, col.type, e.target.value)}
+                        onBlur={(e) => handleCellBlur(p.id, col.key, col.type, e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
+                      />
+                    </td>
+                  ))}
                   <td className="players-table__status" style={{ color: draftedColor(p) }}>
                     {draftedText(p)}
                   </td>
