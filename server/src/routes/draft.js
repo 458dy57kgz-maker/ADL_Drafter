@@ -10,6 +10,33 @@ export const draftRouter = Router();
 
 const POS_ORDER = ['C', 'LW', 'RW', 'D', 'G'];
 
+// Settings > Roster names targets after the thing you count; the value engine
+// names them after the stat column. `plusMinus` is deliberately absent: a
+// season target only means something for a stat that accumulates toward one,
+// and the engine's own guidance is to omit non-cumulative categories. Points
+// is absent for the same reason it has no target in the UI — it is g + a.
+const TARGET_TO_CATEGORY = {
+  goals: 'g',
+  assists: 'a',
+  ppp: 'ppp',
+  shots: 'shots',
+  blocks: 'blocks',
+  wins: 'w',
+  saves: 'saves',
+};
+
+// Targets calibrate the opponent model rather than entering the score, so a
+// zero or a blank is not "aim for nothing" — it is "no information", and the
+// engine should keep its pool-derived estimate for that category.
+function seasonTargets(targets) {
+  const out = {};
+  for (const [settingKey, categoryKey] of Object.entries(TARGET_TO_CATEGORY)) {
+    const value = targets?.[settingKey];
+    if (typeof value === 'number' && value > 0) out[categoryKey] = value;
+  }
+  return out;
+}
+
 function contribText(p) {
   if (p.posList.includes('G')) return `W${p.w} GAA${p.gaa}`;
   const bits = [];
@@ -149,6 +176,10 @@ function buildState() {
       totalRounds:
         (rosterSlots.C ?? 0) + (rosterSlots.LW ?? 0) + (rosterSlots.RW ?? 0) +
         (rosterSlots.D ?? 0) + (rosterSlots.G ?? 0) + (rosterSlots.BENCH ?? 0),
+      // Sent on every poll so editing a target in Settings > Roster reaches
+      // the engine without a rebuild — the client diffs this and pushes just
+      // the new targets into the existing context.
+      seasonTargets: seasonTargets(targets),
     },
     pollInterval: draftDay.pollInterval,
     mockDraftMode: !!draftDay.mockDraftMode,

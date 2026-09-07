@@ -11,6 +11,12 @@ import { api } from './api.js';
  *   - The plan is recomputed on draft-state change, debounced, and the
  *     previous plan stays on screen while the new one runs. A panel that
  *     blanks itself every eight seconds is unreadable during a draft.
+ *
+ * Season targets get a third, cheaper path. They are edited in Settings >
+ * Roster and arrive on every poll, but they do not invalidate the context —
+ * they only re-calibrate the opponent model. Rebuilding for them would be slow
+ * and would also discard the drift samples the room's picks have taught the
+ * model, so a target edit posts `setTargets` and re-plans instead.
  */
 export function useDraftPlan(draftState) {
   const [plan, setPlan] = useState(null);
@@ -18,6 +24,7 @@ export function useDraftPlan(draftState) {
   const [quick, setQuick] = useState(null);
   const [status, setStatus] = useState('idle'); // idle | building | planning | ready | error
   const [error, setError] = useState(null);
+  const [warnings, setWarnings] = useState([]);
 
   // Dev-only branch viewer: ?planFixture=closeCall|confident|turn|goalieAudit
   // renders a plan the real engine produced for a state that is hard to reach
@@ -45,6 +52,10 @@ export function useDraftPlan(draftState) {
   // effect had already bailed on "no context yet", and nothing ever asked
   // again — the panel sat empty until the next pick.
   const [builtVersion, setBuiltVersion] = useState(null);
+  // The targets the worker's context currently holds, so a poll that carries
+  // unchanged targets doesn't re-blend on every tick.
+  const appliedTargets = useRef(null);
+  const [targetsVersion, setTargetsVersion] = useState(0);
   const requestId = useRef(0);
   const timer = useRef(null);
 
@@ -58,6 +69,7 @@ export function useDraftPlan(draftState) {
       // Ignore anything from a superseded request, so a slow plan can't
       // overwrite a newer one that already landed.
       if (msg.id != null && msg.id !== requestId.current) return;
+      if (msg.warnings) setWarnings(msg.warnings);
       if (msg.type === 'ready') setStatus('planning');
       if (msg.type === 'quick') setQuick(msg.now);
       if (msg.type === 'plan') {
@@ -90,6 +102,9 @@ export function useDraftPlan(draftState) {
 
   const poolVersion = draftState?.poolVersion ?? null;
   const engineConfig = draftState?.engineConfig ?? null;
+  // Compared as a string, not by identity: the polled object is new every
+  // eight seconds, so an identity check would re-post the targets forever.
+  const targetsKey = engineConfig?.seasonTargets ? JSON.stringify(engineConfig.seasonTargets) : null;
 
   useEffect(() => {
     if (!poolVersion || !engineConfig || !workerRef.current) return;
@@ -108,8 +123,12 @@ export function useDraftPlan(draftState) {
             slots: engineConfig.slots,
             benchSlots: engineConfig.benchSlots,
             totalRounds: engineConfig.totalRounds,
+            // Included in the initial build so the very first plan is already
+            // calibrated; later edits come through `setTargets`.
+            seasonTargets: engineConfig.seasonTargets ?? null,
           },
         });
+        appliedTargets.current = targetsKey;
         setBuiltVersion(poolVersion);
       })
       .catch((err) => !cancelled && setError(err.message));
@@ -117,6 +136,19 @@ export function useDraftPlan(draftState) {
       cancelled = true;
     };
   }, [poolVersion, engineConfig, builtVersion]);
+
+  useEffect(() => {
+    if (builtVersion == null || !workerRef.current) return;
+    if (targetsKey === appliedTargets.current) return;
+    appliedTargets.current = targetsKey;
+    workerRef.current.postMessage({
+      type: 'setTargets',
+      targets: targetsKey ? JSON.parse(targetsKey) : null,
+    });
+    // Bumping this re-runs the plan effect below, so an edited target shows up
+    // in the recommendation immediately rather than at the next pick.
+    setTargetsVersion((n) => n + 1);
+  }, [targetsKey, builtVersion]);
 
   const pickNum = draftState?.pickInfo?.pickNum ?? null;
   const mySlot = engineConfig?.mySlot ?? null;
@@ -150,7 +182,7 @@ export function useDraftPlan(draftState) {
       }
     }, 250);
     return () => clearTimeout(timer.current);
-  }, [pickNum, round, mySlot, builtVersion]);
+  }, [pickNum, round, mySlot, builtVersion, targetsVersion]);
 
   if (fixtureName) {
     return {
@@ -158,9 +190,10 @@ export function useDraftPlan(draftState) {
       quick: null,
       status: fixture ? 'ready' : 'building',
       error: null,
+      warnings: [],
       fixturePickInfo: fixture?.pickInfo ?? null,
     };
   }
 
-  return { plan, quick, status, error, fixturePickInfo: null };
+  return { plan, quick, status, error, warnings, fixturePickInfo: null };
 }

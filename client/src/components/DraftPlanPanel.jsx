@@ -99,7 +99,7 @@ function PlayerLine({ player, size = 'lg' }) {
   );
 }
 
-export function BestPickCard({ plan, quick, status, error, pickInfo, coverage }) {
+export function BestPickCard({ plan, quick, status, error, pickInfo, coverage, warnings = [] }) {
   const now = plan?.now ?? null;
   const turn = plan?.turn ?? null;
   const onClock = pickInfo?.isMyTurnNow;
@@ -142,6 +142,22 @@ export function BestPickCard({ plan, quick, status, error, pickInfo, coverage })
         <div className="plan-warning plan-warning--data" title={coverage.warnings.join('\n\n')}>
           Thin data — blocks {coverage.blocks}% of skaters, VORP {coverage.vorp}% of players. Recommendations are
           degraded until these are imported.
+        </div>
+      )}
+
+      {/* The engine's own diagnostics: a VORP column that never crosses zero,
+          a target so far from the pool estimate that it was discarded. These
+          are how you find out a recommendation is quietly running on a
+          fallback, and the target ones are the direct feedback for an edit you
+          just made in Settings. One line each, full text on hover. */}
+      {warnings.length > 0 && (
+        <div className="plan-warning plan-warning--engine" title={warnings.join('\n\n')}>
+          {warnings.slice(0, 2).map((w) => (
+            <div className="plan-warning__line" key={w}>
+              {w}
+            </div>
+          ))}
+          {warnings.length > 2 && <div className="plan-warning__line">+{warnings.length - 2} more</div>}
         </div>
       )}
 

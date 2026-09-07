@@ -29,7 +29,14 @@ export default function WarRoom() {
   const [resetError, setResetError] = useState(null);
   const mockDraftMode = !!data?.mockDraftMode;
   // The value engine runs off the same polled state, in a worker.
-  const { plan, quick, status: planStatus, error: planError, fixturePickInfo } = useDraftPlan(data);
+  const {
+    plan,
+    quick,
+    status: planStatus,
+    error: planError,
+    warnings: planWarnings,
+    fixturePickInfo,
+  } = useDraftPlan(data);
 
   useEffect(() => {
     if (data?.pollInterval && data.pollInterval !== pollInterval) {
@@ -167,6 +174,7 @@ export default function WarRoom() {
           error={planError}
           pickInfo={fixturePickInfo ?? pickInfo}
           coverage={data.coverage}
+          warnings={planWarnings}
         />
         <NextBestPickCard plan={plan} />
       </div>

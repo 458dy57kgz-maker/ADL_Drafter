@@ -15,6 +15,7 @@
  *
  * Messages in:
  *   { type: 'build', players, config }   — rebuild context (import / edit)
+ *   { type: 'setTargets', id, targets }  — re-blend the opponent, no rebuild
  *   { type: 'plan', id, state }          — state: { pickNum, round, mySlot,
  *                                          draftedNames, myRosterNames, picks }
  * Messages out:
@@ -24,26 +25,66 @@
  *   { type: 'error', id, message }
  */
 
-import { DEFAULT_CONFIG, buildContext, recommend, myPicks, recordPick } from '../lib/draft/draftValue.js';
+import {
+  buildContext,
+  recommend,
+  myPicks,
+  recordPick,
+  setSeasonTargets,
+} from '../lib/draft/draftValue.js';
 import { planNextTwo } from '../lib/draft/draftPlan.js';
+import { buildEngineConfig } from '../lib/draft/engineConfig.js';
 
 let ctx = null;
 let players = [];
 let byName = new Map();
 /** Pick numbers already fed to the drift model, so a replay can't double-count. */
 let recordedPicks = [];
+/**
+ * Warnings raised while building the context — a VORP column that never
+ * crosses zero, a config.local.js key the app owns. They stay true for the
+ * life of the context, so they are held separately from the target warnings,
+ * which are recomputed from scratch on every target edit.
+ */
+let buildWarnings = [];
 
 const key = (name) => String(name ?? '').trim().toLowerCase();
 
-function build(rawPlayers, configPatch) {
-  const config = { ...DEFAULT_CONFIG, ...configPatch };
+function build(rawPlayers, appConfig) {
+  const config = buildEngineConfig(appConfig);
   // Own copies: the engine mutates what it is given, and these objects outlive
   // any single message.
   players = rawPlayers.map((p) => ({ ...p }));
   byName = new Map(players.map((p) => [key(p.name), p]));
   ctx = buildContext(players, config);
+  buildWarnings = [...new Set(config._warnings ?? [])];
   recordedPicks = [];
-  return { count: players.length };
+  return { count: players.length, warnings: warnings() };
+}
+
+// The engine accumulates its own diagnostics on the config object — a VORP
+// column that never crosses zero, a target wildly out of line with the pool.
+// They are the difference between a quietly degraded recommendation and one
+// you know to distrust, so they come back with every reply.
+function warnings() {
+  return [...new Set(ctx?.config?._warnings ?? [])];
+}
+
+/**
+ * Targets change often — you nudge one mid-draft and want the board to react —
+ * and rebuilding the context for that would be both slow and lossy: it throws
+ * away the drift samples the room's picks have taught the model. The engine
+ * exposes `setSeasonTargets` precisely for this. It re-blends the opponent
+ * from a pristine pool-derived copy each time, so repeated edits can't compound
+ * on each other.
+ */
+function applyTargets(targets) {
+  // Reset to the build-time set, not to empty: re-blending should replace the
+  // previous edit's complaints without also erasing the ones about the data
+  // itself, which are still true.
+  ctx.config._warnings = [...buildWarnings];
+  setSeasonTargets(ctx, targets);
+  return { warnings: warnings(), targetDeltas: ctx.targetDeltas ?? null };
 }
 
 /**
@@ -135,6 +176,7 @@ function plan(id, state) {
   self.postMessage({
     type: 'quick',
     id,
+    warnings: warnings(),
     now: top
       ? {
           player: slimPlayer(top.player),
@@ -149,6 +191,7 @@ function plan(id, state) {
   self.postMessage({
     type: 'plan',
     id,
+    warnings: warnings(),
     turn: result.turn,
     now: result.now
       ? {
@@ -198,12 +241,16 @@ self.onmessage = async (event) => {
   const msg = event.data;
   try {
     if (msg.type === 'build') {
-      const { count } = build(msg.players, msg.config);
-      self.postMessage({ type: 'ready', count });
+      const { count, warnings: w } = build(msg.players, msg.config);
+      self.postMessage({ type: 'ready', count, warnings: w });
       return;
     }
     if (!ctx) {
       self.postMessage({ type: 'error', id: msg.id, message: 'context not built yet' });
+      return;
+    }
+    if (msg.type === 'setTargets') {
+      self.postMessage({ type: 'targets', id: msg.id, ...applyTargets(msg.targets) });
       return;
     }
     if (msg.type === 'plan') {

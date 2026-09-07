@@ -256,6 +256,19 @@
   margin-top: 2px;
 }
 
+.plan-warning--engine {
+  font: 500 11px var(--font-ui);
+  padding: 5px 9px;
+  margin-top: 6px;
+  gap: 2px;
+}
+
+.plan-warning__line {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* --- Next Best Pick ------------------------------------------------------ */
 
 .plan-avail {

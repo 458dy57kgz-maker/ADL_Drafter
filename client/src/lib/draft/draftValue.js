@@ -84,6 +84,43 @@ export const DEFAULT_CONFIG = {
   // count before trusting it.
   replacementDepth: { C: 1.0, LW: 1.0, RW: 1.0, D: 1.0, G: 1.5 },
 
+  // Replacement is a BLEND of this many players either side of the depth, not
+  // a single player. One real player carries their own quirks, and at D those
+  // quirks get multiplied by four slots.
+  replacementWindow: 5,
+
+  // --- Baseline / operating point -----------------------------------------
+  // Marginal value is a change in WIN PROBABILITY, and that derivative peaks
+  // near 50% and collapses in the tails. Measuring against an all-replacement
+  // roster puts you deep in the tail on scoring (far behind) but near even on
+  // cheap categories like blocks — so a marginal block outscores a marginal
+  // point purely because of where the curve is sampled. You will never field
+  // twelve replacement players, so that is the wrong reference team.
+  //
+  // 'replacement' — classic VORP baseline (previous behaviour)
+  // 'average'     — measure against a league-average starter at each slot
+  // 'blend'       — average early, sliding to replacement late, reflecting
+  //                 that your remaining picks get worse as the draft runs on
+  baselineMode: 'blend',
+
+  // --- Season targets -----------------------------------------------------
+  // Targets do NOT enter the score. The win-probability derivative already
+  // steers category strategy as the roster fills, and it does so better than
+  // progress-to-target: it knows that more goals are near worthless at 85% to
+  // win, and it accounts for how many roster spots you have left.
+  //
+  // What targets ARE good for is calibrating the OPPONENT. The opponent mean
+  // is currently derived from the player pool — an assumption. If your targets
+  // come from what actually won categories in your league, that is real
+  // evidence and should override the assumption.
+  //
+  // Season totals for a full roster, e.g. { g: 300, a: 340, shots: 2300 }.
+  // Omit any category you have no number for; those keep the pool estimate.
+  seasonTargets: null,
+  targetBlend: 0.6,                // 0 = ignore targets, 1 = trust them fully
+  targetIsWinThreshold: true,      // targets describe a WINNING team, not average
+  targetWinMargin: 0.12,           // how far above average a winning total sits
+
   // --- Daily lineups & off-night games ------------------------------------
   // Daily lineups mean the bench is NOT dead weight — rostered players rotate
   // in whenever starters are idle, which happens most on off nights. ONG is
@@ -155,13 +192,25 @@ export function buildContext(players, config = DEFAULT_CONFIG) {
   }
 
   ctx.rawValue = buildRawValueScale(players, config);
-  for (const p of players) {
-    // Imported VORP (sum of z-scores over replacement) is a better ordering
-    // than the internal z-score sum. It is used ONLY for ordering — lineup
-    // matching and replacement indexing — never as the score. marginalValue
-    // computes replacement-relative value dynamically against your actual
-    // roster and category standings; a static VORP would overwrite that.
-    p._raw = p.vorp != null ? p.vorp : ctx.rawValue(p);
+
+  // Ordering scale. VORP and the internal z-sum are NOT on the same scale, so
+  // a naive "vorp ?? internal" fallback interleaves two different metrics in
+  // one sorted list — which silently drops good players out of the candidate
+  // slice. Standardize both before mixing.
+  const vorpVals = players.map((p) => p.vorp).filter((v) => v != null);
+  ctx.vorpCoverage = vorpVals.length / (players.length || 1);
+  const std = (vals) => {
+    const m = vals.reduce((s, v) => s + v, 0) / (vals.length || 1);
+    const sd = Math.sqrt(vals.reduce((s, v) => s + (v - m) ** 2, 0) / (vals.length || 1)) || 1;
+    return (v) => (v - m) / sd;
+  };
+  const zVorp = vorpVals.length ? std(vorpVals) : null;
+  const internals = players.map((p) => ctx.rawValue(p));
+  const zInternal = std(internals);
+
+  players.forEach((p, i) => {
+    p._raw = (zVorp && p.vorp != null) ? zVorp(p.vorp) : zInternal(internals[i]);
+    p._rawSource = (zVorp && p.vorp != null) ? 'vorp' : 'internal';
 
     const gp = p.gp ?? config.seasonGames;
     p._offShare = (p.ong != null && gp > 0) ? Math.min(1, p.ong / gp) : null;
@@ -170,14 +219,49 @@ export function buildContext(players, config = DEFAULT_CONFIG) {
     // so a value bonus here would count ADP twice. Display factor only.
     p._diff = (p.overallRank != null && p.adp != null)
       ? (p.overallRank - p.adp) / config.teamCount : null;
+  });
+
+  // Does VORP price the categories currently being scored? Measure this WITHIN
+  // position. VORP subtracts a positional baseline by construction, so a pooled
+  // correlation against a raw z-sum is weak even when VORP is perfectly good —
+  // measuring it pooled would wrongly discard usable replacement information.
+  ctx.vorpTrustsCategories = true;
+  if (zVorp) {
+    const corr = (xs, ys) => {
+      const n = xs.length;
+      if (n < 10) return null;
+      const mx = xs.reduce((a, b) => a + b, 0) / n;
+      const my = ys.reduce((a, b) => a + b, 0) / n;
+      let sxy = 0, sxx = 0, syy = 0;
+      for (let i = 0; i < n; i++) {
+        sxy += (xs[i] - mx) * (ys[i] - my);
+        sxx += (xs[i] - mx) ** 2; syy += (ys[i] - my) ** 2;
+      }
+      return sxy / (Math.sqrt(sxx * syy) || 1);
+    };
+    const fits = [];
+    for (const pos of Object.keys(config.slots)) {
+      const sub = players.filter((p) => (p.posList || []).includes(pos) && p.vorp != null);
+      const r = corr(sub.map((p) => p.vorp), sub.map((p) => ctx.rawValue(p)));
+      if (r != null) fits.push(r);
+    }
+    ctx.vorpCategoryFit = fits.length
+      ? fits.reduce((s, v) => s + v, 0) / fits.length : null;
+    if (ctx.vorpCategoryFit != null && ctx.vorpCategoryFit < 0.85) {
+      ctx.vorpTrustsCategories = false;
+      (config._warnings ||= []).push(
+        `VORP fits category value at only ${ctx.vorpCategoryFit.toFixed(2)} within position — ` +
+        `it may predate a scoring category. Using the depth rule for replacement level.`);
+    }
   }
 
   const shares = players.map((p) => p._offShare).filter((v) => v != null);
   ctx.meanOffShare = shares.length
     ? shares.reduce((s, v) => s + v, 0) / shares.length : 0.40;
 
-  ctx.replacement = computeReplacementLevels(players, config);
+  ctx.replacement = computeReplacementLevels(players, config, ctx.vorpTrustsCategories);
   ctx.opponent = computeLeagueAverageTeam(players, ctx);
+  applySeasonTargets(ctx);
 
   return ctx;
 }
@@ -290,27 +374,97 @@ function buildRawValueScale(players, config) {
  * now lives: if you think the wire is deep, compute goalie VORP against a
  * deeper baseline and the model inherits it.
  */
-function computeReplacementLevels(players, config) {
+/**
+ * Average a set of players into one synthetic player.
+ *
+ * Replacement level must never be a single real player. Whoever sits at that
+ * exact depth carries their own quirks — a blocks specialist, a volume shooter
+ * — and those quirks become the baseline every candidate is measured against.
+ * At D that distortion is multiplied by four slots. Blending a window around
+ * the depth removes the idiosyncrasy while keeping the talent level.
+ */
+function blendPlayers(pool, name, config) {
+  const goalie = pool.length ? pool[0]._goalie : false;
+  const out = {
+    name, pos: pool[0]?.pos, posList: pool[0]?.posList ? [...pool[0].posList] : [],
+    _goalie: goalie, _imputed: new Set(), _synthetic: true,
+  };
+  const keys = config.categories.map((c) => c.key);
+  for (const k of keys) {
+    const vals = pool.map((p) => p[k]).filter((v) => v != null);
+    out[k] = vals.length ? vals.reduce((s, v) => s + v, 0) / vals.length : null;
+  }
+  const shares = pool.map((p) => p._offShare).filter((v) => v != null);
+  out._offShare = shares.length ? shares.reduce((s, v) => s + v, 0) / shares.length : null;
+  const raws = pool.map((p) => p._raw).filter((v) => v != null);
+  out._raw = raws.length ? raws.reduce((s, v) => s + v, 0) / raws.length : 0;
+  return out;
+}
+
+/** Weighted mix of two players: t=0 gives a, t=1 gives b. */
+function mixPlayers(a, b, t, name, config) {
+  if (!a) return b; if (!b) return a;
+  if (t <= 0) return a; if (t >= 1) return b;
+  const out = { name, posList: [...(a.posList || [])], _goalie: a._goalie,
+    _imputed: new Set(), _synthetic: true };
+  for (const c of config.categories) {
+    const x = a[c.key], y = b[c.key];
+    out[c.key] = (x == null && y == null) ? null
+      : (x == null ? y : (y == null ? x : x * (1 - t) + y * t));
+  }
+  const oa = a._offShare, ob = b._offShare;
+  out._offShare = (oa == null) ? ob : (ob == null ? oa : oa * (1 - t) + ob * t);
+  out._raw = (a._raw ?? 0) * (1 - t) + (b._raw ?? 0) * t;
+  return out;
+}
+
+/**
+ * Replacement level per position, as a blended synthetic player centred on the
+ * depth your VORP implies (or the depth rule when VORP is absent).
+ */
+function computeReplacementLevels(players, config, trustVorp = true) {
   const out = {};
+  const win = config.replacementWindow ?? 5;
   for (const pos of Object.keys(config.slots)) {
     const pool = players
       .filter((p) => (p.posList || []).includes(pos))
       .sort((a, b) => b._raw - a._raw);
     if (!pool.length) { out[pos] = null; continue; }
 
-    const hasVorp = pool.some((p) => p.vorp != null);
-    if (hasVorp) {
-      // First player at or below zero VORP is the replacement definition.
-      const crossing = pool.find((p) => p.vorp != null && p.vorp <= 0);
-      out[pos] = crossing || pool[pool.length - 1];
-      continue;
+    let idx = -1;
+    if (trustVorp && pool.some((p) => p.vorp != null)) {
+      idx = pool.findIndex((p) => p.vorp != null && p.vorp <= 0);
     }
+    if (idx < 0) {
+      const depth = config.replacementDepth?.[pos] ?? 1.0;
+      idx = Math.round(config.teamCount * config.slots[pos] * depth);
+      if (trustVorp && pool.some((p) => p.vorp != null)) {
+        (config._warnings ||= []).push(
+          `VORP for ${pos} never crosses zero — using depth rule instead.`);
+      }
+    }
+    idx = Math.min(Math.max(idx, 0), pool.length - 1);
+    const lo = Math.max(0, idx - win);
+    const hi = Math.min(pool.length, idx + win + 1);
+    out[pos] = blendPlayers(pool.slice(lo, hi), `replacement_${pos}`, config);
+    out[pos].posList = [pos];
+    out[pos]._depth = idx;
+  }
 
-    const depth = config.replacementDepth?.[pos] ?? 1.0;
-    const idx = Math.min(
-      pool.length - 1,
-      Math.round(config.teamCount * config.slots[pos] * depth));
-    out[pos] = pool[Math.max(0, idx)] || null;
+  // Bench-level replacement: the waiver pool, i.e. skaters past the point where
+  // every team's roster is full. Used to pad rosters to a constant headcount.
+  const skaterSlots = Object.entries(config.slots)
+    .filter(([p]) => p !== 'G').reduce((s, [, n]) => s + n, 0);
+  const benchDepth = config.teamCount * (skaterSlots + config.benchSlots);
+  const skaters = players
+    .filter((p) => !(p.posList || []).includes('G'))
+    .sort((a, b) => b._raw - a._raw);
+  if (skaters.length) {
+    const i = Math.min(benchDepth, skaters.length - 1);
+    const slice = skaters.slice(Math.max(0, i - win), Math.min(skaters.length, i + win + 1));
+    out._bench = blendPlayers(slice, 'replacement_bench', config);
+    out._bench.posList = [];
+    out._bench._depth = i;
   }
   return out;
 }
@@ -399,26 +553,90 @@ function teamDistribution(entries, config) {
   return { mean, variance };
 }
 
-/** The average opponent: the league's starter pool divided by team count. */
+/**
+ * The average opponent, assembled as an actual 12-slot roster rather than a
+ * pooled sum. Summing position pools and dividing by team count double-counts
+ * dual-eligible players; de-duplicating instead yields fewer than 12 players'
+ * worth of production. Averaging each position's starter tier and placing one
+ * copy per slot avoids both.
+ */
 function computeLeagueAverageTeam(players, ctx) {
   const config = ctx.config;
-  const starters = [];
+  const typical = ctx.meanOffShare + (1 - ctx.meanOffShare) * config.onNightStartProb;
+  const entries = [];
   for (const [pos, n] of Object.entries(config.slots)) {
     const pool = players
       .filter((p) => (p.posList || []).includes(pos))
       .sort((a, b) => b._raw - a._raw)
       .slice(0, n * config.teamCount);
-    starters.push(...pool);
+    if (!pool.length) continue;
+    const avg = blendPlayers(pool, `avg_${pos}`, config);
+    avg.posList = [pos];
+    (ctx.avgStarter ||= {})[pos] = avg;
+    for (let i = 0; i < n; i++) entries.push({ player: avg, weight: typical });
   }
-  const typical = ctx.meanOffShare + (1 - ctx.meanOffShare) * config.onNightStartProb;
-  const agg = teamDistribution(starters.map((p) => ({ player: p, weight: typical })), config);
-  const mean = {}, variance = {};
-  for (const cat of config.categories) {
-    if (cat.key === 'gaa') { mean.gaa = agg.mean.gaa; variance.gaa = agg.variance.gaa; continue; }
-    mean[cat.key] = agg.mean[cat.key] / config.teamCount;
-    variance[cat.key] = agg.variance[cat.key] / config.teamCount;
+
+  // The opponent needs the same bench you do. Padding your roster to 16 while
+  // the opponent fields 12 puts four extra bodies on your side and inflates
+  // every category — worst in whatever the bench blend is specialised in.
+  const bench = ctx.replacement?._bench;
+  if (bench) {
+    const w = startRate(bench, false, ctx);
+    for (let i = 0; i < config.benchSlots; i++) entries.push({ player: bench, weight: w });
   }
-  return { mean, variance };
+
+  const agg = teamDistribution(entries, config);
+  return { mean: agg.mean, variance: agg.variance };
+}
+
+/**
+ * Fold season targets into the opponent's category means.
+ *
+ * A target says what a competitive full roster produces over a season. The
+ * opponent model needs a weekly mean for a typical team, so divide by weeks
+ * and, if the target describes a winning team rather than an average one,
+ * discount it back toward the middle. Variance is left alone — a target is a
+ * single number and carries no information about spread.
+ */
+export function setSeasonTargets(ctx, targets) {
+  ctx.config.seasonTargets = targets;
+  applySeasonTargets(ctx);
+  return ctx;
+}
+
+function applySeasonTargets(ctx) {
+  const { config } = ctx;
+  // Keep a pristine copy of the pool-derived opponent. Targets are applied
+  // FROM this every time, so changing them in the UI mid-draft re-blends from
+  // scratch instead of compounding on the previous blend.
+  ctx.opponentPool ||= JSON.parse(JSON.stringify(ctx.opponent));
+  ctx.opponent.mean = { ...ctx.opponentPool.mean };
+  ctx.opponent.variance = { ...ctx.opponentPool.variance };
+
+  const t = config.seasonTargets;
+  if (!t || !config.targetBlend) return;
+  ctx.targetDeltas = {};
+  for (const [key, seasonTotal] of Object.entries(t)) {
+    if (seasonTotal == null) continue;
+    const cat = config.categories.find((c) => c.key === key);
+    if (!cat || cat.invert) continue;              // rate stats need a denominator
+    const current = ctx.opponent.mean[key];
+    if (current == null) continue;
+    let weekly = seasonTotal / config.weeks;
+    if (config.targetIsWinThreshold) weekly /= (1 + config.targetWinMargin);
+    const ratio = weekly / (current || 1e-9);
+    ctx.targetDeltas[key] = { poolDerived: current, fromTarget: weekly, ratio };
+    // A target wildly out of line with the pool means one of the two is wrong.
+    // Blending them anyway would bake a data error into every comparison, so
+    // flag it and fall back to the pool rather than trusting a bad number.
+    if (ratio > 2 || ratio < 0.5) {
+      (config._warnings ||= []).push(
+        `Target for ${key} is ${ratio.toFixed(1)}x the pool estimate — ignoring it. ` +
+        `Either the target is unachievable or the ${key} projections are wrong.`);
+      continue;
+    }
+    ctx.opponent.mean[key] = current * (1 - config.targetBlend) + weekly * config.targetBlend;
+  }
 }
 
 /**
@@ -472,17 +690,45 @@ export function assignLineup(roster, config = DEFAULT_CONFIG) {
   return { lineup: owner.filter(Boolean), benched, slotPos, owner };
 }
 
-/** Fill empty starter slots with replacement-level players so early-round
- *  rosters are compared as complete teams, and weight every rostered player
- *  by expected start rate so the bench contributes its real share. */
+/**
+ * Complete a roster to a CONSTANT headcount before evaluating it.
+ *
+ * Filling only the starting slots makes the comparison unfair: a player who
+ * fills an open slot displaces a replacement (and is scored as a difference),
+ * while a player who lands on the bench is added on top of a full complement
+ * (and is scored as pure addition). The bench player's roster ends up one
+ * body larger, which is why a 32%-start bench player could outscore a
+ * 93%-start starter. Filling starters AND bench to a fixed size means every
+ * candidate displaces exactly one replacement, whatever slot they land in.
+ */
 function completeRoster(roster, ctx) {
-  const { owner, slotPos } = assignLineup(roster, ctx.config);
+  const config = ctx.config;
+  const { owner, slotPos } = assignLineup(roster, config);
   const starters = new Set(owner.filter(Boolean));
   const entries = roster.map((p) => ({ player: p, weight: startRate(p, starters.has(p), ctx) }));
+
+  // How good is the player you expect to fill an empty slot with? Early in the
+  // draft your remaining picks are good, so the honest answer is near a
+  // league-average starter. Late, it is replacement level.
+  let t = 0;
+  if (config.baselineMode === 'average') t = 1;
+  else if (config.baselineMode === 'blend') {
+    const round = ctx.draftRound ?? 1;
+    t = Math.max(0, Math.min(1, 1 - (round - 1) / Math.max(1, config.totalRounds - 1)));
+  }
+
   for (let s = 0; s < owner.length; s++) {
     if (owner[s]) continue;
-    const r = ctx.replacement[slotPos[s]];
-    if (r) entries.push({ player: r, weight: startRate(r, true, ctx) });
+    const pos = slotPos[s];
+    const fill = mixPlayers(ctx.replacement[pos], ctx.avgStarter?.[pos], t, `fill_${pos}`, config);
+    if (fill) entries.push({ player: fill, weight: startRate(fill, true, ctx) });
+  }
+
+  const target = Object.values(config.slots).reduce((a, b) => a + b, 0) + config.benchSlots;
+  const bench = ctx.replacement._bench;
+  if (bench) {
+    const w = startRate(bench, false, ctx);
+    while (entries.length < target) entries.push({ player: bench, weight: w });
   }
   return entries;
 }
@@ -616,6 +862,7 @@ export function recommend(state, ctx) {
   const { available, myRoster, pickNum, myPickNumbers, round } = state;
   const config = ctx.config;
 
+  ctx.draftRound = round;
   const pickNext = myPickNumbers.find((n) => n > pickNum) ?? (pickNum + 999);
   const base = teamValue(myRoster, ctx);
 

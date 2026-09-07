@@ -14,8 +14,9 @@ import { writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 
-import { DEFAULT_CONFIG, buildContext } from '../client/src/lib/draft/draftValue.js';
+import { DEFAULT_CONFIG, buildContext, setSeasonTargets } from '../client/src/lib/draft/draftValue.js';
 import { planNextTwo } from '../client/src/lib/draft/draftPlan.js';
+import { buildEngineConfig, APP_OWNED_KEYS } from '../client/src/lib/draft/engineConfig.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -82,16 +83,32 @@ function makePool() {
   return players;
 }
 
-/** Makes the top two skaters near-interchangeable, which is what drives the
- *  two best two-pick paths to within a hair of each other. */
-function twinTopTwo(players) {
-  // The top of this board is a goalie, and goalies carry null skater stats —
-  // copying those between two goalies changes nothing the scorer reads. Twin
-  // the best two skaters at a shared position instead.
-  const a = players.find((p) => p.pos !== 'G');
-  const b = players.find((p) => p !== a && p.pos === a.pos);
-  for (const k of ['g', 'a', 'p', 'ppp', 'plusMinus', 'shots', 'blocks', 'vorp', 'ong', 'gp']) b[k] = a[k];
-  b.adp = a.adp;
+/**
+ * Makes the two paths the engine ACTUALLY ranks first and second
+ * interchangeable, which is what drives their joint values to within a hair.
+ *
+ * Twinning a hand-picked pair does not work and quietly stopped working once:
+ * an earlier version twinned the top two skaters, the board's leading pair
+ * turned out to be goalies, and the fixture sat there asserting a threshold it
+ * met by luck. So probe with a throwaway pool, learn who the leaders are, then
+ * twin those two in a fresh one. Self-correcting across engine versions.
+ */
+function twinLeadingPair(state) {
+  const probe = run('probe', { players: makePool(), ...state });
+  const first = probe.plan.now?.player?.name;
+  const second = probe.plan.now?.alternative?.name;
+
+  // A fresh pool: buildContext decorates and imputes in place, so the probe's
+  // players are no longer clean inputs.
+  const players = makePool();
+  const a = players.find((p) => p.name === first);
+  const b = players.find((p) => p.name === second);
+  if (!a || !b) return players;
+  for (const k of ['g', 'a', 'p', 'ppp', 'plusMinus', 'shots', 'blocks', 'w', 'gaa', 'saves', 'vorp', 'ong', 'gp', 'adp']) {
+    b[k] = a[k];
+  }
+  b.pos = a.pos;
+  b.posList = [...a.posList];
   b.overallRank = a.overallRank + 1;
   return players;
 }
@@ -116,7 +133,8 @@ const fixtures = {};
 
 // --- 1. Close call: the best and second-best paths within 0.03 cats/week ----
 {
-  const f = run('close call', { players: twinTopTwo(makePool()), pickNum: 1, round: 1, mySlot: 4 });
+  const state = { pickNum: 1, round: 1, mySlot: 4 };
+  const f = run('close call', { players: twinLeadingPair(state), ...state });
   fixtures.closeCall = f;
   const edge = f.plan.now?.edge;
   assert(edge != null && edge < 0.03, `close call: edge is ${edge}, expected < 0.03`);
@@ -172,6 +190,57 @@ const fixtures = {};
     f.plan.goalieAudit?.costVsTop > 0,
     `goalie audit (hard): costVsTop is ${f.plan.goalieAudit?.costVsTop}, expected > 0`
   );
+}
+
+// --- 4. Config layering ----------------------------------------------------
+// Precedence is defaults < config.local.js < the app's settings, with the keys
+// the app owns refused outright. Asserted here rather than left to the worker
+// because the worker cannot be imported outside a worker scope, and a silent
+// precedence bug shows up as a recommendation computed against the wrong
+// league — with nothing on screen to say so.
+{
+  const local = { targetBlend: 0.42, ongWeight: 0.5, teamCount: 99, seasonTargets: { g: 1 } };
+  const app = { teamCount: 10, slots: CONFIG.slots, seasonTargets: { g: 200 } };
+  const merged = buildEngineConfig(app, local);
+
+  assert(merged.targetBlend === 0.42, `config layering: local targetBlend lost (${merged.targetBlend})`);
+  assert(merged.ongWeight === 0.5, `config layering: local ongWeight lost (${merged.ongWeight})`);
+  assert(merged.savesPerStart === DEFAULT_CONFIG.savesPerStart, 'config layering: default not carried through');
+  assert(merged.teamCount === 10, `config layering: local overrode an app-owned key (${merged.teamCount})`);
+  assert(merged.seasonTargets.g === 200, 'config layering: local overrode app-owned seasonTargets');
+  assert(merged._warnings.length === 2, `config layering: expected 2 clash warnings, got ${merged._warnings.length}`);
+  assert(APP_OWNED_KEYS.includes('seasonTargets'), 'config layering: seasonTargets is not app-owned');
+}
+
+// --- 5. Live season targets ------------------------------------------------
+// Editing a target in Settings > Roster pushes it into the existing context
+// rather than rebuilding. Three properties matter and all three are easy to
+// break: it has to move the opponent model, applying the same targets twice
+// must not compound, and clearing them must land back exactly on the
+// pool-derived estimate.
+{
+  const players = makePool();
+  const ctx = buildContext(players, CONFIG);
+  const snap = () => ({ g: ctx.opponent.mean.g, a: ctx.opponent.mean.a, blocks: ctx.opponent.mean.blocks });
+  const same = (x, y) => Object.keys(x).every((k) => Math.abs(x[k] - y[k]) < 1e-9);
+
+  const pool = snap();
+  // Scaled off the pool itself so the engine's own sanity guard (it discards a
+  // target more than 2x or less than 0.5x the pool estimate) can't quietly
+  // turn this assertion into a no-op the way a hardcoded number could.
+  const season = (key, mult) => ctx.opponent.mean[key] * CONFIG.weeks * mult * (1 + CONFIG.targetWinMargin);
+  const targets = { g: season('g', 1.6), a: season('a', 1.6), blocks: season('blocks', 1.6) };
+
+  setSeasonTargets(ctx, targets);
+  const once = snap();
+  setSeasonTargets(ctx, targets);
+  const twice = snap();
+  setSeasonTargets(ctx, null);
+  const cleared = snap();
+
+  assert(!same(pool, once), 'live targets: applying targets did not move the opponent model');
+  assert(same(once, twice), 'live targets: applying the same targets twice compounded');
+  assert(same(pool, cleared), 'live targets: clearing targets did not restore the pool estimate');
 }
 
 function assert(cond, message) {
