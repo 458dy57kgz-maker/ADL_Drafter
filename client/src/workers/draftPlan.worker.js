@@ -182,6 +182,13 @@ function plan(id, state) {
           survival: result.goalieAudit.survival,
           note: result.goalieAudit.note,
           costVsTop: result.goalieAudit.costVsTop,
+          // The audit reads very differently by mode: 'hard' actually removes
+          // goalies from the ranking, while 'soft' leaves them in and the
+          // two-pick score simply preferred someone else. Saying "suppressed"
+          // in both cases blames the rule for a decision it didn't make.
+          mode: ctx.config.goaliePolicy?.mode ?? 'off',
+          minRound: ctx.config.goaliePolicy?.minRound ?? null,
+          insteadOf: result.now?.player?.name ?? null,
         }
       : null,
   });

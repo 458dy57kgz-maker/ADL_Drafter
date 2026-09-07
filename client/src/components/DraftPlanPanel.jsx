@@ -218,20 +218,27 @@ export function BestPickCard({ plan, quick, status, error, pickInfo, coverage })
         </div>
       )}
 
-      {/* Deliberately outside the scrolling body: the soft goalie policy
-          reports on every pick before its min round, so this row is a running
-          audit rather than an alarm — but on the rare occasion it turns into a
-          warning, a warning you have to scroll to find is not a warning. */}
-      {plan?.goalieAudit && (
-        <div className={`plan-audit${plan.goalieAudit.costVsTop > 0 ? ' plan-warning plan-warning--goalie' : ''}`}>
-          Goalie policy suppressed <strong>{plan.goalieAudit.player?.name}</strong> —{' '}
-          {plan.goalieAudit.costVsTop > 0 ? (
+      {/* Only when the rule is actually costing something. The engine builds
+          this audit on every pick before the policy's min round, so rendering
+          it unconditionally put the same line on screen all draft and trained
+          you to stop reading it. A positive costVsTop means the best goalie's
+          immediate value beats the pick being recommended — that is the only
+          state worth interrupting for, and it does occur: measured at +0.17 in
+          round one and +0.02 in round two of an ordinary draft. */}
+      {plan?.goalieAudit?.costVsTop > 0 && (
+        <div className="plan-warning plan-warning--goalie">
+          {plan.goalieAudit.mode === 'hard' ? (
             <>
-              would have scored {signed2(plan.goalieAudit.costVsTop)} above this pick. Check the goalie VORP
-              baseline; the rule is costing you.
+              Goalie policy is holding <strong>{plan.goalieAudit.player?.name}</strong> out of the ranking until round{' '}
+              {plan.goalieAudit.minRound} — he is worth {signed2(plan.goalieAudit.costVsTop)} more than this pick right
+              now. Check the goalie VORP baseline.
             </>
           ) : (
-            <>{signed2(plan.goalieAudit.costVsTop)} against this pick, so the rule is free right now.</>
+            <>
+              <strong>{plan.goalieAudit.player?.name}</strong> is worth {signed2(plan.goalieAudit.costVsTop)} more than
+              this pick right now; the two-pick score still prefers {plan.goalieAudit.insteadOf}. Check the goalie VORP
+              baseline.
+            </>
           )}
         </div>
       )}

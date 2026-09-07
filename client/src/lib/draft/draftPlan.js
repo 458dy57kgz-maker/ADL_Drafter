@@ -13,6 +13,12 @@
  *      decision, they drift, and the app starts explaining things it didn't do.
  *
  * Dependency direction is one-way: this imports draftValue, never the reverse.
+ *
+ * LOCAL CHANGES vs the original in design/draftPlan.js — one, applied 2026-09-06:
+ *   - `timing.nextPick` now names the pick survival was measured to, rather
+ *     than the pick after it. See the comment in planNextTwo. No scoring math
+ *     is touched; the change is confined to which number the urgency label
+ *     prints.
  */
 
 import {
@@ -290,9 +296,16 @@ export function planNextTwo(state, ctx, opts = {}) {
   const best = paths[0];
   const runnerUp = paths[1];
 
+  // The pick `recommend` actually measured survival to: the first of my picks
+  // strictly AFTER the current one (see its own `pickNext`). Off the clock
+  // that is `pickNow` — this card's pick — while `turn.picks[1]` is a whole
+  // round later, so labelling the survival with it attached the right
+  // probability to the wrong pick on every pick that wasn't mine.
+  const survivalPick = picks.find((n) => n > state.pickNum) ?? pickNow;
+
   const timing = {
     survival: best.candidate.survival,
-    nextPick: pickNext,
+    nextPick: survivalPick,
     pickNum: pickNow,
     marginalValue: best.candidate.marginalValue,
     nextBestSamePos: samePositionFallback(best.candidate, ranked, state, ctx),

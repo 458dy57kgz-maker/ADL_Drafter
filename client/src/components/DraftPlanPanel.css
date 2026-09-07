@@ -256,16 +256,6 @@
   margin-top: 2px;
 }
 
-.plan-audit {
-  font: 500 11px var(--font-ui);
-  color: var(--text-faint);
-  margin-top: 2px;
-}
-
-.plan-audit strong {
-  color: var(--text-muted);
-}
-
 /* --- Next Best Pick ------------------------------------------------------ */
 
 .plan-avail {

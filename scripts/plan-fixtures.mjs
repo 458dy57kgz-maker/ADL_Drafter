@@ -27,47 +27,68 @@ const CONFIG = {
   totalRounds: 16,
 };
 
-const POS_CYCLE = ['C', 'LW', 'RW', 'D', 'D', 'C', 'RW', 'D', 'LW', 'G'];
+/**
+ * A pool shaped the way real data is, which matters more than it sounds.
+ *
+ * VORP is defined as value over the REPLACEMENT player at that position, so it
+ * crosses zero at roughly (teams x starting slots) deep and goes negative past
+ * it. `computeReplacementLevels` looks for exactly that crossing and, failing
+ * to find one, falls back to the very last player in the pool — a far deeper
+ * baseline that inflates every surplus. An earlier version of this generator
+ * emitted an always-positive VORP and put the whole model in that fallback
+ * regime, which is not the one the app runs in.
+ */
+const POS_COUNTS = { C: 40, LW: 40, RW: 40, D: 60, G: 20 };
 
-/** A deterministic pool that decays smoothly with rank, so value ordering and
- *  ADP ordering are realistic without being identical. */
-function makePool(n = 90) {
+function makePool() {
   const players = [];
-  for (let i = 0; i < n; i++) {
-    const rank = i + 1;
-    const pos = POS_CYCLE[i % POS_CYCLE.length];
-    const decay = Math.exp(-i / 40);
-    const goalie = pos === 'G';
-    players.push({
-      name: `Player ${String(rank).padStart(3, '0')}`,
-      pos,
-      posList: [pos],
-      team: `T${(i % 16) + 1}`,
-      overallRank: rank,
-      adp: Math.max(1, Math.round(rank * 1.05 + Math.sin(i) * 4)),
-      tier: 1 + Math.floor(i / 12),
-      vorp: Number((9 * decay).toFixed(3)),
-      ong: 24 + (i % 9),
-      gp: 78 + (i % 5),
-      g: goalie ? null : Math.round(45 * decay) + 5,
-      a: goalie ? null : Math.round(55 * decay) + 8,
-      p: goalie ? null : Math.round(100 * decay) + 13,
-      ppp: goalie ? null : Math.round(35 * decay) + 4,
-      plusMinus: goalie ? null : Math.round(24 * decay) - 4,
-      shots: goalie ? null : Math.round(260 * decay) + 60,
-      blocks: goalie ? null : Math.round(pos === 'D' ? 160 * decay + 60 : 50 * decay + 20),
-      w: goalie ? Math.round(38 * decay) + 12 : null,
-      gaa: goalie ? Number((2.35 + i / 200).toFixed(2)) : null,
-      saves: goalie ? Math.round(1700 * decay) + 700 : null,
-    });
+  for (const [pos, count] of Object.entries(POS_COUNTS)) {
+    const replacementIdx = CONFIG.teamCount * CONFIG.slots[pos];
+    const topVorp = pos === 'G' ? 9 : pos === 'D' ? 7 : 8;
+    for (let j = 0; j < count; j++) {
+      // Linear through zero at the replacement index, negative beyond it.
+      const vorp = Number((topVorp * (1 - j / replacementIdx)).toFixed(3));
+      const q = Math.max(0.12, 1 - j / (count * 1.15)); // quality, 1 down to ~0.13
+      const goalie = pos === 'G';
+      players.push({
+        name: `${pos} ${String(j + 1).padStart(2, '0')}`,
+        pos,
+        posList: [pos],
+        team: `T${(players.length % 16) + 1}`,
+        vorp,
+        ong: Math.round(20 + (j % 11)),
+        gp: 74 + (j % 9),
+        g: goalie ? null : Math.round(48 * q) + 4,
+        a: goalie ? null : Math.round(58 * q) + 7,
+        p: goalie ? null : Math.round(106 * q) + 11,
+        ppp: goalie ? null : Math.round(38 * q) + 3,
+        plusMinus: goalie ? null : Math.round(26 * q) - 6,
+        shots: goalie ? null : Math.round(250 * q) + 55,
+        blocks: goalie ? null : Math.round((pos === 'D' ? 170 : 55) * q) + (pos === 'D' ? 50 : 15),
+        w: goalie ? Math.round(34 * q) + 8 : null,
+        gaa: goalie ? Number((2.35 + (1 - q) * 0.9).toFixed(2)) : null,
+        saves: goalie ? Math.round(1500 * q) + 500 : null,
+      });
+    }
   }
+
+  // Board order follows value, and ADP tracks it with the usual noise.
+  players.sort((a, b) => b.vorp - a.vorp);
+  players.forEach((p, i) => {
+    p.overallRank = i + 1;
+    p.adp = Math.max(1, Math.round((i + 1) * 1.05 + Math.sin(i) * 5));
+    p.tier = 1 + Math.floor(i / 18);
+  });
   return players;
 }
 
 /** Makes the top two skaters near-interchangeable, which is what drives the
  *  two best two-pick paths to within a hair of each other. */
 function twinTopTwo(players) {
-  const a = players[0];
+  // The top of this board is a goalie, and goalies carry null skater stats —
+  // copying those between two goalies changes nothing the scorer reads. Twin
+  // the best two skaters at a shared position instead.
+  const a = players.find((p) => p.pos !== 'G');
   const b = players.find((p) => p !== a && p.pos === a.pos);
   for (const k of ['g', 'a', 'p', 'ppp', 'plusMinus', 'shots', 'blocks', 'vorp', 'ong', 'gp']) b[k] = a[k];
   b.adp = a.adp;
@@ -83,7 +104,12 @@ function run(label, { players, pickNum, round, mySlot, config = CONFIG, myRoster
     .sort((a, b) => (b._raw ?? 0) - (a._raw ?? 0));
   const roster = players.filter((p) => drafted.has(p.name));
   const plan = planNextTwo({ available, myRoster: roster, pickNum, round, mySlot }, ctx, {});
-  return { label, pickInfo: { pickNum, round, isMyTurnNow: true }, plan };
+  // Derived, not asserted: `turn.picks[0]` is the pick this plan is about, so
+  // you are on the clock exactly when it equals the current pick. Hardcoding
+  // this to true made the header contradict the urgency label in any fixture
+  // where the state was mid-round.
+  const isMyTurnNow = plan.turn?.picks?.[0] === pickNum;
+  return { label, pickInfo: { pickNum, round, isMyTurnNow }, plan };
 }
 
 const fixtures = {};
@@ -101,10 +127,12 @@ const fixtures = {};
 // the neutral Close-call pill are both exercised. ------------------------
 {
   const players = makePool();
-  const top = players[0];
+  const top = players.find((p) => p.pos !== 'G');
   // One player far above the board, and no same-position twin behind him.
-  for (const k of ['g', 'a', 'p', 'ppp', 'shots', 'blocks']) top[k] = Math.round(top[k] * 2.4);
-  top.vorp = 22;
+  // Must be a skater: multiplying a goalie's null skater stats is a no-op, so
+  // boosting one leaves the plan byte-identical and the fixture proves nothing.
+  for (const k of ['g', 'a', 'p', 'ppp', 'shots', 'blocks']) top[k] = Math.round(top[k] * 3.6);
+  top.vorp = 26;
   const f = run('confident', { players, pickNum: 1, round: 1, mySlot: 4 });
   fixtures.confident = f;
   assert(f.plan.now?.edge >= 0.03, `confident: edge is ${f.plan.now?.edge}, expected >= 0.03`);
@@ -119,64 +147,30 @@ const fixtures = {};
   assert(/ordering call/.test(f.plan.then.message), 'turn: message is not the ordering copy');
 }
 
-// --- 3. Goalie audit: soft policy reporting what the rule would have cost ---
+// --- 3. Goalie audit -------------------------------------------------------
+// The panel renders this only when costVsTop > 0 — the suppressed goalie's
+// immediate value beating the pick being recommended — because the engine
+// builds an audit on every pick before the policy's min round and showing it
+// unconditionally put the same line on screen all draft.
+//
+// There is no 'soft' fixture here, and that is a finding rather than an
+// omission: under 'soft' the goalie is never removed from the ranking, so he
+// either wins it outright (costVsTop lands at exactly 0) or he was not close
+// (negative). Driving a simulated draft through rounds 1-3 produced 0.000,
+// 0.000, -0.228 — never positive. The rule only has a cost to report when it
+// is actually holding someone out, which is 'hard'.
 {
-  const players = makePool();
-  // Put a goalie at the very top of the board so the suppressed player is one
-  // the rule is visibly costing you, not a fringe starter.
-  const g = players.find((p) => p.pos === 'G');
-  g.vorp = 12;
-  g.w = 44;
-  g.saves = 2100;
-  g.gaa = 2.05;
-  g.overallRank = 1;
-  g.adp = 2;
-  const f = run('goalie audit', { players, pickNum: 3, round: 1, mySlot: 3 });
-  fixtures.goalieAudit = f;
-  assert(f.plan.goalieAudit != null, 'goalie audit: expected an audit before the policy min round');
-  assert(typeof f.plan.goalieAudit.costVsTop === 'number', 'goalie audit: costVsTop missing');
-}
-
-// --- 3b. Goalie audit that is actually costing something -------------------
-// Two things have to be true at once for the warning branch, and neither is
-// common: the policy has to be holding the goalie OUT of the ranking ('hard',
-// since under 'soft' a dominant goalie simply wins it and costVsTop lands at
-// zero), and the goalie's marginal value has to beat the top skater's. The
-// second is structurally hard — a goalie moves three categories and a skater
-// moves seven — so this fixture also weakens the skater pool, which is what a
-// genuinely goalie-heavy board looks like to the model.
-{
-  const players = makePool().map((p) =>
-    p.pos === 'G'
-      ? p
-      : {
-          ...p,
-          g: Math.round(p.g * 0.18),
-          a: Math.round(p.a * 0.18),
-          p: Math.round(p.p * 0.18),
-          ppp: Math.round(p.ppp * 0.18),
-          shots: Math.round(p.shots * 0.18),
-          blocks: Math.round(p.blocks * 0.18),
-        }
-  );
-  const g = players.find((p) => p.pos === 'G');
-  g.vorp = 40;
-  g.w = 52;
-  g.saves = 2600;
-  g.gaa = 1.85;
-  g.overallRank = 1;
-  g.adp = 1;
-  const f = run('goalie audit (costing)', {
-    players,
+  const f = run('goalie audit (hard)', {
+    players: makePool(),
     pickNum: 3,
     round: 1,
     mySlot: 3,
     config: { ...CONFIG, goaliePolicy: { mode: 'hard', minRound: 4 } },
   });
-  fixtures.goalieAuditCosting = f;
+  fixtures.goalieAuditHard = f;
   assert(
     f.plan.goalieAudit?.costVsTop > 0,
-    `goalie audit (costing): costVsTop is ${f.plan.goalieAudit?.costVsTop}, expected > 0`
+    `goalie audit (hard): costVsTop is ${f.plan.goalieAudit?.costVsTop}, expected > 0`
   );
 }
 
@@ -211,7 +205,13 @@ for (const f of Object.values(fixtures)) {
     plan.now.alternative = slim(plan.now.alternative);
   }
   if (plan.then?.candidates) plan.then.candidates = plan.then.candidates.map((c) => ({ ...c, player: slim(c.player) }));
-  if (plan.goalieAudit) plan.goalieAudit.player = slim(plan.goalieAudit.player);
+  if (plan.goalieAudit) {
+    plan.goalieAudit.player = slim(plan.goalieAudit.player);
+    // Mirrors what the worker attaches; the panel's copy branches on it.
+    plan.goalieAudit.mode = f.label.includes('hard') ? 'hard' : 'soft';
+    plan.goalieAudit.minRound = 4;
+    plan.goalieAudit.insteadOf = plan.now?.player?.name ?? null;
+  }
   if (plan.turn?.picks) plan.turn.picks = plan.turn.picks.map((n) => n ?? null);
 }
 

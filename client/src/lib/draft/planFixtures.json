@@ -4,7 +4,7 @@
     "pickInfo": {
       "pickNum": 1,
       "round": 1,
-      "isMyTurnNow": true
+      "isMyTurnNow": false
     },
     "plan": {
       "turn": {
@@ -17,51 +17,51 @@
       },
       "now": {
         "player": {
-          "name": "Player 004",
-          "pos": "D",
+          "name": "G 01",
+          "pos": "G",
           "posList": [
-            "D"
+            "G"
           ],
-          "team": "T4",
-          "vorp": 8.35,
-          "overallRank": 4,
-          "adp": 5,
-          "diff": -0.1,
-          "offShare": 0.3333333333333333
+          "team": "T5",
+          "vorp": 9,
+          "overallRank": 1,
+          "adp": 1,
+          "diff": 0,
+          "offShare": 0.2702702702702703
         },
-        "marginalValue": 0.9207126158727847,
-        "survival": 0.7093858346317223,
-        "score": 1.8494558960509049,
+        "marginalValue": 0.7664263936094624,
+        "survival": 0.34547824775728553,
+        "score": 1.331155110718013,
         "factors": [
           {
             "key": "categories",
-            "label": "Moves BLK and SOG",
+            "label": "Moves SV and W",
             "detail": [
               {
-                "category": "BLK",
-                "winProbBefore": 0.33534808857206666,
-                "winProbAfter": 0.5827310763061515
+                "category": "SV",
+                "winProbBefore": 0.09541957026796932,
+                "winProbAfter": 0.49759977813484396
               },
               {
-                "category": "SOG",
-                "winProbBefore": 0.11106029976243464,
-                "winProbAfter": 0.26666760515140353
+                "category": "W",
+                "winProbBefore": 0.2735051450577504,
+                "winProbAfter": 0.49883062847914017
               }
             ],
-            "salience": 0.7188469486437096
+            "salience": 0.9093711389120127
           },
           {
             "key": "urgency",
-            "label": "Likely still here at 17 (71%)",
+            "label": "Likely still here at 4 (35%)",
             "detail": {
-              "survival": 0.7093858346317223,
-              "nextPick": 17
+              "survival": 0.34547824775728553,
+              "nextPick": 4
             },
-            "salience": 0.6649826645892443
+            "salience": 0.7527651964116568
           },
           {
             "key": "slot",
-            "label": "Fills an open D slot",
+            "label": "Fills an open G slot",
             "detail": {
               "openBefore": 12,
               "openAfter": 11
@@ -69,137 +69,123 @@
             "salience": 0.45
           }
         ],
-        "edge": 0.02187754205509851,
+        "edge": 0.028890174202864216,
         "alternative": {
-          "name": "Player 005",
-          "pos": "D",
+          "name": "G 02",
+          "pos": "G",
           "posList": [
-            "D"
+            "G"
           ],
-          "team": "T5",
-          "vorp": 8.144,
-          "overallRank": 5,
-          "adp": 2,
-          "diff": 0.3,
-          "offShare": 0.34146341463414637
+          "team": "T6",
+          "vorp": 8.55,
+          "overallRank": 2,
+          "adp": 6,
+          "diff": -0.4,
+          "offShare": 0.28
         }
       },
       "then": {
         "atPick": 17,
-        "likelyPosition": "D",
-        "expectedValue": 0.7428040536067629,
+        "likelyPosition": "G",
+        "expectedValue": 0.47179381894780126,
         "positionOutlook": {
           "C": {
-            "expectedValue": 0.5647402942237879,
-            "pAnyAvailable": 0.9997012132757775
+            "expectedValue": 0.20342025291386104,
+            "pAnyAvailable": 0.9999477855219807
           },
           "LW": {
-            "expectedValue": 0.5761475790591425,
-            "pAnyAvailable": 0.9999226854270292
+            "expectedValue": 0.2104672689987587,
+            "pAnyAvailable": 0.9997591547096701
           },
           "RW": {
-            "expectedValue": 0.5541609630278572,
-            "pAnyAvailable": 0.9999365636211756
+            "expectedValue": 0.2113487962490492,
+            "pAnyAvailable": 0.9997757685407288
           },
           "D": {
-            "expectedValue": 0.7270516390796321,
-            "pAnyAvailable": 0.9998373575567977
+            "expectedValue": 0.4037881706352102,
+            "pAnyAvailable": 0.9991255067565286
           },
           "G": {
-            "expectedValue": 0.3505821160030211,
-            "pAnyAvailable": 0.9999323511358654
+            "expectedValue": 0.471743206686561,
+            "pAnyAvailable": 0.9999109287705092
           }
         },
         "candidates": [
           {
             "player": {
-              "name": "Player 008",
-              "pos": "D",
+              "name": "G 05",
+              "pos": "G",
               "posList": [
-                "D"
-              ],
-              "team": "T8",
-              "vorp": 7.555,
-              "overallRank": 8,
-              "adp": 11,
-              "diff": -0.3,
-              "offShare": 0.3875
-            },
-            "probBestAvailable": 0.12383254126197868,
-            "marginalValue": 0.8823898459501409
-          },
-          {
-            "player": {
-              "name": "Player 009",
-              "pos": "LW",
-              "posList": [
-                "LW"
+                "G"
               ],
               "team": "T9",
-              "vorp": 7.369,
-              "overallRank": 9,
-              "adp": 13,
-              "diff": -0.4,
-              "offShare": 0.3950617283950617
-            },
-            "probBestAvailable": 0.20433351238604064,
-            "marginalValue": 0.7473533896244478
-          },
-          {
-            "player": {
-              "name": "Player 014",
-              "pos": "D",
-              "posList": [
-                "D"
-              ],
-              "team": "T14",
-              "vorp": 6.503,
+              "vorp": 7.2,
               "overallRank": 14,
-              "adp": 16,
-              "diff": -0.2,
-              "offShare": 0.345679012345679
+              "adp": 17,
+              "diff": -0.3,
+              "offShare": 0.3076923076923077
             },
-            "probBestAvailable": 0.28914879318996195,
-            "marginalValue": 0.7398166271991142
+            "probBestAvailable": 0.4898011559216834,
+            "marginalValue": 0.48569665741311363
           },
           {
             "player": {
-              "name": "Player 015",
-              "pos": "D",
+              "name": "G 06",
+              "pos": "G",
               "posList": [
-                "D"
+                "G"
               ],
-              "team": "T15",
-              "vorp": 6.342,
-              "overallRank": 15,
-              "adp": 20,
-              "diff": -0.5,
-              "offShare": 0.35365853658536583
+              "team": "T10",
+              "vorp": 6.75,
+              "overallRank": 20,
+              "adp": 22,
+              "diff": -0.2,
+              "offShare": 0.31645569620253167
             },
-            "probBestAvailable": 0.2488191663400172,
-            "marginalValue": 0.7206481231082611
+            "probBestAvailable": 0.36390077830004064,
+            "marginalValue": 0.4594403467433765
+          },
+          {
+            "player": {
+              "name": "G 07",
+              "pos": "G",
+              "posList": [
+                "G"
+              ],
+              "team": "T11",
+              "vorp": 6.3,
+              "overallRank": 27,
+              "adp": 32,
+              "diff": -0.5,
+              "offShare": 0.325
+            },
+            "probBestAvailable": 0.10554454965521626,
+            "marginalValue": 0.4284891549235863
           }
         ],
-        "message": "Expect to be taking D — comfortably available (100%). Names are indicative only; plan the position, not the player."
+        "message": "Expect to be taking G — comfortably available (100%). Names are indicative only; plan the position, not the player."
       },
       "goalieAudit": {
         "player": {
-          "name": "Player 010",
+          "name": "G 01",
           "pos": "G",
           "posList": [
             "G"
           ],
-          "team": "T10",
-          "vorp": 7.187,
-          "overallRank": 10,
-          "adp": 12,
-          "diff": -0.2,
-          "offShare": 0.2926829268292683
+          "team": "T5",
+          "vorp": 9,
+          "overallRank": 1,
+          "adp": 1,
+          "diff": 0,
+          "offShare": 0.2702702702702703
         },
-        "marginalValue": 0.4144142639890762,
-        "survival": 0.9552490767267117,
+        "marginalValue": 0.7664263936094624,
+        "survival": 0.34547824775728553,
         "note": "Suppressed by goalie policy until round 4.",
-        "costVsTop": -0.48436281705361894
+        "costVsTop": 0,
+        "mode": "soft",
+        "minRound": 4,
+        "insteadOf": "G 01"
       }
     }
   },
@@ -208,7 +194,7 @@
     "pickInfo": {
       "pickNum": 1,
       "round": 1,
-      "isMyTurnNow": true
+      "isMyTurnNow": false
     },
     "plan": {
       "turn": {
@@ -221,39 +207,30 @@
       },
       "now": {
         "player": {
-          "name": "Player 001",
+          "name": "C 01",
           "pos": "C",
           "posList": [
             "C"
           ],
           "team": "T1",
-          "vorp": 22,
-          "overallRank": 1,
-          "adp": 1,
-          "diff": 0,
-          "offShare": 0.3076923076923077
+          "vorp": 26,
+          "overallRank": 4,
+          "adp": 5,
+          "diff": -0.1,
+          "offShare": 0.2702702702702703
         },
-        "marginalValue": 2.3917100974369725,
-        "survival": 0.34547824775728553,
-        "score": 3.194635395205594,
+        "marginalValue": 2.0884911978824237,
+        "survival": 0.7093858346317223,
+        "score": 2.819617754435165,
         "factors": [
           {
             "key": "cliff",
-            "label": "Next C available is ~72% worse",
+            "label": "Next C available is ~90% worse",
             "detail": {
-              "drop": 1.7245755807419325,
-              "relative": 0.7210638039242461
+              "drop": 1.870699986478579,
+              "relative": 0.8957183963118116
             },
             "salience": 1
-          },
-          {
-            "key": "urgency",
-            "label": "Likely still here at 17 (35%)",
-            "detail": {
-              "survival": 0.34547824775728553,
-              "nextPick": 17
-            },
-            "salience": 0.7527651964116568
           },
           {
             "key": "categories",
@@ -261,132 +238,144 @@
             "detail": [
               {
                 "category": "SOG",
-                "winProbBefore": 0.09635153049713346,
-                "winProbAfter": 0.6688792474329459
+                "winProbBefore": 0.12182300973859955,
+                "winProbAfter": 0.6091407124787906
               },
               {
                 "category": "PTS",
-                "winProbBefore": 0.11284471459941425,
-                "winProbAfter": 0.5742777701251116
+                "winProbBefore": 0.15542239474501846,
+                "winProbAfter": 0.5637800042494275
               }
             ],
-            "salience": 0.7161551213020201
+            "salience": 0.7144311915589467
+          },
+          {
+            "key": "urgency",
+            "label": "Likely still here at 4 (71%)",
+            "detail": {
+              "survival": 0.7093858346317223,
+              "nextPick": 4
+            },
+            "salience": 0.6649826645892443
           }
         ],
-        "edge": 1.4252014622310114,
+        "edge": 1.4110673364235202,
         "alternative": {
-          "name": "Player 004",
-          "pos": "D",
+          "name": "G 01",
+          "pos": "G",
           "posList": [
-            "D"
+            "G"
           ],
-          "team": "T4",
-          "vorp": 8.35,
-          "overallRank": 4,
-          "adp": 5,
-          "diff": -0.1,
-          "offShare": 0.3333333333333333
+          "team": "T5",
+          "vorp": 9,
+          "overallRank": 1,
+          "adp": 1,
+          "diff": 0,
+          "offShare": 0.2702702702702703
         }
       },
       "then": {
         "atPick": 17,
-        "likelyPosition": "D",
-        "expectedValue": 0.632508067823698,
+        "likelyPosition": "G",
+        "expectedValue": 0.5635555417120957,
         "positionOutlook": {
           "C": {
-            "expectedValue": 0.4771676144059088,
-            "pAnyAvailable": 0.9997012167871829
+            "expectedValue": 0.23040796514975093,
+            "pAnyAvailable": 0.9999568768769209
           },
           "LW": {
-            "expectedValue": 0.4852790443915631,
-            "pAnyAvailable": 0.9999226854270292
+            "expectedValue": 0.23214026994019007,
+            "pAnyAvailable": 0.9997591547096701
           },
           "RW": {
-            "expectedValue": 0.46885829655991207,
-            "pAnyAvailable": 0.9999365636211756
+            "expectedValue": 0.233084743707624,
+            "pAnyAvailable": 0.9997757685407288
           },
           "D": {
-            "expectedValue": 0.6249244470644023,
-            "pAnyAvailable": 0.9998376404888215
+            "expectedValue": 0.43844737537661244,
+            "pAnyAvailable": 0.9991255067565286
           },
           "G": {
-            "expectedValue": 0.350624501775171,
-            "pAnyAvailable": 0.9999323511358654
+            "expectedValue": 0.5635555417120957,
+            "pAnyAvailable": 0.9999109288962189
           }
         },
         "candidates": [
           {
             "player": {
-              "name": "Player 008",
-              "pos": "D",
+              "name": "G 05",
+              "pos": "G",
               "posList": [
-                "D"
+                "G"
               ],
-              "team": "T8",
-              "vorp": 7.555,
-              "overallRank": 8,
-              "adp": 11,
-              "diff": -0.3,
-              "offShare": 0.3875
-            },
-            "probBestAvailable": 0.12383289080194755,
-            "marginalValue": 0.7454545292143431
-          },
-          {
-            "player": {
-              "name": "Player 014",
-              "pos": "D",
-              "posList": [
-                "D"
-              ],
-              "team": "T14",
-              "vorp": 6.503,
+              "team": "T9",
+              "vorp": 7.2,
               "overallRank": 14,
-              "adp": 16,
-              "diff": -0.2,
-              "offShare": 0.345679012345679
+              "adp": 17,
+              "diff": -0.3,
+              "offShare": 0.3076923076923077
             },
-            "probBestAvailable": 0.3787160717071022,
-            "marginalValue": 0.6351936301397609
+            "probBestAvailable": 0.4898004646465281,
+            "marginalValue": 0.5852363791679789
           },
           {
             "player": {
-              "name": "Player 015",
-              "pos": "D",
+              "name": "G 06",
+              "pos": "G",
               "posList": [
-                "D"
+                "G"
               ],
-              "team": "T15",
-              "vorp": 6.342,
-              "overallRank": 15,
-              "adp": 20,
-              "diff": -0.5,
-              "offShare": 0.35365853658536583
+              "team": "T10",
+              "vorp": 6.75,
+              "overallRank": 20,
+              "adp": 22,
+              "diff": -0.2,
+              "offShare": 0.31645569620253167
             },
-            "probBestAvailable": 0.32589386316345403,
-            "marginalValue": 0.6202245963538227
+            "probBestAvailable": 0.36390026471291664,
+            "marginalValue": 0.5439109976953187
+          },
+          {
+            "player": {
+              "name": "G 07",
+              "pos": "G",
+              "posList": [
+                "G"
+              ],
+              "team": "T11",
+              "vorp": 6.3,
+              "overallRank": 27,
+              "adp": 32,
+              "diff": -0.5,
+              "offShare": 0.325
+            },
+            "probBestAvailable": 0.1055444006961457,
+            "marginalValue": 0.4969511429744813
           }
         ],
-        "message": "Expect to be taking D — comfortably available (100%). Names are indicative only; plan the position, not the player."
+        "message": "Expect to be taking G — comfortably available (100%). Names are indicative only; plan the position, not the player."
       },
       "goalieAudit": {
         "player": {
-          "name": "Player 010",
+          "name": "G 01",
           "pos": "G",
           "posList": [
             "G"
           ],
-          "team": "T10",
-          "vorp": 7.187,
-          "overallRank": 10,
-          "adp": 12,
-          "diff": -0.2,
-          "offShare": 0.2926829268292683
+          "team": "T5",
+          "vorp": 9,
+          "overallRank": 1,
+          "adp": 1,
+          "diff": 0,
+          "offShare": 0.2702702702702703
         },
-        "marginalValue": 0.41446401753439277,
-        "survival": 0.9552490767267117,
+        "marginalValue": 0.7664219973131985,
+        "survival": 0.34547824775728553,
         "note": "Suppressed by goalie policy until round 4.",
-        "costVsTop": -1.9772460799025797
+        "costVsTop": -1.3220692005692252,
+        "mode": "soft",
+        "minRound": 4,
+        "insteadOf": "C 01"
       }
     }
   },
@@ -408,51 +397,51 @@
       },
       "now": {
         "player": {
-          "name": "Player 005",
-          "pos": "D",
+          "name": "G 01",
+          "pos": "G",
           "posList": [
-            "D"
+            "G"
           ],
           "team": "T5",
-          "vorp": 8.144,
-          "overallRank": 5,
-          "adp": 2,
-          "diff": 0.3,
-          "offShare": 0.34146341463414637
+          "vorp": 9,
+          "overallRank": 1,
+          "adp": 1,
+          "diff": 0,
+          "offShare": 0.2702702702702703
         },
-        "marginalValue": 0.9018218752247038,
-        "survival": 0.428180581257786,
-        "score": 1.8516112690567645,
+        "marginalValue": 0.7664219973131985,
+        "survival": 0.3574594606094436,
+        "score": 1.326441987982137,
         "factors": [
           {
-            "key": "urgency",
-            "label": "Likely still here at 11 (43%)",
-            "detail": {
-              "survival": 0.428180581257786,
-              "nextPick": 11
-            },
-            "salience": 0.8850889300124576
-          },
-          {
             "key": "categories",
-            "label": "Moves BLK and SOG",
+            "label": "Moves SV and W",
             "detail": [
               {
-                "category": "BLK",
-                "winProbBefore": 0.336277395890794,
-                "winProbAfter": 0.57877684463315
+                "category": "SV",
+                "winProbBefore": 0.09541717633776686,
+                "winProbAfter": 0.4975935128624744
               },
               {
-                "category": "SOG",
-                "winProbBefore": 0.11224905481699898,
-                "winProbAfter": 0.26379138852189815
+                "category": "W",
+                "winProbBefore": 0.2735030524342927,
+                "winProbAfter": 0.4988279890750434
               }
             ],
-            "salience": 0.7184698515707846
+            "salience": 0.9093706048138319
+          },
+          {
+            "key": "urgency",
+            "label": "Likely still here at 11 (36%)",
+            "detail": {
+              "survival": 0.3574594606094436,
+              "nextPick": 11
+            },
+            "salience": 0.7719351369751097
           },
           {
             "key": "slot",
-            "label": "Fills an open D slot",
+            "label": "Fills an open G slot",
             "detail": {
               "openBefore": 12,
               "openAfter": 11
@@ -460,579 +449,313 @@
             "salience": 0.45
           }
         ],
-        "edge": 0.0022296454751900008,
+        "edge": 0.02908620539164275,
         "alternative": {
-          "name": "Player 004",
-          "pos": "D",
+          "name": "G 02",
+          "pos": "G",
           "posList": [
-            "D"
+            "G"
           ],
-          "team": "T4",
-          "vorp": 8.35,
-          "overallRank": 4,
-          "adp": 5,
-          "diff": -0.1,
-          "offShare": 0.3333333333333333
+          "team": "T6",
+          "vorp": 8.55,
+          "overallRank": 2,
+          "adp": 6,
+          "diff": -0.4,
+          "offShare": 0.28
         }
       },
       "then": {
         "atPick": 11,
-        "likelyPosition": "D",
-        "expectedValue": 0.9497893938320608,
+        "likelyPosition": "G",
+        "expectedValue": 0.5600199906689384,
         "positionOutlook": {
           "C": {
-            "expectedValue": 0.7951439153615483,
-            "pAnyAvailable": 0.9999858715437481
+            "expectedValue": 0.2412458016106019,
+            "pAnyAvailable": 0.9995588197623466
           },
           "LW": {
-            "expectedValue": 0.8400553795860911,
-            "pAnyAvailable": 0.9997026452593817
+            "expectedValue": 0.23791783981606907,
+            "pAnyAvailable": 0.9991024870064529
           },
           "RW": {
-            "expectedValue": 0.8351265437816405,
-            "pAnyAvailable": 0.9995653152949933
+            "expectedValue": 0.23884981387293264,
+            "pAnyAvailable": 0.9996187787879786
           },
           "D": {
-            "expectedValue": 0.9358061922871104,
-            "pAnyAvailable": 0.9999380245377494
+            "expectedValue": 0.40786830154424303,
+            "pAnyAvailable": 0.9995696484000949
           },
           "G": {
-            "expectedValue": 0.40743975590899656,
-            "pAnyAvailable": 0.9999932004581695
+            "expectedValue": 0.5600199906689384,
+            "pAnyAvailable": 0.9999838718916525
           }
         },
         "candidates": [
           {
             "player": {
-              "name": "Player 004",
-              "pos": "D",
-              "posList": [
-                "D"
-              ],
-              "team": "T4",
-              "vorp": 8.35,
-              "overallRank": 4,
-              "adp": 5,
-              "diff": -0.1,
-              "offShare": 0.3333333333333333
-            },
-            "probBestAvailable": 0.6202225442672085,
-            "marginalValue": 0.9796441398294125
-          },
-          {
-            "player": {
-              "name": "Player 001",
-              "pos": "C",
-              "posList": [
-                "C"
-              ],
-              "team": "T1",
-              "vorp": 9,
-              "overallRank": 1,
-              "adp": 1,
-              "diff": 0,
-              "offShare": 0.3076923076923077
-            },
-            "probBestAvailable": 0.1357550444778705,
-            "marginalValue": 0.9180813454021788
-          },
-          {
-            "player": {
-              "name": "Player 002",
-              "pos": "LW",
-              "posList": [
-                "LW"
-              ],
-              "team": "T2",
-              "vorp": 8.778,
-              "overallRank": 2,
-              "adp": 5,
-              "diff": -0.3,
-              "offShare": 0.31645569620253167
-            },
-            "probBestAvailable": 0.15134820076674618,
-            "marginalValue": 0.9023488381105471
-          },
-          {
-            "player": {
-              "name": "Player 008",
-              "pos": "D",
-              "posList": [
-                "D"
-              ],
-              "team": "T8",
-              "vorp": 7.555,
-              "overallRank": 8,
-              "adp": 11,
-              "diff": -0.3,
-              "offShare": 0.3875
-            },
-            "probBestAvailable": 0.07995031745609868,
-            "marginalValue": 0.8840994112339038
-          }
-        ],
-        "message": "Back-to-back picks — the second is near-certain, so this is an ordering call. Take the scarcer position first; D should still be there."
-      },
-      "goalieAudit": {
-        "player": {
-          "name": "Player 010",
-          "pos": "G",
-          "posList": [
-            "G"
-          ],
-          "team": "T10",
-          "vorp": 7.187,
-          "overallRank": 10,
-          "adp": 12,
-          "diff": -0.2,
-          "offShare": 0.2926829268292683
-        },
-        "marginalValue": 0.41446401753439277,
-        "survival": 0.8862864603239297,
-        "note": "Suppressed by goalie policy until round 4.",
-        "costVsTop": -0.48735785769031104
-      }
-    }
-  },
-  "goalieAudit": {
-    "label": "goalie audit",
-    "pickInfo": {
-      "pickNum": 3,
-      "round": 1,
-      "isMyTurnNow": true
-    },
-    "plan": {
-      "turn": {
-        "kind": "far",
-        "picks": [
-          3,
-          18
-        ],
-        "gap": 15
-      },
-      "now": {
-        "player": {
-          "name": "Player 004",
-          "pos": "D",
-          "posList": [
-            "D"
-          ],
-          "team": "T4",
-          "vorp": 8.35,
-          "overallRank": 4,
-          "adp": 5,
-          "diff": -0.1,
-          "offShare": 0.3333333333333333
-        },
-        "marginalValue": 0.9238236978385674,
-        "survival": 0.0006165808174049383,
-        "score": 1.6513054516334251,
-        "factors": [
-          {
-            "key": "categories",
-            "label": "Moves BLK and SOG",
-            "detail": [
-              {
-                "category": "BLK",
-                "winProbBefore": 0.336277395890794,
-                "winProbAfter": 0.5837735438305651
-              },
-              {
-                "category": "SOG",
-                "winProbBefore": 0.11224905481699898,
-                "winProbAfter": 0.2689715294670098
-              }
-            ],
-            "salience": 0.7187747638080273
-          },
-          {
-            "key": "slot",
-            "label": "Fills an open D slot",
-            "detail": {
-              "openBefore": 12,
-              "openAfter": 11
-            },
-            "salience": 0.45
-          },
-          {
-            "key": "urgency",
-            "label": "100% gone by pick 18",
-            "detail": {
-              "survival": 0.0006165808174049383,
-              "nextPick": 18
-            },
-            "salience": 0.20098652930784788
-          }
-        ],
-        "edge": 0.022166042014875487,
-        "alternative": {
-          "name": "Player 005",
-          "pos": "D",
-          "posList": [
-            "D"
-          ],
-          "team": "T5",
-          "vorp": 8.144,
-          "overallRank": 5,
-          "adp": 2,
-          "diff": 0.3,
-          "offShare": 0.34146341463414637
-        }
-      },
-      "then": {
-        "atPick": 18,
-        "likelyPosition": "D",
-        "expectedValue": 0.7274817537948576,
-        "positionOutlook": {
-          "C": {
-            "expectedValue": 0.5561505917886618,
-            "pAnyAvailable": 0.9993006592517856
-          },
-          "LW": {
-            "expectedValue": 0.557106031981793,
-            "pAnyAvailable": 0.9998037528422461
-          },
-          "RW": {
-            "expectedValue": 0.5387231694248683,
-            "pAnyAvailable": 0.9998441609174332
-          },
-          "D": {
-            "expectedValue": 0.7106751845698749,
-            "pAnyAvailable": 0.9995292385575713
-          },
-          "G": {
-            "expectedValue": 0.3318154680516809,
-            "pAnyAvailable": 0.9998374998456301
-          }
-        },
-        "candidates": [
-          {
-            "player": {
-              "name": "Player 008",
-              "pos": "D",
-              "posList": [
-                "D"
-              ],
-              "team": "T8",
-              "vorp": 7.555,
-              "overallRank": 8,
-              "adp": 11,
-              "diff": -0.3,
-              "offShare": 0.3875
-            },
-            "probBestAvailable": 0.08443584236699697,
-            "marginalValue": 0.8839132071021947
-          },
-          {
-            "player": {
-              "name": "Player 009",
-              "pos": "LW",
-              "posList": [
-                "LW"
-              ],
-              "team": "T9",
-              "vorp": 7.369,
-              "overallRank": 9,
-              "adp": 13,
-              "diff": -0.4,
-              "offShare": 0.3950617283950617
-            },
-            "probBestAvailable": 0.16341171303018784,
-            "marginalValue": 0.7490234157804991
-          },
-          {
-            "player": {
-              "name": "Player 014",
-              "pos": "D",
-              "posList": [
-                "D"
-              ],
-              "team": "T14",
-              "vorp": 6.503,
-              "overallRank": 14,
-              "adp": 16,
-              "diff": -0.2,
-              "offShare": 0.345679012345679
-            },
-            "probBestAvailable": 0.27675756023067993,
-            "marginalValue": 0.741205125514373
-          },
-          {
-            "player": {
-              "name": "Player 015",
-              "pos": "D",
-              "posList": [
-                "D"
-              ],
-              "team": "T15",
-              "vorp": 6.342,
-              "overallRank": 15,
-              "adp": 20,
-              "diff": -0.5,
-              "offShare": 0.35365853658536583
-            },
-            "probBestAvailable": 0.29080758625718367,
-            "marginalValue": 0.722013670604376
-          },
-          {
-            "player": {
-              "name": "Player 018",
-              "pos": "D",
-              "posList": [
-                "D"
-              ],
-              "team": "T2",
-              "vorp": 5.884,
-              "overallRank": 18,
-              "adp": 15,
-              "diff": 0.3,
-              "offShare": 0.4
-            },
-            "probBestAvailable": 0.05078989704297317,
-            "marginalValue": 0.6637151772213699
-          }
-        ],
-        "message": "Expect to be taking D — comfortably available (100%). Names are indicative only; plan the position, not the player."
-      },
-      "goalieAudit": {
-        "player": {
-          "name": "Player 010",
-          "pos": "G",
-          "posList": [
-            "G"
-          ],
-          "team": "T10",
-          "vorp": 12,
-          "overallRank": 1,
-          "adp": 2,
-          "diff": -0.1,
-          "offShare": 0.2926829268292683
-        },
-        "marginalValue": 0.5106351626086547,
-        "survival": 0.0000025067037248857983,
-        "note": "Suppressed by goalie policy until round 4.",
-        "costVsTop": -0.4131885352299127
-      }
-    }
-  },
-  "goalieAuditCosting": {
-    "label": "goalie audit (costing)",
-    "pickInfo": {
-      "pickNum": 3,
-      "round": 1,
-      "isMyTurnNow": true
-    },
-    "plan": {
-      "turn": {
-        "kind": "far",
-        "picks": [
-          3,
-          18
-        ],
-        "gap": 15
-      },
-      "now": {
-        "player": {
-          "name": "Player 004",
-          "pos": "D",
-          "posList": [
-            "D"
-          ],
-          "team": "T4",
-          "vorp": 8.35,
-          "overallRank": 4,
-          "adp": 5,
-          "diff": -0.1,
-          "offShare": 0.3333333333333333
-        },
-        "marginalValue": 0.5439929636404841,
-        "survival": 0.0006165808174049383,
-        "score": 0.9354735960568286,
-        "factors": [
-          {
-            "key": "categories",
-            "label": "Moves BLK and SOG",
-            "detail": [
-              {
-                "category": "BLK",
-                "winProbBefore": 0.42537946179064623,
-                "winProbAfter": 0.5495496745127117
-              },
-              {
-                "category": "SOG",
-                "winProbBefore": 0.23602748165974852,
-                "winProbAfter": 0.3553902046970678
-              }
-            ],
-            "salience": 0.7238383141296767
-          },
-          {
-            "key": "slot",
-            "label": "Fills an open D slot",
-            "detail": {
-              "openBefore": 12,
-              "openAfter": 11
-            },
-            "salience": 0.45
-          },
-          {
-            "key": "urgency",
-            "label": "100% gone by pick 18",
-            "detail": {
-              "survival": 0.0006165808174049383,
-              "nextPick": 18
-            },
-            "salience": 0.20098652930784788
-          }
-        ],
-        "edge": 0.010353579445501526,
-        "alternative": {
-          "name": "Player 005",
-          "pos": "D",
-          "posList": [
-            "D"
-          ],
-          "team": "T5",
-          "vorp": 8.144,
-          "overallRank": 5,
-          "adp": 2,
-          "diff": 0.3,
-          "offShare": 0.34146341463414637
-        }
-      },
-      "then": {
-        "atPick": 18,
-        "likelyPosition": "D",
-        "expectedValue": 0.39695697225294563,
-        "positionOutlook": {
-          "C": {
-            "expectedValue": 0.29394192270403857,
-            "pAnyAvailable": 0.9993006592517856
-          },
-          "LW": {
-            "expectedValue": 0.30345309750135985,
-            "pAnyAvailable": 0.9998037528422461
-          },
-          "RW": {
-            "expectedValue": 0.2842528125650997,
-            "pAnyAvailable": 0.9998441609174332
-          },
-          "D": {
-            "expectedValue": 0.3825077552159399,
-            "pAnyAvailable": 0.9995292385575713
-          },
-          "G": {
-            "expectedValue": 0.348291400379505,
-            "pAnyAvailable": 0.9998374994659639
-          }
-        },
-        "candidates": [
-          {
-            "player": {
-              "name": "Player 008",
-              "pos": "D",
-              "posList": [
-                "D"
-              ],
-              "team": "T8",
-              "vorp": 7.555,
-              "overallRank": 8,
-              "adp": 11,
-              "diff": -0.3,
-              "offShare": 0.3875
-            },
-            "probBestAvailable": 0.08443582798721253,
-            "marginalValue": 0.47743803409951546
-          },
-          {
-            "player": {
-              "name": "Player 009",
-              "pos": "LW",
-              "posList": [
-                "LW"
-              ],
-              "team": "T9",
-              "vorp": 7.369,
-              "overallRank": 9,
-              "adp": 13,
-              "diff": -0.4,
-              "offShare": 0.3950617283950617
-            },
-            "probBestAvailable": 0.16341168520047542,
-            "marginalValue": 0.4047082896820653
-          },
-          {
-            "player": {
-              "name": "Player 014",
-              "pos": "D",
-              "posList": [
-                "D"
-              ],
-              "team": "T14",
-              "vorp": 6.503,
-              "overallRank": 14,
-              "adp": 16,
-              "diff": -0.2,
-              "offShare": 0.345679012345679
-            },
-            "probBestAvailable": 0.2767575130976858,
-            "marginalValue": 0.4020093008188512
-          },
-          {
-            "player": {
-              "name": "Player 015",
-              "pos": "D",
-              "posList": [
-                "D"
-              ],
-              "team": "T15",
-              "vorp": 6.342,
-              "overallRank": 15,
-              "adp": 20,
-              "diff": -0.5,
-              "offShare": 0.35365853658536583
-            },
-            "probBestAvailable": 0.2908075367314101,
-            "marginalValue": 0.38700369406223345
-          },
-          {
-            "player": {
-              "name": "Player 020",
+              "name": "G 02",
               "pos": "G",
               "posList": [
                 "G"
               ],
-              "team": "T4",
-              "vorp": 5.597,
-              "overallRank": 20,
-              "adp": 22,
-              "diff": -0.2,
-              "offShare": 0.3048780487804878
+              "team": "T6",
+              "vorp": 8.55,
+              "overallRank": 2,
+              "adp": 6,
+              "diff": -0.4,
+              "offShare": 0.28
             },
-            "probBestAvailable": 0.12706646816361963,
-            "marginalValue": 0.3699165393819275
+            "probBestAvailable": 0.6741991923233183,
+            "marginalValue": 0.5725856281290165
+          },
+          {
+            "player": {
+              "name": "G 03",
+              "pos": "G",
+              "posList": [
+                "G"
+              ],
+              "team": "T7",
+              "vorp": 8.1,
+              "overallRank": 3,
+              "adp": 8,
+              "diff": -0.5,
+              "offShare": 0.2894736842105263
+            },
+            "probBestAvailable": 0.2493231999078473,
+            "marginalValue": 0.542488882498656
+          },
+          {
+            "player": {
+              "name": "G 04",
+              "pos": "G",
+              "posList": [
+                "G"
+              ],
+              "team": "T8",
+              "vorp": 7.65,
+              "overallRank": 7,
+              "adp": 6,
+              "diff": 0.1,
+              "offShare": 0.2987012987012987
+            },
+            "probBestAvailable": 0.05156114138856771,
+            "marginalValue": 0.517082091444026
           }
         ],
-        "message": "Expect to be taking D — comfortably available (100%). Names are indicative only; plan the position, not the player."
+        "message": "Back-to-back picks — the second is near-certain, so this is an ordering call. Take the scarcer position first; G should still be there."
       },
       "goalieAudit": {
         "player": {
-          "name": "Player 010",
+          "name": "G 01",
           "pos": "G",
           "posList": [
             "G"
           ],
-          "team": "T10",
-          "vorp": 40,
+          "team": "T5",
+          "vorp": 9,
           "overallRank": 1,
           "adp": 1,
           "diff": 0,
-          "offShare": 0.2926829268292683
+          "offShare": 0.2702702702702703
         },
-        "marginalValue": 0.6524107219808526,
+        "marginalValue": 0.7664219973131985,
+        "survival": 0.3574594606094436,
+        "note": "Suppressed by goalie policy until round 4.",
+        "costVsTop": 0,
+        "mode": "soft",
+        "minRound": 4,
+        "insteadOf": "G 01"
+      }
+    }
+  },
+  "goalieAuditHard": {
+    "label": "goalie audit (hard)",
+    "pickInfo": {
+      "pickNum": 3,
+      "round": 1,
+      "isMyTurnNow": true
+    },
+    "plan": {
+      "turn": {
+        "kind": "far",
+        "picks": [
+          3,
+          18
+        ],
+        "gap": 15
+      },
+      "now": {
+        "player": {
+          "name": "D 01",
+          "pos": "D",
+          "posList": [
+            "D"
+          ],
+          "team": "T9",
+          "vorp": 7,
+          "overallRank": 15,
+          "adp": 21,
+          "diff": -0.6,
+          "offShare": 0.2702702702702703
+        },
+        "marginalValue": 0.40825809333407914,
+        "survival": 0.6736004416804868,
+        "score": 0.8459197209391431,
+        "factors": [
+          {
+            "key": "urgency",
+            "label": "Likely still here at 18 (67%)",
+            "detail": {
+              "survival": 0.6736004416804868,
+              "nextPick": 18
+            },
+            "salience": 0.722239293311221
+          },
+          {
+            "key": "categories",
+            "label": "Moves BLK and SOG",
+            "detail": [
+              {
+                "category": "BLK",
+                "winProbBefore": 0.18127285118616243,
+                "winProbAfter": 0.28226463529885093
+              },
+              {
+                "category": "SOG",
+                "winProbBefore": 0.14358442285662087,
+                "winProbAfter": 0.20732506185850264
+              }
+            ],
+            "salience": 0.7017503459261115
+          },
+          {
+            "key": "slot",
+            "label": "Fills an open D slot",
+            "detail": {
+              "openBefore": 12,
+              "openAfter": 11
+            },
+            "salience": 0.45
+          }
+        ],
+        "edge": 0.011692767247633462,
+        "alternative": {
+          "name": "D 02",
+          "pos": "D",
+          "posList": [
+            "D"
+          ],
+          "team": "T10",
+          "vorp": 6.825,
+          "overallRank": 16,
+          "adp": 20,
+          "diff": -0.4,
+          "offShare": 0.28
+        }
+      },
+      "then": {
+        "atPick": 18,
+        "likelyPosition": "G",
+        "expectedValue": 0.556452410411094,
+        "positionOutlook": {
+          "C": {
+            "expectedValue": 0.2299710453218016,
+            "pAnyAvailable": 0.9998937785456328
+          },
+          "LW": {
+            "expectedValue": 0.23098944922684247,
+            "pAnyAvailable": 0.9994373792460937
+          },
+          "RW": {
+            "expectedValue": 0.23212090342064984,
+            "pAnyAvailable": 0.9994485762863019
+          },
+          "D": {
+            "expectedValue": 0.437661627605064,
+            "pAnyAvailable": 0.9992601699686505
+          },
+          "G": {
+            "expectedValue": 0.556452410411094,
+            "pAnyAvailable": 0.9997944541774634
+          }
+        },
+        "candidates": [
+          {
+            "player": {
+              "name": "G 05",
+              "pos": "G",
+              "posList": [
+                "G"
+              ],
+              "team": "T9",
+              "vorp": 7.2,
+              "overallRank": 14,
+              "adp": 17,
+              "diff": -0.3,
+              "offShare": 0.3076923076923077
+            },
+            "probBestAvailable": 0.4310755392885993,
+            "marginalValue": 0.5852363791679775
+          },
+          {
+            "player": {
+              "name": "G 06",
+              "pos": "G",
+              "posList": [
+                "G"
+              ],
+              "team": "T10",
+              "vorp": 6.75,
+              "overallRank": 20,
+              "adp": 22,
+              "diff": -0.2,
+              "offShare": 0.31645569620253167
+            },
+            "probBestAvailable": 0.39629605682624475,
+            "marginalValue": 0.5439109976953187
+          },
+          {
+            "player": {
+              "name": "G 07",
+              "pos": "G",
+              "posList": [
+                "G"
+              ],
+              "team": "T11",
+              "vorp": 6.3,
+              "overallRank": 27,
+              "adp": 32,
+              "diff": -0.5,
+              "offShare": 0.325
+            },
+            "probBestAvailable": 0.14604144938292268,
+            "marginalValue": 0.4969511429744804
+          }
+        ],
+        "message": "Expect to be taking G — comfortably available (100%). Names are indicative only; plan the position, not the player."
+      },
+      "goalieAudit": {
+        "player": {
+          "name": "G 01",
+          "pos": "G",
+          "posList": [
+            "G"
+          ],
+          "team": "T5",
+          "vorp": 9,
+          "overallRank": 1,
+          "adp": 1,
+          "diff": 0,
+          "offShare": 0.2702702702702703
+        },
+        "marginalValue": 0.7664219973131985,
         "survival": 1.7030426920941837e-7,
         "note": "Suppressed by goalie policy until round 4.",
-        "costVsTop": 0.10841775834036849
+        "costVsTop": 0.35816390397911935,
+        "mode": "hard",
+        "minRound": 4,
+        "insteadOf": "D 01"
       }
     }
   }
