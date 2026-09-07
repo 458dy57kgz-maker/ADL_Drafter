@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import NavRail from './components/NavRail.jsx';
 import WarRoom from './pages/WarRoom.jsx';
+import Results from './pages/Results.jsx';
 import Players from './pages/Players.jsx';
 import Settings from './pages/Settings.jsx';
 import ManualDraftOverlay from './components/ManualDraftOverlay.jsx';
@@ -28,6 +29,7 @@ export default function App() {
       <NavRail activeTab={tab} onChange={setTab} />
       <div className="app-shell__content">
         {tab === 'warroom' && <WarRoom />}
+        {tab === 'results' && <Results />}
         {tab === 'players' && <Players />}
         {tab === 'settings' && <Settings />}
       </div>

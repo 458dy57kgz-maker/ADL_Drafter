@@ -1,0 +1,165 @@
+.results-page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow-y: auto;
+  padding: 20px 24px;
+  gap: 14px;
+}
+
+.results-page__loading {
+  color: var(--text-muted);
+  font: 500 13px var(--font-ui);
+}
+
+.results-page__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex: none;
+}
+
+.results-page__title {
+  font: 700 18px var(--font-ui);
+  color: var(--text-primary);
+}
+
+.results-page__sub {
+  font: 500 12px var(--font-ui);
+  color: var(--text-faint);
+  margin-top: 3px;
+}
+
+/* Ten team cards. auto-fit keeps five across a draft-night monitor and folds
+   to two or one on a laptop without a second set of breakpoints. */
+.results-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 12px;
+  align-items: start;
+}
+
+.results-team {
+  padding: 12px;
+  min-width: 0;
+}
+
+.results-team--mine {
+  border-color: var(--accent);
+}
+
+.results-team__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+  min-width: 0;
+}
+
+.results-team__name {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font: 700 13px var(--font-ui);
+  color: var(--text-primary);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.results-team__slot {
+  flex: none;
+  font: 700 10px var(--font-mono);
+  color: var(--text-faint);
+  background: var(--bg-row);
+  border: 1px solid var(--border-hairline-strong);
+  border-radius: 4px;
+  padding: 1px 5px;
+}
+
+.results-team__you {
+  flex: none;
+  font: 700 9px var(--font-ui);
+  letter-spacing: 0.5px;
+  color: var(--accent-on-text);
+  background: var(--accent);
+  border-radius: 4px;
+  padding: 1px 5px;
+}
+
+.results-team__pct {
+  flex: none;
+  font: 700 12px var(--font-mono);
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.results-team__empty {
+  font: 500 11px var(--font-ui);
+  color: var(--text-faint);
+  padding-top: 6px;
+}
+
+.results-row {
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr) 54px 42px;
+  gap: 6px;
+  align-items: center;
+  padding: 4px 6px;
+  border-radius: 5px;
+  background: var(--bg-input);
+  margin-bottom: 2px;
+  min-width: 0;
+}
+
+.results-row--bench {
+  background: transparent;
+  border: 1px solid var(--border-hairline);
+}
+
+.results-row__pos {
+  font: 700 10.5px var(--font-mono);
+  color: var(--text-muted);
+}
+
+.results-row--bench .results-row__pos {
+  color: var(--text-faint);
+}
+
+.results-row__name {
+  font: 500 12px var(--font-ui);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.results-row__meta {
+  font: 500 10.5px var(--font-mono);
+  color: var(--text-faint);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.results-row__pick {
+  text-align: right;
+  font: 600 10.5px var(--font-mono);
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.results-orphans {
+  flex: none;
+}
+
+/* Before the first pick there is nothing to export. Scoped to this page
+   rather than added to the shared .btn so no other screen's buttons change
+   appearance as a side effect. */
+.results-page .btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}

@@ -2,6 +2,7 @@ import './NavRail.css';
 
 const NAV_ITEMS = [
   { key: 'warroom', label: 'War Room', shape: 'square' },
+  { key: 'results', label: 'Results', shape: 'triangle' },
   { key: 'players', label: 'Players', shape: 'circle' },
   { key: 'settings', label: 'Settings', shape: 'diamond' },
 ];

@@ -5,10 +5,18 @@ import { rankDeltaStyle } from '../lib/rankDelta.js';
 import { scarcityStyle } from '../lib/scarcity.js';
 import { round, nextPickForSlot, slotForPick } from '../lib/draftMath.js';
 import { poolCoverage, poolVersion } from './players.js';
+import {
+  POS_ORDER,
+  BENCH_WEIGHT,
+  TARGET_CATEGORIES,
+  assignRoster,
+  buildTeamSummaries,
+  categoryTotals,
+  pctOf,
+  overallPct,
+} from '../lib/roster.js';
 
 export const draftRouter = Router();
-
-const POS_ORDER = ['C', 'LW', 'RW', 'D', 'G'];
 
 // Settings > Roster names targets after the thing you count; the value engine
 // names them after the stat column. `plusMinus` is deliberately absent: a
@@ -97,45 +105,49 @@ function buildState() {
     };
   });
 
-  // Single pass so a dual-eligible player (e.g. C/LW) only ever fills one
-  // physical roster slot, not both — POS_ORDER decides which of their
-  // eligible positions gets first claim on them.
+  // My own roster, shaped by the same code the Results page uses for the
+  // other nine — see server/src/lib/roster.js.
   const mine = players.filter((p) => p.mine);
-  const rosterSlotRows = [];
-  const assignedIds = new Set();
-  POS_ORDER.forEach((pos) => {
-    const count = rosterSlots[pos] ?? 0;
-    const eligible = mine.filter((p) => p.posList.includes(pos) && !assignedIds.has(p.id));
-    for (let i = 0; i < count; i++) {
-      const player = eligible[i] ?? null;
-      if (player) assignedIds.add(player.id);
-      rosterSlotRows.push({ pos, player });
+  const myRoster = assignRoster(mine, rosterSlots);
+  const rosterSlotRows = myRoster.rows;
+
+  // Target Progress compares my weighted totals against whoever currently
+  // leads each category, so the bar is the room rather than the calendar.
+  // Bench players count at BENCH_WEIGHT for every manager alike.
+  const teamSummaries = buildTeamSummaries(players, league, rosterSlots, targets);
+  const myTotals = categoryTotals(myRoster.starters, myRoster.bench);
+
+  const targetRows = TARGET_CATEGORIES.map((cat) => {
+    const goal = targets[cat.goalKey];
+    // Only a team that has actually accumulated something leads a category —
+    // ten teams tied on zero before the draft starts has no leader, and
+    // naming whichever one sorts first would read as real information.
+    let leader = null;
+    for (const t of teamSummaries) {
+      if (t.totals[cat.key] > 0 && (!leader || t.totals[cat.key] > leader.total)) {
+        leader = { team: t.name, total: t.totals[cat.key], isMine: t.isMine };
+      }
     }
+    return {
+      label: cat.label,
+      key: cat.key,
+      current: Math.round(myTotals[cat.key]),
+      goal,
+      pct: pctOf(myTotals[cat.key], goal),
+      leader: leader
+        ? { team: leader.team, current: Math.round(leader.total), pct: pctOf(leader.total, goal), isMine: leader.isMine }
+        : null,
+    };
   });
 
-  // Anyone left over once the starting slots are full sits on the bench —
-  // a third centre in a two-C league doesn't vanish from the roster view, he
-  // just shows up here. The row count is the configured bench size, but it
-  // stretches if more players are somehow assigned than there are seats, so
-  // a drafted player is never invisible.
-  const benched = mine.filter((p) => !assignedIds.has(p.id));
-  const benchRows = Math.max(rosterSlots.BENCH ?? 0, benched.length);
-  for (let i = 0; i < benchRows; i++) {
-    rosterSlotRows.push({ pos: 'BN', player: benched[i] ?? null });
+  const myOverall = overallPct(myTotals, targets);
+  let overallLeader = null;
+  for (const t of teamSummaries) {
+    if (t.pickCount > 0 && (!overallLeader || t.overallPct > overallLeader.pct)) {
+      overallLeader = { team: t.name, pct: t.overallPct, isMine: t.isMine };
+    }
   }
-
-  const sumSkater = (key) => mine.filter((p) => !p.posList.includes('G')).reduce((acc, p) => acc + (p[key] || 0), 0);
-  const sumGoalie = (key) => mine.filter((p) => p.posList.includes('G')).reduce((acc, p) => acc + (p[key] || 0), 0);
-  const targetRows = [
-    { label: 'Goals', current: sumSkater('g'), goal: targets.goals },
-    { label: 'Assists', current: sumSkater('a'), goal: targets.assists },
-    { label: 'PPP', current: sumSkater('ppp'), goal: targets.ppp },
-    { label: '+/-', current: sumSkater('plusMinus'), goal: targets.plusMinus },
-    { label: 'Shots', current: sumSkater('shots'), goal: targets.shots },
-    { label: 'Blocks', current: sumSkater('blocks'), goal: targets.blocks },
-    { label: 'Wins', current: sumGoalie('w'), goal: targets.wins },
-    { label: 'Saves', current: sumGoalie('saves'), goal: targets.saves },
-  ].map((t) => ({ ...t, pct: t.goal ? Math.min(100, Math.round((t.current / t.goal) * 100)) : 0 }));
+  const overallRow = { label: 'Overall', pct: myOverall, leader: overallLeader };
 
   const scarcity = {};
   POS_ORDER.forEach((pos) => {
@@ -186,6 +198,8 @@ function buildState() {
     lanes,
     roster: { slots: rosterSlotRows, benchCount: rosterSlots.BENCH, irCount: rosterSlots.IR },
     targets: targetRows,
+    overall: overallRow,
+    benchWeight: BENCH_WEIGHT,
     scarcity,
     liveFeed,
     tracked,
@@ -201,6 +215,62 @@ draftRouter.get('/picks', (req, res) => {
   res.json(
     rows.map((r) => ({ pickNum: r.pick_num, round: r.round, team: r.team, playerName: r.player_name, pos: r.pos }))
   );
+});
+
+// Every team's board, shaped exactly like My Roster on the War Room. Backs
+// the Results page, and carries enough per-player detail (full stats plus the
+// pick that landed them) for the CSV export to be built client-side without a
+// second round trip. It reads live from the players table, so resetting the
+// draft empties it on the next poll — there is nothing separate to clear.
+draftRouter.get('/results', (req, res) => {
+  const league = getSetting('league');
+  const rosterSlots = getSetting('rosterSlots');
+  const targets = getSetting('targets');
+  const teamCount = league.teamCount;
+
+  const players = db
+    .prepare('SELECT * FROM players ORDER BY overall_rank ASC')
+    .all()
+    .map((row) => mapPlayerRow(row, teamCount));
+
+  const pickByPlayer = new Map();
+  for (const r of db.prepare('SELECT pick_num, round, player_id FROM draft_picks').all()) {
+    if (r.player_id != null) pickByPlayer.set(r.player_id, { pickNum: r.pick_num, round: r.round });
+  }
+
+  const summaries = buildTeamSummaries(players, league, rosterSlots, targets);
+  const decorate = (p) => (p ? { ...p, ...(pickByPlayer.get(p.id) ?? { pickNum: null, round: null }) } : null);
+
+  const teams = summaries.map((t) => {
+    const benchIds = new Set(t.benchIds);
+    return {
+      slot: t.slot,
+      name: t.name,
+      isMine: t.isMine,
+      pickCount: t.pickCount,
+      overallPct: t.overallPct,
+      totals: Object.fromEntries(Object.entries(t.totals).map(([k, v]) => [k, Math.round(v)])),
+      rows: t.rows.map((row) => ({
+        pos: row.pos,
+        onBench: !!row.player && benchIds.has(row.player.id),
+        player: decorate(row.player),
+      })),
+    };
+  });
+
+  // Picks made by a name that is no longer in Settings > League would
+  // otherwise disappear from the page entirely — surfaced rather than
+  // silently dropped, since it means the team list was edited mid-draft.
+  const knownTeams = new Set((league.teams ?? []).map((t) => t.name));
+  const orphans = players.filter((p) => p.drafted && !knownTeams.has(p.draftedBy));
+
+  res.json({
+    teams,
+    benchWeight: BENCH_WEIGHT,
+    categories: TARGET_CATEGORIES.map((c) => ({ label: c.label, key: c.key })),
+    totalPicks: db.prepare('SELECT COUNT(*) AS n FROM draft_picks').get().n,
+    orphanPicks: orphans.map((p) => ({ ...decorate(p), draftedBy: p.draftedBy })),
+  });
 });
 
 // Manual Draft Mode: hand-assign the next pick to whichever team is on the

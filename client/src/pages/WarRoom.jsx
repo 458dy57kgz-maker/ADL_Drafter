@@ -2,11 +2,31 @@ import { useEffect, useState } from 'react';
 import { api } from '../lib/api.js';
 import { usePolling } from '../lib/usePolling.js';
 import ConfirmDialog from '../components/ConfirmDialog.jsx';
-import { BestPickCard, NextBestPickCard } from '../components/DraftPlanPanel.jsx';
-import { useDraftPlan } from '../lib/useDraftPlan.js';
 import './WarRoom.css';
 
 const POS_ORDER = ['C', 'LW', 'RW', 'D', 'G'];
+
+// The category leader, shown under my own ring. Nobody leads a category
+// nobody has scored in yet, so before the draft starts this is a dash rather
+// than an arbitrary team name.
+function TargetLeader({ leader, suffix }) {
+  if (!leader) {
+    return <div className="target-leader target-leader--none">—</div>;
+  }
+  const label = leader.isMine ? 'You' : leader.team;
+  return (
+    <div
+      className={`target-leader${leader.isMine ? ' target-leader--mine' : ''}`}
+      title={`Leader: ${label} — ${leader.current ?? leader.pct}${suffix}`}
+    >
+      <span className="target-leader__team">{label}</span>
+      <span className="mono target-leader__value">
+        {leader.current ?? leader.pct}
+        {suffix}
+      </span>
+    </div>
+  );
+}
 
 export default function WarRoom() {
   // The lanes are the one section that grows with the window, so they open
@@ -28,15 +48,6 @@ export default function WarRoom() {
   const [resetBusy, setResetBusy] = useState(false);
   const [resetError, setResetError] = useState(null);
   const mockDraftMode = !!data?.mockDraftMode;
-  // The value engine runs off the same polled state, in a worker.
-  const {
-    plan,
-    quick,
-    status: planStatus,
-    error: planError,
-    warnings: planWarnings,
-    fixturePickInfo,
-  } = useDraftPlan(data);
 
   useEffect(() => {
     if (data?.pollInterval && data.pollInterval !== pollInterval) {
@@ -115,7 +126,7 @@ export default function WarRoom() {
     return <div className="war-room war-room--empty">Loading draft state…</div>;
   }
 
-  const { pickInfo, yahooConnected, lanes, roster, targets, scarcity, liveFeed, tracked } = data;
+  const { pickInfo, yahooConnected, lanes, roster, targets, overall, scarcity, liveFeed, tracked } = data;
 
   return (
     <div className="war-room">
@@ -165,19 +176,6 @@ export default function WarRoom() {
         onConfirm={runPendingAction}
         onCancel={() => setPending(null)}
       />
-
-      <div className="war-room__picks-row">
-        <BestPickCard
-          plan={plan}
-          quick={quick}
-          status={planStatus}
-          error={planError}
-          pickInfo={fixturePickInfo ?? pickInfo}
-          coverage={data.coverage}
-          warnings={planWarnings}
-        />
-        <NextBestPickCard plan={plan} />
-      </div>
 
       <div className="war-room__lanes-section">
         <div className="section-eyebrow">Best Available — next per position</div>
@@ -246,28 +244,49 @@ export default function WarRoom() {
         </div>
       </div>
 
-      {/* Targets sit between the lanes and the roster as a single thin band:
-          eight rings, each filling toward its season goal. The number in the
-          middle is what the roster has so far; the target only appears on
-          hover, since during a draft the running total is what you actually
-          read and the goal is the occasional check. */}
+      {/* Targets sit between the lanes and the roster as a single band. Top
+          row is me: a ring filling toward the season goal, with the running
+          total in the middle and the goal on hover. Under each ring is
+          whoever currently leads that category, so the number you read is
+          "am I ahead in the room", not just "am I on pace". Bench players
+          count toward every manager's totals at 75% — see
+          server/src/lib/roster.js. Overall on the right is the average of
+          the seven percentages. */}
       <div className="card targets-strip">
-        <div className="targets-strip__title">Target Progress</div>
+        <div className="targets-strip__title">
+          Target
+          <br />
+          Progress
+        </div>
         <div className="targets-strip__rings">
           {targets.map((t) => (
-            <div className="target-ring-wrap" key={t.label}>
+            <div className="target-ring-wrap" key={t.key}>
               <div
                 className="target-ring"
                 style={{ '--pct': t.pct }}
-                data-goal={`Target ${t.goal}`}
+                data-goal={`${t.current} of ${t.goal} — ${t.pct}%`}
                 role="img"
                 aria-label={`${t.label}: ${t.current} of ${t.goal}`}
               >
                 <div className="target-ring__inner mono">{t.current}</div>
               </div>
               <div className="target-ring__label">{t.label}</div>
+              <TargetLeader leader={t.leader} suffix="" />
             </div>
           ))}
+          <div className="target-ring-wrap target-ring-wrap--overall">
+            <div
+              className="target-ring target-ring--overall"
+              style={{ '--pct': overall.pct }}
+              role="img"
+              aria-label={`Overall: ${overall.pct}% of target across the seven tracked categories`}
+              data-goal="Average across the 7 categories"
+            >
+              <div className="target-ring__inner mono">{overall.pct}%</div>
+            </div>
+            <div className="target-ring__label">Overall</div>
+            <TargetLeader leader={overall.leader} suffix="%" />
+          </div>
         </div>
       </div>
 
