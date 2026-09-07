@@ -1,0 +1,370 @@
+/* Best Available board.
+   Colors, sizes and spacing are transcribed from design/draft_board_mockup.html
+   rather than re-derived — the mockup's palette is close to the app's but not
+   identical, so its tokens are declared here, scoped to the board, instead of
+   being approximated with the app's. Nothing outside .draft-board is affected. */
+
+.draft-board {
+  --board-panel: #171a21;
+  --board-panel-2: #1d212b;
+  --board-border: #2a2f3a;
+  --board-text: #e8eaed;
+  --board-text-dim: #8b93a3;
+  --board-text-faint: #5c6373;
+  --board-tier1: #d4af37;
+  --board-tier1-bg: rgba(212, 175, 55, 0.12);
+  --board-tier2: #9ca8c9;
+  --board-tier2-bg: rgba(156, 168, 201, 0.1);
+  --board-tier3: #c07a4a;
+  --board-tier3-bg: rgba(192, 122, 74, 0.1);
+  --board-safe: #4caf7d;
+  --board-safe-bg: rgba(76, 175, 125, 0.12);
+  --board-risk: #e0a53c;
+  --board-risk-bg: rgba(224, 165, 60, 0.12);
+  --board-danger: #e0603c;
+  --board-danger-bg: rgba(224, 96, 60, 0.12);
+
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.draft-board .board {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+}
+
+.draft-board .col {
+  background: var(--board-panel);
+  border: 1px solid var(--board-border);
+  border-radius: 10px;
+  height: 400px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.draft-board .col-head {
+  padding: 10px 12px 9px;
+  border-bottom: 1px solid var(--board-border);
+  flex-shrink: 0;
+}
+
+.draft-board .col-head-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.draft-board .col-head .pos {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  color: var(--board-text);
+}
+
+.draft-board .scarcity-pills {
+  display: flex;
+  gap: 4px;
+  margin-top: 5px;
+}
+
+.draft-board .mini-pill {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  letter-spacing: 0.2px;
+}
+
+.draft-board .mini-pill.t1 {
+  color: var(--board-tier1);
+  background: var(--board-tier1-bg);
+}
+
+.draft-board .mini-pill.t2 {
+  color: var(--board-tier2);
+  background: var(--board-tier2-bg);
+}
+
+.draft-board .mini-pill.total {
+  color: var(--board-text-faint);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.draft-board .col-head .sub {
+  font-size: 11px;
+  color: var(--board-text-faint);
+  margin-top: 3px;
+}
+
+.draft-board .cards {
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  overflow: hidden;
+  flex: 1;
+}
+
+/* A card and the cliff that may follow it travel together, so the divider
+   lands between the right two cards without a second gap rule. */
+.draft-board .card-slot {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.draft-board .col-empty {
+  font-size: 11px;
+  color: var(--board-text-faint);
+  padding: 6px 2px;
+}
+
+.draft-board .card {
+  background: var(--board-panel-2);
+  border: 1px solid var(--board-border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  position: relative;
+}
+
+.draft-board .card.suggested {
+  border-color: rgba(76, 175, 125, 0.5);
+  box-shadow: 0 0 0 1px rgba(76, 175, 125, 0.15) inset;
+}
+
+.draft-board .card.value {
+  border-color: rgba(212, 175, 55, 0.55);
+  box-shadow: 0 0 0 1px rgba(212, 175, 55, 0.18) inset;
+}
+
+.draft-board .value-flag {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--board-tier1);
+  background: var(--board-tier1-bg);
+  padding: 1px 6px;
+  border-radius: 4px;
+  flex-shrink: 0;
+  letter-spacing: 0.2px;
+}
+
+.draft-board .card-top {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 5px;
+}
+
+.draft-board .rank-badge {
+  font-size: 10px;
+  color: var(--board-text-faint);
+  font-variant-numeric: tabular-nums;
+  width: 16px;
+  flex-shrink: 0;
+}
+
+.draft-board .name {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--board-text);
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.draft-board .tier-chip {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 4px;
+  flex-shrink: 0;
+  letter-spacing: 0.2px;
+}
+
+.draft-board .tier-chip.t1 {
+  color: var(--board-tier1);
+  background: var(--board-tier1-bg);
+}
+
+.draft-board .tier-chip.t2 {
+  color: var(--board-tier2);
+  background: var(--board-tier2-bg);
+}
+
+.draft-board .tier-chip.t3 {
+  color: var(--board-tier3);
+  background: var(--board-tier3-bg);
+}
+
+/* The one element with no counterpart in the mockup: quiet until it's on, so
+   it reads as an affordance rather than another status colour. */
+.draft-board .card-star {
+  flex-shrink: 0;
+  background: transparent;
+  border: none;
+  padding: 0;
+  line-height: 1;
+  font-size: 13px;
+  color: var(--board-text-faint);
+}
+
+.draft-board .card-star:hover {
+  color: var(--board-text-dim);
+}
+
+.draft-board .card-star--on,
+.draft-board .card-star--on:hover {
+  color: var(--board-tier1);
+}
+
+.draft-board .card-mid {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  margin-bottom: 5px;
+}
+
+.draft-board .cat-tags {
+  display: flex;
+  gap: 4px;
+  min-width: 0;
+}
+
+.draft-board .cat-tag {
+  font-size: 9.5px;
+  font-weight: 600;
+  color: var(--board-text-dim);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--board-border);
+  padding: 1px 5px;
+  border-radius: 3px;
+  letter-spacing: 0.2px;
+  white-space: nowrap;
+}
+
+.draft-board .ong {
+  font-size: 10px;
+  color: var(--board-text-faint);
+  white-space: nowrap;
+}
+
+.draft-board .ong.high {
+  color: var(--board-safe);
+}
+
+.draft-board .card-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.draft-board .adp-line {
+  font-size: 11px;
+  color: var(--board-text-dim);
+  font-variant-numeric: tabular-nums;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.draft-board .adp-line .adp-num {
+  color: var(--board-text);
+  font-weight: 500;
+}
+
+.draft-board .wait-chip {
+  font-size: 10.5px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 4px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.draft-board .wait-chip.safe {
+  color: var(--board-safe);
+  background: var(--board-safe-bg);
+}
+
+.draft-board .wait-chip.risk {
+  color: var(--board-risk);
+  background: var(--board-risk-bg);
+}
+
+.draft-board .wait-chip.danger {
+  color: var(--board-danger);
+  background: var(--board-danger-bg);
+}
+
+.draft-board .wait-chip.value {
+  color: var(--board-tier1);
+  background: var(--board-tier1-bg);
+}
+
+.draft-board .cliff {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 1px 2px;
+  margin: -1px 0;
+}
+
+.draft-board .cliff .line {
+  flex: 1;
+  height: 0;
+  border-top: 1px dashed var(--board-danger);
+  opacity: 0.5;
+}
+
+.draft-board .cliff .label {
+  font-size: 9.5px;
+  color: var(--board-danger);
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  white-space: nowrap;
+}
+
+.draft-board .legend {
+  display: flex;
+  gap: 18px;
+  margin-top: 14px;
+  padding: 10px 14px;
+  background: var(--board-panel);
+  border: 1px solid var(--board-border);
+  border-radius: 8px;
+  font-size: 11.5px;
+  color: var(--board-text-dim);
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.draft-board .legend b {
+  color: var(--board-text);
+}
+
+.draft-board .legend .lg-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.draft-board .legend .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.draft-board .dot--tier1 { background: var(--board-tier1); }
+.draft-board .dot--danger { background: var(--board-danger); }
+.draft-board .dot--risk { background: var(--board-risk); }
+.draft-board .dot--safe { background: var(--board-safe); }
+.draft-board .dot--cliff { background: var(--board-danger); opacity: 0.6; }

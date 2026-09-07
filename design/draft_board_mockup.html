@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Draft Board Mockup — Best Available by Position</title>
+<style>
+  :root {
+    --bg: #0f1115;
+    --panel: #171a21;
+    --panel-2: #1d212b;
+    --border: #2a2f3a;
+    --text: #e8eaed;
+    --text-dim: #8b93a3;
+    --text-faint: #5c6373;
+    --tier1: #d4af37;
+    --tier1-bg: rgba(212,175,55,0.12);
+    --tier2: #9ca8c9;
+    --tier2-bg: rgba(156,168,201,0.10);
+    --tier3: #c07a4a;
+    --tier3-bg: rgba(192,122,74,0.10);
+    --safe: #4caf7d;
+    --safe-bg: rgba(76,175,125,0.12);
+    --risk: #e0a53c;
+    --risk-bg: rgba(224,165,60,0.12);
+    --danger: #e0603c;
+    --danger-bg: rgba(224,96,60,0.12);
+  }
+  * { box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    margin: 0;
+    padding: 20px 24px;
+  }
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+    padding: 0 2px;
+  }
+  .topbar h1 {
+    font-size: 15px;
+    font-weight: 600;
+    margin: 0;
+    color: var(--text);
+  }
+  .topbar .meta {
+    font-size: 13px;
+    color: var(--text-dim);
+    margin-top: 2px;
+  }
+  .pill {
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 12px;
+    color: var(--text-dim);
+    display: flex;
+    gap: 14px;
+  }
+  .pill b { color: var(--text); font-weight: 600; }
+
+  .board {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 10px;
+  }
+
+  .col {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    height: 400px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .col-head {
+    padding: 10px 12px 9px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .col-head-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+  }
+  .col-head .pos {
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+  }
+  .col-head .scarcity-pills {
+    display: flex;
+    gap: 4px;
+    margin-top: 5px;
+  }
+  .mini-pill {
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 4px;
+    letter-spacing: 0.2px;
+  }
+  .mini-pill.t1 { color: var(--tier1); background: var(--tier1-bg); }
+  .mini-pill.t2 { color: var(--tier2); background: var(--tier2-bg); }
+  .mini-pill.total { color: var(--text-faint); background: rgba(255,255,255,0.05); }
+  .col-head .sub {
+    font-size: 11px;
+    color: var(--text-faint);
+    margin-top: 3px;
+  }
+
+  .cards {
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    overflow: hidden;
+    flex: 1;
+  }
+
+  .card {
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 10px;
+    position: relative;
+  }
+  .card.suggested {
+    border-color: rgba(76,175,125,0.5);
+    box-shadow: 0 0 0 1px rgba(76,175,125,0.15) inset;
+  }
+  .card.value {
+    border-color: rgba(212,175,55,0.55);
+    box-shadow: 0 0 0 1px rgba(212,175,55,0.18) inset;
+  }
+  .value-flag {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--tier1);
+    background: var(--tier1-bg);
+    padding: 1px 6px;
+    border-radius: 4px;
+    flex-shrink: 0;
+    letter-spacing: 0.2px;
+  }
+  .card-top {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin-bottom: 5px;
+  }
+  .rank-badge {
+    font-size: 10px;
+    color: var(--text-faint);
+    font-variant-numeric: tabular-nums;
+    width: 16px;
+    flex-shrink: 0;
+  }
+  .name {
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--text);
+    flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .tier-chip {
+    font-size: 10px;
+    font-weight: 700;
+    padding: 1px 6px;
+    border-radius: 4px;
+    flex-shrink: 0;
+    letter-spacing: 0.2px;
+  }
+  .tier-chip.t1 { color: var(--tier1); background: var(--tier1-bg); }
+  .tier-chip.t2 { color: var(--tier2); background: var(--tier2-bg); }
+  .tier-chip.t3 { color: var(--tier3); background: var(--tier3-bg); }
+
+  .card-bottom {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+  }
+  .adp-line {
+    font-size: 11px;
+    color: var(--text-dim);
+    font-variant-numeric: tabular-nums;
+  }
+  .adp-line .adp-num { color: var(--text); font-weight: 500; }
+
+  .wait-chip {
+    font-size: 10.5px;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 4px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .wait-chip.safe { color: var(--safe); background: var(--safe-bg); }
+  .wait-chip.risk { color: var(--risk); background: var(--risk-bg); }
+  .wait-chip.danger { color: var(--danger); background: var(--danger-bg); }
+  .wait-chip.value { color: var(--tier1); background: var(--tier1-bg); }
+
+  .card-mid {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    margin-bottom: 5px;
+  }
+  .cat-tags {
+    display: flex;
+    gap: 4px;
+  }
+  .cat-tag {
+    font-size: 9.5px;
+    font-weight: 600;
+    color: var(--text-dim);
+    background: rgba(255,255,255,0.05);
+    border: 1px solid var(--border);
+    padding: 1px 5px;
+    border-radius: 3px;
+    letter-spacing: 0.2px;
+    white-space: nowrap;
+  }
+  .ong {
+    font-size: 10px;
+    color: var(--text-faint);
+    white-space: nowrap;
+  }
+  .ong.high { color: var(--safe); }
+
+  .cliff {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 1px 2px;
+    margin: -1px 0;
+  }
+  .cliff .line {
+    flex: 1;
+    height: 0;
+    border-top: 1px dashed var(--danger);
+    opacity: 0.5;
+  }
+  .cliff .label {
+    font-size: 9.5px;
+    color: var(--danger);
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    white-space: nowrap;
+  }
+
+  .legend {
+    display: flex;
+    gap: 18px;
+    margin-top: 14px;
+    padding: 10px 14px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 11.5px;
+    color: var(--text-dim);
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .legend b { color: var(--text); }
+  .legend .lg-item { display: flex; align-items: center; gap: 6px; }
+  .legend .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div>
+    <h1>Best Available — Round 8, Pick 89 on the clock</h1>
+  </div>
+  <div class="pill">
+    <span>Next pick: <b>#104</b> (15 away)</span>
+  </div>
+</div>
+
+<div class="board">
+
+  <!-- CENTER -->
+  <div class="col">
+    <div class="col-head">
+      <div class="col-head-row">
+        <span class="pos">C</span>
+      </div>
+      <div class="scarcity-pills">
+        <span class="mini-pill t1">2 T1</span>
+        <span class="mini-pill t2">6 T2</span>
+        <span class="mini-pill total">42 left</span>
+      </div>
+      <div class="sub">No cliff before pick 104</div>
+    </div>
+    <div class="cards">
+      <div class="card suggested">
+        <div class="card-top">
+          <span class="rank-badge">#1</span>
+          <span class="name">Jack Hughes</span>
+          <span class="tier-chip t2">T2</span>
+        </div>
+        <div class="card-mid">
+          <span class="cat-tags"><span class="cat-tag">65 A</span><span class="cat-tag">24 PPP</span></span>
+          <span class="ong">ONG 37%</span>
+        </div>
+        <div class="card-bottom">
+          <span class="adp-line">ADP <span class="adp-num">71</span> · you 58</span>
+          <span class="wait-chip risk">Wait = risky</span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-top">
+          <span class="rank-badge">#2</span>
+          <span class="name">Sebastian Aho</span>
+          <span class="tier-chip t2">T2</span>
+        </div>
+        <div class="card-mid">
+          <span class="cat-tags"><span class="cat-tag">34 G</span><span class="cat-tag">26 PPP</span></span>
+          <span class="ong">ONG 40%</span>
+        </div>
+        <div class="card-bottom">
+          <span class="adp-line">ADP <span class="adp-num">96</span> · you 74</span>
+          <span class="wait-chip safe">Safe to wait</span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-top">
+          <span class="rank-badge">#3</span>
+          <span class="name">Dylan Larkin</span>
+          <span class="tier-chip t2">T2</span>
+        </div>
+        <div class="card-mid">
+          <span class="cat-tags"><span class="cat-tag">32 G</span><span class="cat-tag">268 SOG</span></span>
+          <span class="ong high">ONG 46%</span>
+        </div>
+        <div class="card-bottom">
+          <span class="adp-line">ADP <span class="adp-num">102</span> · you 81</span>
+          <span class="wait-chip safe">Safe to wait</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- LEFT WING -->
+  <div class="col">
+    <div class="col-head">
+      <div class="col-head-row">
+        <span class="pos">LW</span>
+      </div>
+      <div class="scarcity-pills">
+        <span class="mini-pill t1">1 T1</span>
+        <span class="mini-pill t2">1 T2</span>
+        <span class="mini-pill total">31 left</span>
+      </div>
+      <div class="sub">Cliff after next 2 picks</div>
+    </div>
+    <div class="cards">
+      <div class="card suggested">
+        <div class="card-top">
+          <span class="rank-badge">#1</span>
+          <span class="name">Kirill Kaprizov</span>
+          <span class="tier-chip t1">T1</span>
+        </div>
+        <div class="card-mid">
+          <span class="cat-tags"><span class="cat-tag">44 G</span><span class="cat-tag">291 SOG</span></span>
+          <span class="ong">ONG 36%</span>
+        </div>
+        <div class="card-bottom">
+          <span class="adp-line">ADP <span class="adp-num">62</span> · you 55</span>
+          <span class="wait-chip danger">Likely gone</span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-top">
+          <span class="rank-badge">#2</span>
+          <span class="name">Matthew Tkachuk</span>
+          <span class="tier-chip t2">T2</span>
+        </div>
+        <div class="card-mid">
+          <span class="cat-tags"><span class="cat-tag">58 A</span><span class="cat-tag">62 BLK</span></span>
+          <span class="ong high">ONG 45%</span>
+        </div>
+        <div class="card-bottom">
+          <span class="adp-line">ADP <span class="adp-num">88</span> · you 70</span>
+          <span class="wait-chip risk">Wait = risky</span>
+        </div>
+      </div>
+      <div class="cliff">
+        <span class="line"></span>
+        <span class="label">TALENT CLIFF</span>
+        <span class="line"></span>
+      </div>
+      <div class="card">
+        <div class="card-top">
+          <span class="rank-badge">#3</span>
+          <span class="name">Jake Guentzel</span>
+          <span class="tier-chip t3">T3</span>
+        </div>
+        <div class="card-mid">
+          <span class="cat-tags"><span class="cat-tag">29 G</span><span class="cat-tag">20 PPP</span></span>
+          <span class="ong">ONG 38%</span>
+        </div>
+        <div class="card-bottom">
+          <span class="adp-line">ADP <span class="adp-num">145</span> · you 130</span>
+          <span class="wait-chip safe">Safe to wait</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT WING -->
+  <div class="col">
+    <div class="col-head">
+      <div class="col-head-row">
+        <span class="pos">RW</span>
+      </div>
+      <div class="scarcity-pills">
+        <span class="mini-pill t1">2 T1</span>
+        <span class="mini-pill t2">2 T2</span>
+        <span class="mini-pill total">38 left</span>
+      </div>
+      <div class="sub">No cliff before pick 104</div>
+    </div>
+    <div class="cards">
+      <div class="card suggested">
+        <div class="card-top">
+          <span class="rank-badge">#1</span>
+          <span class="name">David Pastrnak</span>
+          <span class="tier-chip t1">T1</span>
+        </div>
+        <div class="card-mid">
+          <span class="cat-tags"><span class="cat-tag">48 G</span><span class="cat-tag">310 SOG</span></span>
+          <span class="ong">ONG 39%</span>
+        </div>
+        <div class="card-bottom">
+          <span class="adp-line">ADP <span class="adp-num">54</span> · you 51</span>
+          <span class="wait-chip danger">Likely gone</span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-top">
+          <span class="rank-badge">#2</span>
+          <span class="name">Nikita Kucherov</span>
+          <span class="tier-chip t1">T1</span>
+        </div>
+        <div class="card-mid">
+          <span class="cat-tags"><span class="cat-tag">78 A</span><span class="cat-tag">32 PPP</span></span>
+          <span class="ong">ONG 41%</span>
+        </div>
+        <div class="card-bottom">
+          <span class="adp-line">ADP <span class="adp-num">69</span> · you 60</span>
+          <span class="wait-chip risk">Wait = risky</span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-top">
+          <span class="rank-badge">#3</span>
+          <span class="name">Mitch Marner</span>
+          <span class="tier-chip t2">T2</span>
+        </div>
+        <div class="card-mid">
+          <span class="cat-tags"><span class="cat-tag">71 A</span><span class="cat-tag">27 PPP</span></span>
+          <span class="ong high">ONG 44%</span>
+        </div>
+        <div class="card-bottom">
+          <span class="adp-line">ADP <span class="adp-num">99</span> · you 84</span>
+          <span class="wait-chip safe">Safe to wait</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DEFENSE -->
+  <div class="col">
+    <div class="col-head">
+      <div class="col-head-row">
+        <span class="pos">D</span>
+      </div>
+      <div class="scarcity-pills">
+        <span class="mini-pill t1">3 T1</span>
+        <span class="mini-pill t2">8 T2</span>
+        <span class="mini-pill total">54 left</span>
+      </div>
+      <div class="sub">Roster: 5/4 filled — bench only</div>
+    </div>
+    <div class="cards">
+      <div class="card value">
+        <div class="card-top">
+          <span class="rank-badge">#1</span>
+          <span class="name">Quinn Hughes</span>
+          <span class="tier-chip t1">T1</span>
+          <span class="value-flag">★ VALUE</span>
+        </div>
+        <div class="card-mid">
+          <span class="cat-tags"><span class="cat-tag">58 A</span><span class="cat-tag">220 SOG</span></span>
+          <span class="ong">ONG 34%</span>
+        </div>
+        <div class="card-bottom">
+          <span class="adp-line">ADP <span class="adp-num">28</span> · 61 picks ago</span>
+          <span class="wait-chip value">Already overdue</span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-top">
+          <span class="rank-badge">#2</span>
+          <span class="name">Rasmus Dahlin</span>
+          <span class="tier-chip t2">T2</span>
+        </div>
+        <div class="card-mid">
+          <span class="cat-tags"><span class="cat-tag">50 A</span><span class="cat-tag">22 PPP</span></span>
+          <span class="ong">ONG 39%</span>
+        </div>
+        <div class="card-bottom">
+          <span class="adp-line">ADP <span class="adp-num">61</span> · 28 picks ago</span>
+          <span class="wait-chip value">Already overdue</span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-top">
+          <span class="rank-badge">#3</span>
+          <span class="name">Jaccob Slavin</span>
+          <span class="tier-chip t2">T2</span>
+        </div>
+        <div class="card-mid">
+          <span class="cat-tags"><span class="cat-tag">140 BLK</span><span class="cat-tag">110 SOG</span></span>
+          <span class="ong">ONG 37%</span>
+        </div>
+        <div class="card-bottom">
+          <span class="adp-line">ADP <span class="adp-num">104</span> · you 90</span>
+          <span class="wait-chip safe">Safe to wait</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- GOALIE -->
+  <div class="col">
+    <div class="col-head">
+      <div class="col-head-row">
+        <span class="pos">G</span>
+      </div>
+      <div class="scarcity-pills">
+        <span class="mini-pill t1">1 T1</span>
+        <span class="mini-pill t2">5 T2</span>
+        <span class="mini-pill total">22 left</span>
+      </div>
+      <div class="sub">Roster: 2/2 filled — full</div>
+    </div>
+    <div class="cards">
+      <div class="card">
+        <div class="card-top">
+          <span class="rank-badge">#1</span>
+          <span class="name">Jake Oettinger</span>
+          <span class="tier-chip t2">T2</span>
+        </div>
+        <div class="card-mid">
+          <span class="cat-tags"><span class="cat-tag">1750 SV</span><span class="cat-tag">2.35 GAA</span></span>
+          <span class="ong">ONG 41%</span>
+        </div>
+        <div class="card-bottom">
+          <span class="adp-line">ADP <span class="adp-num">83</span> · you 76</span>
+          <span class="wait-chip safe">Safe to wait</span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-top">
+          <span class="rank-badge">#2</span>
+          <span class="name">Thatcher Demko</span>
+          <span class="tier-chip t2">T2</span>
+        </div>
+        <div class="card-mid">
+          <span class="cat-tags"><span class="cat-tag">30 W</span><span class="cat-tag">1600 SV</span></span>
+          <span class="ong">ONG 38%</span>
+        </div>
+        <div class="card-bottom">
+          <span class="adp-line">ADP <span class="adp-num">91</span> · you 82</span>
+          <span class="wait-chip safe">Safe to wait</span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-top">
+          <span class="rank-badge">#3</span>
+          <span class="name">Logan Thompson</span>
+          <span class="tier-chip t3">T3</span>
+        </div>
+        <div class="card-mid">
+          <span class="cat-tags"><span class="cat-tag">1550 SV</span><span class="cat-tag">27 W</span></span>
+          <span class="ong">ONG 40%</span>
+        </div>
+        <div class="card-bottom">
+          <span class="adp-line">ADP <span class="adp-num">140</span> · you 121</span>
+          <span class="wait-chip safe">Safe to wait</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="legend">
+  <b>Reading it:</b>
+  <span class="lg-item"><span class="dot" style="background:var(--tier1)"></span> Already overdue — ADP has already passed; he fell, grab or flip him now</span>
+  <span class="lg-item"><span class="dot" style="background:var(--danger)"></span> Likely gone by your next pick — ADP sits between now and then</span>
+  <span class="lg-item"><span class="dot" style="background:var(--risk)"></span> Wait = risky — ADP is close to that gap's edge</span>
+  <span class="lg-item"><span class="dot" style="background:var(--safe)"></span> Safe to wait — ADP has real room past your next pick</span>
+  <span class="lg-item">Tags = top 2 categories this player moves most</span>
+  <span class="lg-item">ONG = share of games on off-nights (higher starts more often)</span>
+  <span class="lg-item"><span class="dot" style="background:var(--danger); opacity:0.6;"></span> Dashed line = talent cliff</span>
+</div>
+
+</body>
+</html>

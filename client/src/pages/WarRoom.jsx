@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { api } from '../lib/api.js';
 import { usePolling } from '../lib/usePolling.js';
 import ConfirmDialog from '../components/ConfirmDialog.jsx';
+import DraftBoard from '../components/DraftBoard.jsx';
 import './WarRoom.css';
 
 const POS_ORDER = ['C', 'LW', 'RW', 'D', 'G'];
@@ -29,9 +30,6 @@ function TargetLeader({ leader, suffix }) {
 }
 
 export default function WarRoom() {
-  // The lanes are the one section that grows with the window, so they open
-  // with enough rows to fill a tall monitor rather than the old three.
-  const [expandedPos, setExpandedPos] = useState({ C: 8, LW: 8, RW: 8, D: 8, G: 8 });
   // Seed with the draft-day default (server/src/db/index.js) and switch to
   // whatever Draft-Day Behavior actually has saved once the first poll
   // lands — passing it back into `deps` restarts the interval timer so a
@@ -59,7 +57,7 @@ export default function WarRoom() {
   // map doesn't grow stale/unbounded across a long draft session.
   useEffect(() => {
     if (!data) return;
-    const allPlayers = Object.values(data.lanes ?? {}).flatMap((lane) => lane.players);
+    const allPlayers = (data.board?.columns ?? []).flatMap((col) => col.cards);
     setTrackedOverrides((prev) => {
       const next = { ...prev };
       let changed = false;
@@ -86,10 +84,6 @@ export default function WarRoom() {
     } catch {
       setTrackedOverrides((prev) => ({ ...prev, [playerId]: tracked }));
     }
-  }
-
-  function expandLane(pos) {
-    setExpandedPos((prev) => ({ ...prev, [pos]: prev[pos] + 5 }));
   }
 
   // Both switching Mock Draft mode and the in-mode Reset button wipe the
@@ -126,7 +120,7 @@ export default function WarRoom() {
     return <div className="war-room war-room--empty">Loading draft state…</div>;
   }
 
-  const { pickInfo, yahooConnected, lanes, roster, targets, overall, scarcity, liveFeed, tracked } = data;
+  const { pickInfo, yahooConnected, board, roster, targets, overall, scarcity, liveFeed, tracked } = data;
 
   return (
     <div className="war-room">
@@ -177,74 +171,12 @@ export default function WarRoom() {
         onCancel={() => setPending(null)}
       />
 
-      <div className="war-room__lanes-section">
+      <div className="war-room__board-section">
         <div className="section-eyebrow">Best Available — next per position</div>
-        <div className="lanes-grid">
-          {POS_ORDER.map((pos) => {
-            const lane = lanes[pos];
-            if (!lane) return null;
-            const shown = lane.players.slice(0, expandedPos[pos]);
-            const moreCount = Math.max(0, lane.players.length - shown.length);
-            return (
-              <div className="card lane-card" key={pos}>
-                <div className="lane-card__header">
-                  <div className="lane-card__pos">{pos}</div>
-                  <div
-                    className="scarcity-pill mono"
-                    style={{
-                      background: lane.scarcity.bg,
-                      color: lane.scarcity.fg,
-                      borderColor: lane.scarcity.border,
-                    }}
-                  >
-                    {lane.scarcity.left} left
-                  </div>
-                </div>
-                {shown.map((p) => (
-                  <div className="lane-row" key={p.id}>
-                    <div className="lane-row__info">
-                      <div className="lane-row__name">{p.name}</div>
-                      <div className="lane-row__contrib mono">{p.contribText}</div>
-                    </div>
-                    <div className="lane-row__actions">
-                      <div
-                        className="rank-badge mono"
-                        title="my overall rank"
-                        style={{
-                          background: p.rankDelta.bg,
-                          color: p.rankDelta.fg,
-                          borderColor: p.rankDelta.border,
-                        }}
-                      >
-                        #{p.overallRank}
-                      </div>
-                      <button
-                        type="button"
-                        className="track-toggle"
-                        style={
-                          trackedFor(p)
-                            ? { background: 'var(--accent)', color: 'var(--accent-on-text)', borderColor: 'var(--accent)' }
-                            : { background: 'transparent', color: 'var(--text-faint)', borderColor: 'rgba(255,255,255,0.15)' }
-                        }
-                        onClick={() => handleToggleTrack(p.id, trackedFor(p))}
-                      >
-                        {trackedFor(p) ? '★' : '☆'}
-                      </button>
-                    </div>
-                  </div>
-                ))}
-                {moreCount > 0 && (
-                  <button type="button" className="lane-card__more" onClick={() => expandLane(pos)}>
-                    +{moreCount} more
-                  </button>
-                )}
-              </div>
-            );
-          })}
-        </div>
+        <DraftBoard board={board} trackedFor={trackedFor} onToggleTrack={handleToggleTrack} />
       </div>
 
-      {/* Targets sit between the lanes and the roster as a single band. Top
+      {/* Targets sit between the board and the roster as a single band. Top
           row is me: a ring filling toward the season goal, with the running
           total in the middle and the goal on hover. Under each ring is
           whoever currently leads that category, so the number you read is

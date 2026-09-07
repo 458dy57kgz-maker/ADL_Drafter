@@ -134,140 +134,23 @@
   border-radius: 6px;
 }
 
-/* The only section that grows: everything above and below it is fixed, so
-   extra window height lands here as more visible players per position. */
-.war-room__lanes-section {
+/* The board sits at its own fixed height (the mockup's 400px columns plus the
+   legend). It still takes the flexible slot so that any leftover window height
+   lands here as empty space rather than stretching the roster band below. */
+.war-room__board-section {
   padding: 14px 22px 10px;
   flex: 1;
   min-height: 0;
   display: flex;
   flex-direction: column;
   gap: 10px;
-}
-
-.lanes-grid {
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 12px;
-  flex: 1;
-  min-height: 0;
-}
-
-.lane-card {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  min-height: 0;
-  min-width: 0;
-  padding: 12px;
-  overflow-y: auto;
-}
-
-/* The position and its scarcity count stay visible while the list scrolls —
-   a lane of names with no header is unreadable at a glance mid-draft. */
-.lane-card__header {
-  position: sticky;
-  top: 0;
-  z-index: 1;
-  background: var(--bg-card);
-  padding-bottom: 4px;
-}
-
-.lane-card__header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  min-width: 0;
-}
-
-.lane-card__pos {
-  font: 800 15px var(--font-ui);
-  color: var(--text-primary);
-}
-
-.scarcity-pill {
-  flex: none;
-  font: 700 11px var(--font-mono);
-  padding: 2px 8px;
-  border-radius: 10px;
-  border: 1px solid;
-  white-space: nowrap;
-}
-
-.lane-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 6px;
-  padding: 6px 8px;
-  background: var(--bg-input);
-  border-radius: 6px;
-  min-width: 0;
-}
-
-.lane-row__info {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-  min-width: 0;
-  flex: 1;
-  overflow: hidden;
-}
-
-.lane-row__name {
-  font: 600 12.5px var(--font-ui);
-  color: var(--text-primary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.lane-row__contrib {
-  font: 600 10.5px var(--font-mono);
-  color: var(--text-faint);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.lane-row__actions {
-  flex: none;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.rank-badge {
-  font: 700 10.5px var(--font-mono);
-  padding: 2px 6px;
-  border-radius: 5px;
-  border: 1px solid;
-  white-space: nowrap;
-}
-
-.track-toggle {
-  width: 20px;
-  height: 20px;
-  border-radius: 5px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font: 14px var(--font-ui);
-  border: 1px solid;
-}
-
-.lane-card__more {
-  font: 500 11px var(--font-ui);
-  color: var(--text-faint);
-  text-align: center;
-  padding: 2px;
-  background: transparent;
-  border: none;
+  align-items: stretch;
+  justify-content: flex-start;
 }
 
 /* Pinned to the bottom of the page and sized to its content — it never
    takes more room than the roster and scarcity actually need, and never
-   less, so the lanes above get every remaining pixel. */
+   less, so the board above gets every remaining pixel. */
 .war-room__bottom-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);

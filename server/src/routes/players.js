@@ -11,42 +11,41 @@ function teamCount() {
   return getSetting('league').teamCount;
 }
 
-// The recommendation engine degrades silently rather than erroring when
-// `blocks` or `vorp` are thin: blocks is a scoring category that lives almost
-// entirely in defensemen, and vorp defines the replacement baseline every
-// surplus is measured against. Neither absence throws, so the import has to
-// say so out loud. Goalies are excluded from the skater-stat denominators.
+// Fields the app degrades silently on rather than erroring, so the import has
+// to say so out loud. `tier` and `adp` are what the Best Available board is
+// built out of — no tier means empty T1/T2 pills and no talent cliff, no ADP
+// means no wait-status chip at all. Blocks is a scoring category that lives
+// almost entirely in defencemen. Goalies are excluded from the skater-stat
+// denominators.
 export function poolCoverage() {
-  const rows = db.prepare('SELECT pos, blocks, vorp, gp FROM players').all();
+  const rows = db.prepare('SELECT pos, blocks, vorp, gp, ong, tier, adp FROM players').all();
   const skaters = rows.filter((r) => !normalizePosList(r.pos).includes('G'));
   const pct = (n, d) => (d ? Math.round((n / d) * 100) : 100);
-  const blocks = pct(skaters.filter((r) => r.blocks != null).length, skaters.length);
-  const vorp = pct(rows.filter((r) => r.vorp != null).length, rows.length);
-  const gp = pct(rows.filter((r) => r.gp != null).length, rows.length);
-  const warnings = [];
-  if (skaters.length && blocks < 90) warnings.push(`Blocks are set on only ${blocks}% of skaters — blocks is a scoring category, and the model is wrong without it.`);
-  if (rows.length && vorp < 90) warnings.push(`VORP is set on only ${vorp}% of players — the replacement baseline falls back to a depth estimate, which flattens every surplus.`);
-  return { blocks, vorp, gp, skaters: skaters.length, players: rows.length, warnings };
-}
+  const share = (key) => pct(rows.filter((r) => r[key] != null).length, rows.length);
 
-// A cheap fingerprint of everything the value engine reads. The client keys
-// its (expensive) context build on this, so a rebuild happens after an import
-// or a hand edit and at no other time. Summing rather than hashing is enough
-// here — any single field changing moves at least one of these sums.
-export function poolVersion() {
-  const r = db
-    .prepare(
-      `SELECT COUNT(*) n, COALESCE(SUM(id),0) a, COALESCE(SUM(overall_rank),0) b,
-              COALESCE(SUM(adp),0) c, COALESCE(SUM(ROUND(COALESCE(vorp,0)*1000)),0) d,
-              COALESCE(SUM(blocks),0) e, COALESCE(SUM(ong),0) f, COALESCE(SUM(gp),0) g,
-              COALESCE(SUM(g),0) h, COALESCE(SUM(a),0) i, COALESCE(SUM(p),0) j,
-              COALESCE(SUM(ppp),0) k, COALESCE(SUM(plus_minus),0) l, COALESCE(SUM(shots),0) m,
-              COALESCE(SUM(w),0) o, COALESCE(SUM(ROUND(COALESCE(gaa,0)*100)),0) q,
-              COALESCE(SUM(saves),0) t, COALESCE(SUM(LENGTH(pos)),0) u
-         FROM players`
-    )
-    .get();
-  return Object.values(r).join('.');
+  const blocks = pct(skaters.filter((r) => r.blocks != null).length, skaters.length);
+  const coverage = {
+    blocks,
+    tier: share('tier'),
+    adp: share('adp'),
+    ong: share('ong'),
+    gp: share('gp'),
+    vorp: share('vorp'),
+    skaters: skaters.length,
+    players: rows.length,
+  };
+
+  const warnings = [];
+  if (skaters.length && blocks < 90) {
+    warnings.push(`Blocks are set on only ${blocks}% of skaters — blocks is a scoring category, and the totals are wrong without it.`);
+  }
+  if (rows.length && coverage.tier < 90) {
+    warnings.push(`Tier is set on only ${coverage.tier}% of players — the board's T1/T2 counts and talent cliffs come from it, and it can only be set by you, in the import or the Players grid.`);
+  }
+  if (rows.length && coverage.adp < 90) {
+    warnings.push(`ADP is set on only ${coverage.adp}% of players — without it a card can't say whether he'll last until your next pick.`);
+  }
+  return { ...coverage, warnings };
 }
 
 playersRouter.get('/', (req, res) => {

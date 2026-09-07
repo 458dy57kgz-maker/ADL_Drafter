@@ -1,10 +1,10 @@
 import { Router } from 'express';
 import { db, getSetting, logDebug } from '../db/index.js';
 import { mapPlayerRow } from '../lib/mapPlayer.js';
-import { rankDeltaStyle } from '../lib/rankDelta.js';
 import { scarcityStyle } from '../lib/scarcity.js';
 import { round, nextPickForSlot, slotForPick } from '../lib/draftMath.js';
-import { poolCoverage, poolVersion } from './players.js';
+import { poolCoverage } from './players.js';
+import { buildBoard } from '../lib/draftBoard.js';
 import {
   POS_ORDER,
   BENCH_WEIGHT,
@@ -18,40 +18,11 @@ import {
 
 export const draftRouter = Router();
 
-// Settings > Roster names targets after the thing you count; the value engine
-// names them after the stat column. `plusMinus` is deliberately absent: a
-// season target only means something for a stat that accumulates toward one,
-// and the engine's own guidance is to omit non-cumulative categories. Points
-// is absent for the same reason it has no target in the UI — it is g + a.
-const TARGET_TO_CATEGORY = {
-  goals: 'g',
-  assists: 'a',
-  ppp: 'ppp',
-  shots: 'shots',
-  blocks: 'blocks',
-  wins: 'w',
-  saves: 'saves',
-};
-
-// Targets calibrate the opponent model rather than entering the score, so a
-// zero or a blank is not "aim for nothing" — it is "no information", and the
-// engine should keep its pool-derived estimate for that category.
-function seasonTargets(targets) {
-  const out = {};
-  for (const [settingKey, categoryKey] of Object.entries(TARGET_TO_CATEGORY)) {
-    const value = targets?.[settingKey];
-    if (typeof value === 'number' && value > 0) out[categoryKey] = value;
-  }
-  return out;
-}
-
-function contribText(p) {
-  if (p.posList.includes('G')) return `W${p.w} GAA${p.gaa}`;
-  const bits = [];
-  if (p.g) bits.push(`+${p.g}G`);
-  if (p.ppp) bits.push(`+${p.ppp}PPP`);
-  return bits.join(' ');
-}
+// Cards per column. The columns are a fixed 400px tall and don't scroll (see
+// design/draft_board_mockup.html), and three cards plus a cliff divider is
+// what fits without the last one being sliced in half — which is also what the
+// mockup itself shows. Raising this only ships rows nobody can see.
+const BOARD_DEPTH = 3;
 
 function buildState() {
   const league = getSetting('league');
@@ -74,34 +45,25 @@ function buildState() {
   const myNextPick = isMyTurnNow ? currentPick : nextPickForSlot(currentPick + 1, teamCount, mySlot);
   const picksUntilMe = isMyTurnNow ? 0 : myNextPick - currentPick;
 
-  const lanes = {};
+  // How thin each position is getting. This used to fall out of building the
+  // lanes; the board computes its own counts from the same pool, so this is
+  // now its own small pass rather than a by-product of one.
+  const scarcity = {};
   POS_ORDER.forEach((pos) => {
-    // A dual-eligible player (e.g. C/LW) legitimately appears in more than
-    // one lane — sorted by overall rank rather than the stored positional
-    // `rank`, since that single column can't hold two different ranks (one
-    // per eligible position) for the same player.
-    const avail = players
-      .filter((p) => p.posList.includes(pos) && !p.drafted)
-      .sort((a, b) => a.overallRank - b.overallRank);
-    const left = avail.length;
-    // How many the league still needs at this position, from the actual
-    // roster settings rather than a hardcoded guess.
+    const atPos = players.filter((p) => p.posList.includes(pos));
+    const left = atPos.filter((p) => !p.drafted).length;
+    // Counted directly rather than derived as (total - left): subtracting only
+    // holds if the pool happens to be exactly `total` deep, so it reported a
+    // full sweep of phantom picks whenever the pool was smaller.
+    const taken = atPos.filter((p) => p.drafted).length;
+    // How many the league still needs here, from the roster settings rather
+    // than a hardcoded guess.
     const total = (rosterSlots[pos] ?? 0) * teamCount;
-    // Counted directly rather than derived as (total - left): subtracting
-    // only holds if the pool happens to be exactly `total` players deep, so
-    // it reported a full sweep of phantom picks whenever the pool was
-    // smaller — an empty pool showed every position as fully drafted.
-    const taken = players.filter((p) => p.posList.includes(pos) && p.drafted).length;
-    lanes[pos] = {
-      scarcity: { left, taken, takenPct: total ? Math.round((taken / total) * 100) : 0, ...scarcityStyle(left) },
-      players: avail.map((p) => ({
-        id: p.id,
-        name: p.name,
-        overallRank: p.overallRank,
-        tracked: p.tracked,
-        contribText: contribText(p),
-        rankDelta: rankDeltaStyle(p.overallRank - currentPick),
-      })),
+    scarcity[pos] = {
+      left,
+      taken,
+      takenPct: total ? Math.round((taken / total) * 100) : 0,
+      ...scarcityStyle(left),
     };
   });
 
@@ -149,9 +111,17 @@ function buildState() {
   }
   const overallRow = { label: 'Overall', pct: myOverall, leader: overallLeader };
 
-  const scarcity = {};
-  POS_ORDER.forEach((pos) => {
-    scarcity[pos] = lanes[pos].scarcity;
+  // The Best Available board. `nextPick` is always my next turn strictly
+  // AFTER the current pick — including while I'm on the clock, since the
+  // question every card answers is "if I don't take him now, will he last?"
+  const board = buildBoard({
+    players,
+    positions: POS_ORDER,
+    rosterSlots,
+    myPlayers: mine,
+    currentPick,
+    nextPick: nextPickForSlot(currentPick + 1, teamCount, mySlot),
+    depth: BOARD_DEPTH,
   });
 
   const liveFeed = db
@@ -175,27 +145,10 @@ function buildState() {
       isMyTurnNow,
     },
     yahooConnected: !!yahoo.connected,
-    // Everything the client-side value engine needs to decide whether to
-    // rebuild its context, plus the data-quality warnings the panel shows.
-    poolVersion: poolVersion(),
     coverage: poolCoverage(),
-    engineConfig: {
-      teamCount,
-      mySlot,
-      slots: { C: rosterSlots.C, LW: rosterSlots.LW, RW: rosterSlots.RW, D: rosterSlots.D, G: rosterSlots.G },
-      benchSlots: rosterSlots.BENCH ?? 0,
-      // Draft rounds are starters plus bench: IR isn't drafted into.
-      totalRounds:
-        (rosterSlots.C ?? 0) + (rosterSlots.LW ?? 0) + (rosterSlots.RW ?? 0) +
-        (rosterSlots.D ?? 0) + (rosterSlots.G ?? 0) + (rosterSlots.BENCH ?? 0),
-      // Sent on every poll so editing a target in Settings > Roster reaches
-      // the engine without a rebuild — the client diffs this and pushes just
-      // the new targets into the existing context.
-      seasonTargets: seasonTargets(targets),
-    },
     pollInterval: draftDay.pollInterval,
     mockDraftMode: !!draftDay.mockDraftMode,
-    lanes,
+    board,
     roster: { slots: rosterSlotRows, benchCount: rosterSlots.BENCH, irCount: rosterSlots.IR },
     targets: targetRows,
     overall: overallRow,
