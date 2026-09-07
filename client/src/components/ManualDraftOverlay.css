@@ -1,9 +1,13 @@
+/* Draft-night panel. Everything here is sized about a third larger than the
+   rest of the app's chrome on purpose: it's read and typed into at arm's
+   length between picks, not studied. */
+
 .manual-draft {
   position: fixed;
   bottom: 16px;
   right: 16px;
-  width: 340px;
-  max-height: 70vh;
+  width: 442px;
+  max-height: 78vh;
   display: flex;
   flex-direction: column;
   background: var(--bg-card);
@@ -18,14 +22,23 @@
   max-height: none;
 }
 
+/* The whole header is the drag handle. `touch-action: none` stops a touch
+   drag from scrolling the page out from under the panel instead of moving
+   it, and `user-select: none` stops the title highlighting mid-drag. */
 .manual-draft__header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 12px;
+  padding: 13px 16px;
   background: var(--bg-row);
   border-bottom: 1px solid var(--border-hairline);
-  cursor: default;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.manual-draft__header:active {
+  cursor: grabbing;
 }
 
 .manual-draft--minimized .manual-draft__header {
@@ -33,22 +46,23 @@
 }
 
 .manual-draft__title {
-  font: 700 12.5px var(--font-ui);
+  font: 700 16px var(--font-ui);
   color: var(--text-primary);
 }
 
 .manual-draft__header-actions {
   display: flex;
-  gap: 6px;
+  gap: 8px;
 }
 
 .manual-draft__icon-btn {
   background: transparent;
   border: none;
   color: var(--text-faint);
-  font: 600 13px var(--font-ui);
-  padding: 2px 6px;
-  border-radius: 5px;
+  font: 600 17px var(--font-ui);
+  padding: 3px 8px;
+  border-radius: 6px;
+  cursor: pointer;
 }
 
 .manual-draft__icon-btn:hover {
@@ -57,45 +71,68 @@
 }
 
 .manual-draft__body {
-  padding: 12px;
+  padding: 16px;
   overflow-y: auto;
 }
 
 .manual-draft__hint {
-  font: 500 11.5px var(--font-ui);
+  font: 500 15px var(--font-ui);
   color: var(--text-faint);
-  margin-bottom: 10px;
+  line-height: 1.45;
+  margin-bottom: 13px;
+}
+
+/* Above the pick line, because they move the pick line. */
+.manual-draft__nav {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.manual-draft__nav-btn {
+  font: 600 14px var(--font-ui);
+  padding: 8px 14px;
+  border-radius: 7px;
+}
+
+.manual-draft__nav-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 .manual-draft__status {
-  font: 600 12px var(--font-ui);
+  font: 600 15.5px var(--font-ui);
   color: var(--text-secondary);
-  margin-bottom: 10px;
+  margin-bottom: 13px;
 }
 
 .manual-draft__search {
   width: 100%;
-  margin-bottom: 8px;
+  font: 500 15.5px var(--font-mono);
+  padding: 12px 15px;
+  margin-bottom: 10px;
 }
 
 .manual-draft__results {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  max-height: 240px;
+  gap: 5px;
+  max-height: 312px;
   overflow-y: auto;
-  margin-bottom: 10px;
+  margin-bottom: 13px;
 }
 
 .manual-draft__result {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 10px;
   background: var(--bg-row);
   border: 1px solid transparent;
-  border-radius: 6px;
-  padding: 7px 10px;
-  font: 600 12.5px var(--font-ui);
+  border-radius: 7px;
+  padding: 9px 13px;
+  font: 600 16px var(--font-ui);
   color: var(--text-primary);
   text-align: left;
 }
@@ -106,22 +143,19 @@
 }
 
 .manual-draft__result-meta {
-  font: 500 11px var(--font-mono);
+  flex: none;
+  font: 500 14px var(--font-mono);
   color: var(--text-faint);
 }
 
 .manual-draft__no-results {
-  font: 500 12px var(--font-ui);
+  font: 500 15.5px var(--font-ui);
   color: var(--text-faint);
-  padding: 8px 2px;
+  padding: 10px 2px;
 }
 
 .manual-draft__error {
-  font: 600 11.5px var(--font-ui);
+  font: 600 15px var(--font-ui);
   color: var(--danger-text);
   margin-bottom: 8px;
-}
-
-.manual-draft__undo {
-  width: 100%;
 }

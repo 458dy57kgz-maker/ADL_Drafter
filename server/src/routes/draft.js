@@ -266,7 +266,9 @@ draftRouter.post('/pick', (req, res) => {
   res.status(201).json({ pickNum, round: pickRound, team: team.name, player: updated });
 });
 
-// Single-level undo — reverts only the single most recent pick.
+// Steps back one pick. The overlay's Go Back button calls this repeatedly to
+// walk backwards through the draft, so the response names the player it freed
+// up: that's what lands in the search box, ready to be re-picked or replaced.
 draftRouter.post('/undo', (req, res) => {
   const last = db.prepare('SELECT * FROM draft_picks ORDER BY pick_num DESC LIMIT 1').get();
   if (!last) return res.status(400).json({ error: 'no picks to undo' });
@@ -279,7 +281,12 @@ draftRouter.post('/undo', (req, res) => {
   })();
 
   logDebug(`Undo pick #${last.pick_num} (${last.player_name})`, 'OK', 'app');
-  res.json({ undonePickNum: last.pick_num, playerId: last.player_id });
+  res.json({
+    undonePickNum: last.pick_num,
+    playerId: last.player_id,
+    playerName: last.player_name,
+    team: last.team,
+  });
 });
 
 // Clears every pick and hands all players back to the pool, leaving the
