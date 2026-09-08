@@ -8,3 +8,8 @@ server/data/
 *.log
 .env
 .env.local
+
+# The live pick feed the Chrome bookmarklet writes. It's draft-night data that
+# changes every few seconds — the app reads it from wherever you point it, and
+# it has no business in git.
+draft_picks.json

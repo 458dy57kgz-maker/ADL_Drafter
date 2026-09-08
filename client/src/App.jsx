@@ -5,6 +5,7 @@ import Results from './pages/Results.jsx';
 import Players from './pages/Players.jsx';
 import Settings from './pages/Settings.jsx';
 import ManualDraftOverlay from './components/ManualDraftOverlay.jsx';
+import { LivePickFeedProvider } from './lib/useLivePickFeed.jsx';
 import './App.css';
 
 export default function App() {
@@ -25,15 +26,19 @@ export default function App() {
   }, []);
 
   return (
-    <div className="app-shell">
-      <NavRail activeTab={tab} onChange={setTab} />
-      <div className="app-shell__content">
-        {tab === 'warroom' && <WarRoom />}
-        {tab === 'results' && <Results />}
-        {tab === 'players' && <Players />}
-        {tab === 'settings' && <Settings />}
+    // The live pick feed watches its file from up here rather than inside a
+    // page, so switching tabs mid-draft never interrupts it.
+    <LivePickFeedProvider>
+      <div className="app-shell">
+        <NavRail activeTab={tab} onChange={setTab} />
+        <div className="app-shell__content">
+          {tab === 'warroom' && <WarRoom />}
+          {tab === 'results' && <Results />}
+          {tab === 'players' && <Players />}
+          {tab === 'settings' && <Settings />}
+        </div>
+        <ManualDraftOverlay open={manualDraftOpen} onClose={() => setManualDraftOpen(false)} />
       </div>
-      <ManualDraftOverlay open={manualDraftOpen} onClose={() => setManualDraftOpen(false)} />
-    </div>
+    </LivePickFeedProvider>
   );
 }

@@ -3,6 +3,7 @@ import { api } from '../lib/api.js';
 import { usePolling } from '../lib/usePolling.js';
 import ConfirmDialog from '../components/ConfirmDialog.jsx';
 import DraftBoard from '../components/DraftBoard.jsx';
+import { useLivePickFeed } from '../lib/useLivePickFeed.jsx';
 import './WarRoom.css';
 
 const POS_ORDER = ['C', 'LW', 'RW', 'D', 'G'];
@@ -46,6 +47,7 @@ export default function WarRoom() {
   const [resetBusy, setResetBusy] = useState(false);
   const [resetError, setResetError] = useState(null);
   const mockDraftMode = !!data?.mockDraftMode;
+  const feed = useLivePickFeed();
 
   useEffect(() => {
     if (data?.pollInterval && data.pollInterval !== pollInterval) {
@@ -141,6 +143,31 @@ export default function WarRoom() {
           {mockDraftMode && (
             <button type="button" className="btn btn-sm btn-danger" onClick={() => setPending('reset')}>
               Reset Draft
+            </button>
+          )}
+          {/* One click from here gets the feed back after a reload, since
+              Chrome drops file permission every time the page loads and
+              hunting through Settings mid-draft is the wrong ask. */}
+          {feed.supported && (
+            <button
+              type="button"
+              className={`feed-chip${feed.connected ? ' feed-chip--live' : ''}`}
+              onClick={feed.connected ? undefined : feed.connect}
+              disabled={feed.busy || feed.connected}
+              title={
+                feed.connected
+                  ? `Reading ${feed.fileName ?? 'the pick file'} — ${feed.report?.picks ?? 0} picks recorded`
+                  : feed.hasHandle
+                    ? 'Click to give the pick file permission again'
+                    : 'Click to choose the pick file your bookmarklet writes'
+              }
+            >
+              <span className={`status-dot${feed.connected ? '' : ' status-dot--off'}`} />
+              {feed.connected
+                ? `Live feed · ${feed.report?.lastPick ?? 0}`
+                : feed.hasHandle
+                  ? 'Reconnect feed'
+                  : 'Connect feed'}
             </button>
           )}
           <div className="yahoo-status">

@@ -6,8 +6,20 @@ async function request(path, options = {}) {
     ...options,
   });
   if (!res.ok) {
-    const body = await res.text().catch(() => '');
-    throw new Error(`${options.method || 'GET'} ${path} failed (${res.status}): ${body}`);
+    const text = await res.text().catch(() => '');
+    let body = null;
+    try {
+      body = JSON.parse(text);
+    } catch {
+      /* not JSON — the text is all there is */
+    }
+    // Some failures are structured and actionable (the live feed's "your
+    // draft order disagrees with the file", which carries the order it
+    // recovered), so the parsed body rides along on the error.
+    const err = new Error(body?.error ?? `${options.method || 'GET'} ${path} failed (${res.status}): ${text}`);
+    err.status = res.status;
+    err.body = body;
+    throw err;
   }
   if (res.status === 204) return null;
   return res.json();
@@ -28,6 +40,11 @@ export const api = {
   pickPlayer: (playerId) => request('/draft/pick', { method: 'POST', body: JSON.stringify({ playerId }) }),
   undoPick: () => request('/draft/undo', { method: 'POST' }),
   resetDraft: () => request('/draft/reset', { method: 'POST' }),
+
+  // Live pick feed — the whole file is posted each time, not a delta.
+  feedPreview: (picks) => request('/draft/feed/preview', { method: 'POST', body: JSON.stringify({ picks }) }),
+  feedApplyOrder: (picks) => request('/draft/feed/apply-order', { method: 'POST', body: JSON.stringify({ picks }) }),
+  feedSync: (picks) => request('/draft/feed/sync', { method: 'POST', body: JSON.stringify({ picks }) }),
 
   getSettings: () => request('/settings'),
   updateSettings: (section, patch) =>

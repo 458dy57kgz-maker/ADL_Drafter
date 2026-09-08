@@ -1,10 +1,11 @@
 import { Router } from 'express';
-import { db, getSetting, logDebug } from '../db/index.js';
+import { db, getSetting, setSetting, logDebug } from '../db/index.js';
 import { mapPlayerRow } from '../lib/mapPlayer.js';
 import { scarcityStyle } from '../lib/scarcity.js';
 import { round, nextPickForSlot, slotForPick } from '../lib/draftMath.js';
 import { poolCoverage } from './players.js';
 import { buildBoard } from '../lib/draftBoard.js';
+import { inferDraftOrder, planSync, normalizeName } from '../lib/pickFeed.js';
 import {
   POS_ORDER,
   BENCH_WEIGHT,
@@ -286,6 +287,145 @@ draftRouter.post('/undo', (req, res) => {
     playerId: last.player_id,
     playerName: last.player_name,
     team: last.team,
+  });
+});
+
+// --- Live pick feed --------------------------------------------------------
+//
+// A Chrome bookmarklet appends every pick Yahoo announces to a JSON file on
+// the drafting machine. The browser reads that file and posts its contents
+// here; the server owns the reconciliation. The whole array is sent every
+// time rather than a delta, which makes this idempotent and self-healing —
+// a pick corrected in the file corrects itself here on the next poll.
+
+function aliasMap() {
+  const map = new Map();
+  for (const row of db.prepare('SELECT from_name, to_name FROM name_aliases').all()) {
+    map.set(normalizeName(row.from_name), row.to_name);
+  }
+  return map;
+}
+
+// The order recovered from the feed, and whether it agrees with Settings.
+function orderReport(feedPicks, league) {
+  const inferred = inferDraftOrder(feedPicks);
+  if (!inferred) return { inferred: null, agrees: false, reason: 'not enough picks yet to recover the draft order' };
+  const configured = league.teams ?? [];
+  const agrees =
+    configured.length === inferred.teamCount &&
+    league.teamCount === inferred.teamCount &&
+    inferred.teams.every((t) => normalizeName(configured[t.slot - 1]?.name) === normalizeName(t.name));
+  return { inferred, agrees, reason: agrees ? null : 'the draft order in Settings > League does not match the feed' };
+}
+
+draftRouter.post('/feed/preview', (req, res) => {
+  const picks = req.body?.picks;
+  if (!Array.isArray(picks)) return res.status(400).json({ error: 'picks must be an array' });
+  const league = getSetting('league');
+  res.json({ ...orderReport(picks, league), configured: league.teams ?? [], feedPicks: picks.length });
+});
+
+// Writes the feed's recovered order into Settings > League. Slots are the
+// arithmetic the whole app runs on, so this is the one thing that has to be
+// right before any pick can be attributed — and the feed knows it exactly.
+draftRouter.post('/feed/apply-order', (req, res) => {
+  const picks = req.body?.picks;
+  if (!Array.isArray(picks)) return res.status(400).json({ error: 'picks must be an array' });
+
+  const inferred = inferDraftOrder(picks);
+  if (!inferred) {
+    return res.status(422).json({ error: 'Not enough picks in the feed yet to recover the draft order — every team has to have picked at least once.' });
+  }
+
+  const league = getSetting('league');
+  // Keep an existing team's id when the same name is already configured, so
+  // anything else pointing at it survives a re-apply.
+  const byName = new Map((league.teams ?? []).map((t) => [normalizeName(t.name), t]));
+  const teams = inferred.teams.map((t) => ({ id: byName.get(normalizeName(t.name))?.id ?? `t${t.slot}`, name: t.name }));
+  const mine = inferred.myTeamSlot ? teams[inferred.myTeamSlot - 1] : null;
+
+  setSetting('league', {
+    teams,
+    teamCount: inferred.teamCount,
+    ...(mine ? { myTeamId: mine.id, myTeamSlot: inferred.myTeamSlot } : {}),
+  });
+
+  logDebug(`Draft order recovered from the live feed: ${inferred.teamCount} teams, you at slot ${inferred.myTeamSlot ?? '?'}`, 'OK', 'app');
+  res.json({ teams, teamCount: inferred.teamCount, myTeamSlot: inferred.myTeamSlot, myTeamId: mine?.id ?? null });
+});
+
+draftRouter.post('/feed/sync', (req, res) => {
+  const picks = req.body?.picks;
+  if (!Array.isArray(picks)) return res.status(400).json({ error: 'picks must be an array' });
+
+  const league = getSetting('league');
+  if (!league.teams?.length) {
+    return res.status(409).json({ error: 'no draft order configured', ...orderReport(picks, league) });
+  }
+
+  // Refuse rather than guess: attributing picks to the wrong managers is
+  // silent and poisons the roster, the targets and the board all at once.
+  const order = orderReport(picks, league);
+  if (order.inferred && !order.agrees) {
+    return res.status(409).json({ error: order.reason, ...order });
+  }
+
+  const players = db
+    .prepare('SELECT * FROM players ORDER BY overall_rank ASC')
+    .all()
+    .map((row) => mapPlayerRow(row, league.teamCount));
+
+  const plan = planSync({
+    feedPicks: picks,
+    players,
+    teams: league.teams,
+    teamCount: league.teamCount,
+    myTeamId: league.myTeamId,
+    aliases: aliasMap(),
+    existingBefore: db.prepare('SELECT * FROM draft_picks').all(),
+  });
+
+  const before = db.prepare('SELECT COUNT(*) AS n FROM draft_picks').get().n;
+
+  db.transaction(() => {
+    db.exec('DELETE FROM draft_picks');
+    const insert = db.prepare(
+      `INSERT INTO draft_picks (pick_num, round, team, player_id, player_name, pos)
+       VALUES (@pickNum, @round, @team, @playerId, @playerName, @pos)`
+    );
+    for (const row of plan.rows) {
+      insert.run({
+        pickNum: row.pickNum,
+        round: round(row.pickNum, league.teamCount),
+        team: row.team,
+        playerId: row.playerId,
+        playerName: row.playerName,
+        pos: row.pos,
+      });
+    }
+    // Rebuilt from the pick list rather than patched, so a pick removed from
+    // the feed hands its player back to the pool without a special case.
+    db.exec('UPDATE players SET drafted = 0, drafted_by = NULL, mine = 0');
+    const claim = db.prepare('UPDATE players SET drafted = 1, drafted_by = @team, mine = @mine WHERE id = @id');
+    for (const row of plan.rows) {
+      if (row.playerId == null) continue;
+      claim.run({ id: row.playerId, team: row.team, mine: row.mine ? 1 : 0 });
+    }
+  })();
+
+  const after = plan.rows.length;
+  if (after !== before) {
+    logDebug(`Live feed: ${after} picks (${after - before >= 0 ? '+' : ''}${after - before}), ${plan.unmatched.length} unmatched`, 'OK', 'yahoo');
+  }
+
+  res.json({
+    picks: after,
+    added: Math.max(0, after - before),
+    lastPick: plan.lastPick,
+    gapBefore: plan.gapBefore,
+    unmatched: plan.unmatched,
+    teamMismatches: plan.teamMismatches,
+    matched: plan.rows.filter((r) => r.source === 'feed' && r.playerId != null).length,
   });
 });
 

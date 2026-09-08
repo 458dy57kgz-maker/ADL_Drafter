@@ -1,0 +1,185 @@
+.live-feed__status {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-hairline);
+  border-radius: 8px;
+}
+
+.live-feed__status .status-dot {
+  margin-top: 6px;
+}
+
+.live-feed__status-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.live-feed__status-line {
+  font: 600 13px var(--font-ui);
+  color: var(--text-primary);
+}
+
+.live-feed__file {
+  font: 500 12px var(--font-mono);
+  color: var(--text-faint);
+}
+
+.live-feed__sub {
+  font: 500 12px var(--font-ui);
+  color: var(--text-faint);
+  margin-top: 3px;
+  max-width: 62ch;
+  line-height: 1.45;
+}
+
+.live-feed__actions {
+  display: flex;
+  gap: 8px;
+  flex: none;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.live-feed__block {
+  margin-top: 12px;
+}
+
+.live-feed__error {
+  font: 600 12px var(--font-ui);
+  color: var(--danger-text);
+  background: var(--danger-bg-alt);
+  border: 1px solid var(--danger-border);
+  border-radius: 7px;
+  padding: 8px 10px;
+  margin-top: 10px;
+}
+
+.live-feed__warn {
+  font: 500 12px var(--font-ui);
+  color: var(--warning-text);
+  background: var(--warning-bg);
+  border: 1px solid var(--warning-border);
+  border-radius: 7px;
+  padding: 8px 10px;
+  margin-top: 10px;
+  line-height: 1.45;
+  max-width: 78ch;
+}
+
+.live-feed__order-note {
+  font: 500 12px var(--font-ui);
+  color: var(--text-muted);
+  margin: 10px 0 8px;
+  max-width: 78ch;
+  line-height: 1.45;
+}
+
+/* The recovered seating. Two columns of seats reads as an order far better
+   than a wrapped sentence of names does. */
+.live-feed__order {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 4px 10px;
+  margin-bottom: 12px;
+}
+
+.live-feed__seat {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 9px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-hairline);
+  border-radius: 6px;
+  min-width: 0;
+}
+
+.live-feed__seat--mine {
+  border-color: var(--accent);
+}
+
+.live-feed__seat-num {
+  font: 700 11px var(--font-mono);
+  color: var(--text-faint);
+  width: 18px;
+  flex: none;
+}
+
+.live-feed__seat-name {
+  font: 600 12.5px var(--font-ui);
+  color: var(--text-primary);
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.live-feed__seat-you {
+  flex: none;
+  font: 700 9px var(--font-ui);
+  letter-spacing: 0.5px;
+  color: var(--accent-on-text);
+  background: var(--accent);
+  border-radius: 4px;
+  padding: 1px 5px;
+}
+
+.live-feed__stats {
+  display: flex;
+  gap: 28px;
+  margin-bottom: 4px;
+}
+
+.live-feed__stat-num {
+  font: 700 22px var(--font-mono);
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+.live-feed__stat-label {
+  font: 500 11px var(--font-ui);
+  color: var(--text-faint);
+  margin-top: 2px;
+}
+
+.live-feed__unmatched {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.live-feed__unmatched-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 9px;
+  background: var(--bg-input);
+  border-radius: 6px;
+}
+
+.live-feed__unmatched-pick {
+  font: 600 11px var(--font-mono);
+  color: var(--text-faint);
+  width: 38px;
+  flex: none;
+}
+
+.live-feed__unmatched-name {
+  font: 600 12.5px var(--font-ui);
+  color: var(--text-primary);
+  flex: 1;
+  min-width: 0;
+}
+
+.live-feed__unmatched-meta {
+  font: 500 11px var(--font-mono);
+  color: var(--text-faint);
+  flex: none;
+}

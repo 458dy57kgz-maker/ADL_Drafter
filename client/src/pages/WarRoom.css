@@ -125,6 +125,34 @@
   background: var(--danger-text);
 }
 
+/* Live pick feed. A button rather than a label because reconnecting after a
+   reload is one click, and mid-draft is the worst time to go looking for a
+   settings page. */
+.feed-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font: 600 12px var(--font-ui);
+  color: var(--text-muted);
+  background: var(--bg-row);
+  border: 1px solid var(--border-hairline-strong);
+  padding: 5px 11px;
+  border-radius: var(--radius-pill);
+}
+
+.feed-chip:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--text-primary);
+}
+
+.feed-chip--live,
+.feed-chip--live:disabled {
+  background: var(--success-bg);
+  border-color: var(--success-border);
+  color: var(--success-text);
+  cursor: default;
+}
+
 .poll-chip {
   font: 500 12px var(--font-mono);
   color: var(--text-muted);
