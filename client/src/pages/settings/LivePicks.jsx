@@ -46,6 +46,13 @@ export default function LivePicks() {
   const secure = window.isSecureContext;
   const bookmarklet = bookmarkletFor(origin);
 
+  // Tailscale Serve terminates TLS on 443 and proxies to the app's own port
+  // internally, so the HTTPS address is the bare hostname — keeping the port
+  // on it asks for TLS from something that only speaks plain HTTP, and looks
+  // like the name failing to resolve.
+  const tailscaleHttps =
+    !secure && /\.ts\.net$/i.test(window.location.hostname) ? `https://${window.location.hostname}` : null;
+
   const push = draftState?.feed ?? null;
   const pushIsLive = push && Date.now() - push.at < 120000;
 
@@ -153,10 +160,19 @@ export default function LivePicks() {
           {!secure && (
             <div className="live-feed__warn">
               This page is served over <span className="mono">{origin}</span>, which isn’t a secure origin. Yahoo’s
-              draft room is HTTPS, and a browser will not let an HTTPS page load or call an unencrypted one — so the
-              bookmarklet won’t reach the app at this address. Open the app on its HTTPS Tailscale address instead
-              (that’s also what the bookmarklet should point at). This is the same reason the file option below is
-              unavailable.
+              draft room is HTTPS, and a browser will not let an HTTPS page load or call an unencrypted one — so a
+              bookmarklet copied from here won’t reach the app.
+              {tailscaleHttps ? (
+                <>
+                  {' '}
+                  Open <span className="mono">{tailscaleHttps}</span> instead — no port number: Tailscale Serve
+                  handles HTTPS on 443 and forwards to the app internally, so putting the app’s own port back on the
+                  address is what makes it look like the name doesn’t resolve. Then copy the bookmarklet again from
+                  that page, since it points at whichever address you copied it from.
+                </>
+              ) : (
+                ' Open the app on its HTTPS address instead, then copy the bookmarklet again from there — it points at whichever address you copied it from.'
+              )}
             </div>
           )}
         </div>
