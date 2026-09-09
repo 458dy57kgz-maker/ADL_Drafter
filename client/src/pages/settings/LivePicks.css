@@ -183,3 +183,47 @@
   color: var(--text-faint);
   flex: none;
 }
+
+/* --- bookmarklet install ------------------------------------------------- */
+
+.live-feed__install {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border-hairline);
+}
+
+.live-feed__install-title {
+  font: 700 13px var(--font-ui);
+  color: var(--text-primary);
+  margin-bottom: 6px;
+}
+
+.live-feed__steps {
+  margin: 0 0 10px;
+  padding-left: 18px;
+  font: 500 12px var(--font-ui);
+  color: var(--text-muted);
+  line-height: 1.6;
+  max-width: 78ch;
+}
+
+.live-feed__steps strong {
+  color: var(--text-secondary);
+}
+
+/* The bookmarklet is one very long line. It wraps rather than scrolls so that
+   a select-all drag can't miss the end of it. */
+.live-feed__code {
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  background: var(--bg-input);
+  border: 1px solid var(--border-hairline-strong);
+  border-radius: 7px;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+  word-break: break-all;
+  max-height: 120px;
+  overflow-y: auto;
+  user-select: all;
+}

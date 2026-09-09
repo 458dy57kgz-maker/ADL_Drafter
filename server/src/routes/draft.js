@@ -146,6 +146,10 @@ function buildState() {
       isMyTurnNow,
     },
     yahooConnected: !!yahoo.connected,
+    // Liveness for whatever is pushing picks — the Yahoo tracker bookmarklet,
+    // or the browser watching a file. Either way the server sees it, so the
+    // War Room can show one indicator for both.
+    feed: lastFeedPush,
     coverage: poolCoverage(),
     pollInterval: draftDay.pollInterval,
     mockDraftMode: !!draftDay.mockDraftMode,
@@ -298,6 +302,14 @@ draftRouter.post('/undo', (req, res) => {
 // time rather than a delta, which makes this idempotent and self-healing —
 // a pick corrected in the file corrects itself here on the next poll.
 
+// Whether anything is actually feeding us picks, and when. Held in memory
+// rather than the database: it describes this process's last few minutes, not
+// the draft, and a restart genuinely does mean "nothing has pushed yet".
+let lastFeedPush = null;
+// The last array anything sent us, kept so the draft order can be recovered
+// from Settings even when the sync itself was refused for lacking one.
+let lastFeedPicks = null;
+
 function aliasMap() {
   const map = new Map();
   for (const row of db.prepare('SELECT from_name, to_name FROM name_aliases').all()) {
@@ -329,8 +341,10 @@ draftRouter.post('/feed/preview', (req, res) => {
 // arithmetic the whole app runs on, so this is the one thing that has to be
 // right before any pick can be attributed — and the feed knows it exactly.
 draftRouter.post('/feed/apply-order', (req, res) => {
-  const picks = req.body?.picks;
-  if (!Array.isArray(picks)) return res.status(400).json({ error: 'picks must be an array' });
+  // Falls back to whatever last arrived, so the button on the Live Pick Feed
+  // page works even though that page never held the picks itself.
+  const picks = Array.isArray(req.body?.picks) ? req.body.picks : lastFeedPicks;
+  if (!Array.isArray(picks)) return res.status(400).json({ error: 'no picks to work from yet' });
 
   const inferred = inferDraftOrder(picks);
   if (!inferred) {
@@ -358,16 +372,30 @@ draftRouter.post('/feed/sync', (req, res) => {
   const picks = req.body?.picks;
   if (!Array.isArray(picks)) return res.status(400).json({ error: 'picks must be an array' });
 
-  const league = getSetting('league');
-  if (!league.teams?.length) {
-    return res.status(409).json({ error: 'no draft order configured', ...orderReport(picks, league) });
+  // An empty feed means "I have nothing to report" — a tracker that just
+  // started, or a page that hasn't rendered its pick list yet. It must never
+  // mean "delete the draft": that is what /draft/reset is for, and a stray
+  // empty push wiping a draft mid-round is unrecoverable.
+  if (picks.length === 0) {
+    return res.json({ picks: db.prepare('SELECT COUNT(*) AS n FROM draft_picks').get().n, added: 0, noop: true, unmatched: [], teamMismatches: [], gapBefore: 0, lastPick: 0, matched: 0 });
   }
 
+  lastFeedPicks = picks;
+  const league = getSetting('league');
+
   // Refuse rather than guess: attributing picks to the wrong managers is
-  // silent and poisons the roster, the targets and the board all at once.
+  // silent and poisons the roster, the targets and the board at once. The
+  // refusal is still recorded as a push, so the app can say "something IS
+  // feeding me, it just can't be filed yet" instead of "nothing has arrived".
   const order = orderReport(picks, league);
-  if (order.inferred && !order.agrees) {
-    return res.status(409).json({ error: order.reason, ...order });
+  const blocked = !league.teams?.length
+    ? 'no draft order configured'
+    : order.inferred && !order.agrees
+      ? order.reason
+      : null;
+  if (blocked) {
+    lastFeedPush = { at: Date.now(), blocked, received: picks.length, inferred: order.inferred };
+    return res.status(409).json({ error: blocked, ...order });
   }
 
   const players = db
@@ -414,6 +442,7 @@ draftRouter.post('/feed/sync', (req, res) => {
   })();
 
   const after = plan.rows.length;
+  lastFeedPush = { at: Date.now(), picks: after, lastPick: plan.lastPick, unmatched: plan.unmatched.length };
   if (after !== before) {
     logDebug(`Live feed: ${after} picks (${after - before >= 0 ? '+' : ''}${after - before}), ${plan.unmatched.length} unmatched`, 'OK', 'yahoo');
   }

@@ -43,7 +43,8 @@ export const api = {
 
   // Live pick feed — the whole file is posted each time, not a delta.
   feedPreview: (picks) => request('/draft/feed/preview', { method: 'POST', body: JSON.stringify({ picks }) }),
-  feedApplyOrder: (picks) => request('/draft/feed/apply-order', { method: 'POST', body: JSON.stringify({ picks }) }),
+  // With no picks the server falls back to the last set it was sent.
+  feedApplyOrder: (picks) => request('/draft/feed/apply-order', { method: 'POST', body: JSON.stringify(picks ? { picks } : {}) }),
   feedSync: (picks) => request('/draft/feed/sync', { method: 'POST', body: JSON.stringify({ picks }) }),
 
   getSettings: () => request('/settings'),

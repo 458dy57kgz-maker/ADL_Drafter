@@ -8,6 +8,54 @@ import './WarRoom.css';
 
 const POS_ORDER = ['C', 'LW', 'RW', 'D', 'G'];
 
+// Anything pushed within two minutes counts as live: the tracker only pushes
+// when a pick lands, and a quiet stretch mid-round is normal.
+const FEED_LIVE_MS = 120000;
+
+function FeedChip({ feed, push }) {
+  const pushedRecently = push && Date.now() - push.at < FEED_LIVE_MS;
+
+  if (push?.blocked) {
+    return (
+      <div className="feed-chip feed-chip--blocked" title={`${push.blocked} — ${push.received} picks waiting. Fix it in Settings > Live Pick Feed.`}>
+        <span className="status-dot status-dot--off" />
+        Feed blocked
+      </div>
+    );
+  }
+
+  if (pushedRecently || feed.connected) {
+    const lastPick = push?.lastPick ?? feed.report?.lastPick ?? 0;
+    return (
+      <div
+        className="feed-chip feed-chip--live"
+        title={push ? `Picks pushed from the draft room — through pick ${lastPick}` : `Reading ${feed.fileName ?? 'the pick file'}`}
+      >
+        <span className="status-dot" />
+        Live feed · {lastPick}
+      </div>
+    );
+  }
+
+  // Nothing arriving. Offer the one-click reconnect only if this browser has a
+  // file to go back to; otherwise say so and leave setup to Settings.
+  if (feed.supported && feed.hasHandle) {
+    return (
+      <button type="button" className="feed-chip" onClick={feed.connect} disabled={feed.busy} title="Click to give the pick file permission again">
+        <span className="status-dot status-dot--off" />
+        Reconnect feed
+      </button>
+    );
+  }
+
+  return (
+    <div className="feed-chip" title={push ? `Last push ${Math.round((Date.now() - push.at) / 1000)}s ago` : 'Set this up in Settings > Live Pick Feed'}>
+      <span className="status-dot status-dot--off" />
+      {push ? 'Feed quiet' : 'No live feed'}
+    </div>
+  );
+}
+
 // The category leader, shown under my own ring. Nobody leads a category
 // nobody has scored in yet, so before the draft starts this is a dash rather
 // than an arbitrary team name.
@@ -145,31 +193,11 @@ export default function WarRoom() {
               Reset Draft
             </button>
           )}
-          {/* One click from here gets the feed back after a reload, since
-              Chrome drops file permission every time the page loads and
-              hunting through Settings mid-draft is the wrong ask. */}
-          {feed.supported && (
-            <button
-              type="button"
-              className={`feed-chip${feed.connected ? ' feed-chip--live' : ''}`}
-              onClick={feed.connected ? undefined : feed.connect}
-              disabled={feed.busy || feed.connected}
-              title={
-                feed.connected
-                  ? `Reading ${feed.fileName ?? 'the pick file'} — ${feed.report?.picks ?? 0} picks recorded`
-                  : feed.hasHandle
-                    ? 'Click to give the pick file permission again'
-                    : 'Click to choose the pick file your bookmarklet writes'
-              }
-            >
-              <span className={`status-dot${feed.connected ? '' : ' status-dot--off'}`} />
-              {feed.connected
-                ? `Live feed · ${feed.report?.lastPick ?? 0}`
-                : feed.hasHandle
-                  ? 'Reconnect feed'
-                  : 'Connect feed'}
-            </button>
-          )}
+          {/* One indicator for both ways picks arrive: the Yahoo tracker
+              pushing to the server, or this browser watching a file. The
+              server-side push wins, since it's true no matter which tab or
+              machine you're looking from. */}
+          <FeedChip feed={feed} push={data.feed} />
           <div className="yahoo-status">
             <span className={`status-dot${yahooConnected ? '' : ' status-dot--off'}`} />
             {yahooConnected ? 'Yahoo connected' : 'Yahoo disconnected'}

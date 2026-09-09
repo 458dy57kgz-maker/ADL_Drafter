@@ -211,3 +211,12 @@ test('planSync ignores a duplicated pick number in the file', () => {
   const plan = planSync({ feedPicks: feed, players: [], teams: TEAMS, teamCount: 6 });
   assert.equal(plan.rows.length, 6);
 });
+
+test('planSync on an empty feed produces no rows at all', () => {
+  // The route refuses to act on this rather than treating it as "delete
+  // everything" — see the empty-feed guard in POST /draft/feed/sync.
+  const plan = planSync({ feedPicks: [], players: [], teams: TEAMS, teamCount: 6 });
+  assert.equal(plan.rows.length, 0);
+  assert.equal(plan.feedStart, 1);
+  assert.equal(plan.gapBefore, 0);
+});
