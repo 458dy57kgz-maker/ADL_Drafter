@@ -1,0 +1,95 @@
+.legend-page {
+  max-width: 860px;
+}
+
+.legend-card {
+  margin-bottom: 12px;
+}
+
+.legend-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 9px 0;
+  border-top: 1px solid var(--border-hairline);
+}
+
+.legend-row:first-of-type {
+  border-top: none;
+}
+
+/* Fixed column so every sample lines up regardless of width — the eye scans
+   the samples, then reads across. */
+.legend-row__sample {
+  flex: none;
+  width: 148px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  min-height: 20px;
+}
+
+.legend-row__text {
+  font: 500 12.5px var(--font-ui);
+  color: var(--text-muted);
+  line-height: 1.55;
+  min-width: 0;
+}
+
+.legend-row__text strong {
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.legend-pills {
+  display: flex;
+  gap: 4px;
+}
+
+/* The cliff is a full-width rule on the board; here it just needs to read. */
+.legend-cliff {
+  width: 140px;
+}
+
+/* Stands in for a whole card, since the thing being explained is its border. */
+.plain-card-sample {
+  display: block;
+  width: 132px;
+  height: 26px;
+  border-radius: 8px;
+  background: #1d212b;
+  border: 1px solid rgba(76, 175, 125, 0.5);
+  box-shadow: 0 0 0 1px rgba(76, 175, 125, 0.15) inset;
+}
+
+.legend-ring {
+  flex: none;
+}
+
+.legend-leader {
+  font: 700 11px var(--font-mono);
+  color: var(--text-secondary);
+}
+
+.legend-overall {
+  font: 700 13px var(--font-mono);
+  color: var(--gold);
+}
+
+.legend-bench {
+  font: 700 13px var(--font-mono);
+  color: var(--text-secondary);
+}
+
+.legend-diff {
+  font: 600 12px var(--font-mono);
+}
+
+.legend-diff--good {
+  color: var(--success-text);
+}
+
+.legend-blank {
+  font: 500 11.5px var(--font-ui);
+  color: var(--text-faint);
+}

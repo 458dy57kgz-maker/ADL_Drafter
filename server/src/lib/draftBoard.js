@@ -184,6 +184,20 @@ export function offNightShare(player, seasonGamesFallback = SEASON_GAMES_FALLBAC
 }
 
 /**
+ * The tiers worth showing in a column header: the `n` shallowest tiers that
+ * still have anyone left. An empty tier is a fact about the past — "0 T1" told
+ * you nothing you couldn't read from the cards — so it is dropped and the next
+ * live tier takes its place.
+ */
+export function visibleTiers(byTier, n = 2) {
+  return [...byTier.entries()]
+    .filter(([, count]) => count > 0)
+    .sort((a, b) => a[0] - b[0])
+    .slice(0, n)
+    .map(([tier, count]) => ({ tier, count }));
+}
+
+/**
  * Assembles one column per position: the counts for the header pills, the top
  * `depth` cards, and where the cliff divider goes.
  *
@@ -240,7 +254,13 @@ export function buildBoard({
 
     return {
       pos,
-      counts: { t1: counts.t1, t2: counts.t2, total: counts.total },
+      counts: {
+        total: counts.total,
+        // Everyone at this position already off the board — the denominator
+        // for the header's draining ring.
+        taken: players.filter((p) => p.drafted && eligibleAt(p, pos)).length,
+        tiers: visibleTiers(counts.byTier),
+      },
       cards,
       cliffAfter,
       sub: positionFull

@@ -11,6 +11,10 @@
 
 import { slotForPick } from './draftMath.js';
 
+// Stands in for a pick the feed never saw, when it was started mid-draft. It
+// holds the pick number so the snake math stays true, and claims no player.
+export const PLACEHOLDER_NAME = '(before feed started)';
+
 // Accents are the difference between "Slafkovský" in the feed and
 // "Slafkovsky" in an export, and punctuation between "T.J." and "TJ".
 export function normalizeName(name) {
@@ -201,7 +205,7 @@ export function planSync({ feedPicks, players, teams, teamCount, myTeamId, alias
             pickNum,
             team: teams[slotForPick(pickNum, teamCount) - 1]?.name ?? `Slot ${slotForPick(pickNum, teamCount)}`,
             playerId: null,
-            playerName: '(before feed started)',
+            playerName: PLACEHOLDER_NAME,
             pos: '—',
             source: 'placeholder',
           }

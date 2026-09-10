@@ -183,11 +183,14 @@
 }
 
 /* Pinned to the bottom of the page and sized to its content — it never
-   takes more room than the roster and scarcity actually need, and never
+   takes more room than the roster and the side column actually need, and never
    less, so the board above gets every remaining pixel. */
 .war-room__bottom-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+  /* My Roster carries nine stat columns and now some longer names, so it
+     takes the larger share — the side column lost Position Scarcity and only
+     holds two scrolling lists. */
+  grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr);
   gap: 14px;
   padding: 10px 22px 18px;
   flex: none;
@@ -213,7 +216,7 @@
 }
 
 .side-col__scroller {
-  max-height: 190px;
+  max-height: 320px;
   overflow-y: auto;
   min-width: 0;
 }
@@ -373,7 +376,7 @@
 
 .roster-header {
   display: grid;
-  grid-template-columns: 28px minmax(0, 1fr) repeat(7, minmax(0, 1fr));
+  grid-template-columns: 28px minmax(0, 2fr) repeat(7, minmax(0, 1fr));
   gap: 2px 4px;
   font: 600 9.5px var(--font-ui);
   color: var(--text-faint);
@@ -392,7 +395,7 @@
 
 .roster-row {
   display: grid;
-  grid-template-columns: 28px minmax(0, 1fr) repeat(7, minmax(0, 1fr));
+  grid-template-columns: 28px minmax(0, 2fr) repeat(7, minmax(0, 1fr));
   gap: 2px 4px;
   align-items: center;
   padding: 4px 6px;
@@ -410,11 +413,29 @@
 }
 
 .roster-row__name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   font: 500 12px var(--font-ui);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   min-width: 0;
+}
+
+/* Somebody the room drafted who isn't in my list. The name is real; the
+   stat columns beside it are dashes, and this says why rather than leaving
+   a row that looks like a data bug. */
+.roster-row__untracked {
+  font: 600 8.5px var(--font-ui);
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  background: var(--bg-row);
+  border: 1px solid var(--border-hairline);
+  border-radius: 4px;
+  padding: 1px 4px;
+  flex: none;
 }
 
 .roster-footer {
@@ -423,50 +444,13 @@
   margin-top: 4px;
 }
 
-.progress-track {
-  height: 6px;
-  border-radius: 3px;
-  background: var(--track-bg);
-  overflow: hidden;
-}
 
-.progress-track--flex {
-  flex: 1;
-}
 
-.progress-fill {
-  height: 100%;
-  background: var(--accent);
-}
 
-.progress-fill--neutral {
-  background: #3a3f46;
-}
 
-.scarcity-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 6px;
-}
 
-.scarcity-row__pos {
-  width: 26px;
-  font: 700 11px var(--font-mono);
-  color: var(--text-muted);
-}
 
-.scarcity-row__pill {
-  font: 600 10.5px var(--font-mono);
-  padding: 1px 6px;
-  border-radius: 8px;
-  border: 1px solid;
-}
 
-.scarcity-row__taken {
-  font: 500 10.5px var(--font-ui);
-  color: var(--text-faint);
-}
 
 .feed-row {
   font: 500 12px var(--font-ui);

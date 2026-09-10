@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  visibleTiers,
   classifyRemaining,
   waitStatus,
   defaultRiskMargin,
@@ -244,8 +245,10 @@ test('fixture: the cliff divider lands between the two tiers it separates', () =
   });
 
   const col = board.columns[0];
-  assert.equal(col.counts.t1, 1);
-  assert.equal(col.counts.t2, 1); // the other T2 is off the board
+  assert.deepEqual(col.counts.tiers, [
+    { tier: 1, count: 1 },
+    { tier: 2, count: 1 }, // the other T2 is off the board
+  ]);
   assert.equal(col.cliffAfter, 1, 'divider sits after Tkachuk, before Guentzel');
   assert.equal(col.cards[1].name, 'Tkachuk');
   assert.equal(col.cards[2].name, 'Guentzel');
@@ -284,4 +287,34 @@ test('buildBoard: the top card at a position with a need is suggested', () => {
   });
   assert.equal(board.columns[0].cards[0].suggested, true);
   assert.equal(board.columns[0].cards[0].status, 'safe');
+});
+
+// --- header tiers --------------------------------------------------------
+
+test('visibleTiers shows the two shallowest tiers that still have anyone', () => {
+  const counts = new Map([[1, 2], [2, 6], [3, 12]]);
+  assert.deepEqual(visibleTiers(counts), [{ tier: 1, count: 2 }, { tier: 2, count: 6 }]);
+});
+
+test('visibleTiers drops an exhausted tier and promotes the next one', () => {
+  const counts = new Map([[1, 0], [2, 0], [3, 4], [4, 9]]);
+  assert.deepEqual(visibleTiers(counts), [{ tier: 3, count: 4 }, { tier: 4, count: 9 }]);
+});
+
+test('visibleTiers returns what it has when only one tier is left', () => {
+  assert.deepEqual(visibleTiers(new Map([[1, 0], [5, 3]])), [{ tier: 5, count: 3 }]);
+  assert.deepEqual(visibleTiers(new Map()), []);
+});
+
+test('a column header carries the live tiers and the ring denominator', () => {
+  const players = [
+    player({ id: 1, posList: ['C'], tier: 3, drafted: true }),
+    player({ id: 2, posList: ['C'], tier: 3, drafted: true }),
+    player({ id: 3, posList: ['C'], tier: 4, overallRank: 5 }),
+    player({ id: 4, posList: ['C'], tier: 5, overallRank: 6 }),
+  ];
+  const col = buildBoard({ players, positions: ['C'], rosterSlots: { C: 2 }, currentPick: 9, nextPick: 12 }).columns[0];
+  assert.equal(col.counts.total, 2, 'undrafted only');
+  assert.equal(col.counts.taken, 2, 'drafted at this position — the ring drains against this');
+  assert.deepEqual(col.counts.tiers, [{ tier: 4, count: 1 }, { tier: 5, count: 1 }]);
 });

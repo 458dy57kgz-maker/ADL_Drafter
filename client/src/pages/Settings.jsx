@@ -5,6 +5,7 @@ import Roster from './settings/Roster.jsx';
 import RankingsImport from './settings/RankingsImport.jsx';
 import DraftDayBehavior from './settings/DraftDayBehavior.jsx';
 import LivePicks from './settings/LivePicks.jsx';
+import Legend from './settings/Legend.jsx';
 import AppHosting from './settings/AppHosting.jsx';
 import './Settings.css';
 
@@ -18,6 +19,7 @@ const SECTIONS = [
   { key: 'rankings', label: 'Rankings Import', Component: RankingsImport },
   { key: 'livepicks', label: 'Live Pick Feed', Component: LivePicks },
   { key: 'draftday', label: 'Draft-Day Behavior', Component: DraftDayBehavior },
+  { key: 'legend', label: 'Legend', Component: Legend },
   { key: 'hosting', label: 'App / Hosting', Component: AppHosting },
 ];
 

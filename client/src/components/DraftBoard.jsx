@@ -1,3 +1,4 @@
+import { scarcityStyle } from '../lib/scarcity.js';
 import './DraftBoard.css';
 
 // The four wait states, in the mockup's own language. `overdue` is gold rather
@@ -29,6 +30,29 @@ function adpLine(card) {
         : card.overallRank != null
           ? ` · you ${card.overallRank}`
           : ''}
+    </span>
+  );
+}
+
+// How much of this position's board is still on it, as a ring that drains
+// toward empty. The colour is the same three-step scarcity scale the app has
+// always used, so the ring reads at a glance even before the number does.
+function LeftRing({ left, taken, pos }) {
+  const total = left + taken;
+  const pct = total ? Math.round((left / total) * 100) : 0;
+  const style = scarcityStyle(left);
+  return (
+    <span
+      className="left-ring"
+      style={{ '--pct': pct, '--ring-color': style.fg }}
+      title={`${left} of ${total} still available at ${pos}${taken ? ` — ${taken} drafted` : ''}`}
+      role="img"
+      aria-label={`${left} players left at ${pos}`}
+    >
+      <span className="left-ring__inner">
+        <span className="left-ring__num mono">{left}</span>
+        <span className="left-ring__label">LEFT</span>
+      </span>
     </span>
   );
 }
@@ -96,11 +120,17 @@ export default function DraftBoard({ board, trackedFor, onToggleTrack }) {
             <div className="col-head">
               <div className="col-head-row">
                 <span className="pos">{col.pos}</span>
-              </div>
-              <div className="scarcity-pills">
-                <span className="mini-pill t1">{col.counts.t1} T1</span>
-                <span className="mini-pill t2">{col.counts.t2} T2</span>
-                <span className="mini-pill total">{col.counts.total} left</span>
+                {/* Only tiers that still have somebody in them. "0 T1" was a
+                    fact about the past taking up room that the next live tier
+                    can use. */}
+                <span className="scarcity-pills">
+                  {col.counts.tiers.map((t) => (
+                    <span className={`mini-pill ${tierClass(t.tier)}`} key={t.tier}>
+                      {t.count} T{t.tier}
+                    </span>
+                  ))}
+                </span>
+                <LeftRing left={col.counts.total} taken={col.counts.taken} pos={col.pos} />
               </div>
               <div className="sub">{col.sub.text}</div>
             </div>
@@ -123,26 +153,6 @@ export default function DraftBoard({ board, trackedFor, onToggleTrack }) {
         ))}
       </div>
 
-      <div className="legend">
-        <b>Reading it:</b>
-        <span className="lg-item">
-          <span className="dot dot--tier1" /> Already overdue — ADP has already passed; he fell, grab or flip him now
-        </span>
-        <span className="lg-item">
-          <span className="dot dot--danger" /> Likely gone by your next pick — ADP sits between now and then
-        </span>
-        <span className="lg-item">
-          <span className="dot dot--risk" /> Wait = risky — ADP is close to that gap's edge
-        </span>
-        <span className="lg-item">
-          <span className="dot dot--safe" /> Safe to wait — ADP has real room past your next pick
-        </span>
-        <span className="lg-item">Tags = top 2 categories this player moves most</span>
-        <span className="lg-item">ONG = share of games on off-nights (higher starts more often)</span>
-        <span className="lg-item">
-          <span className="dot dot--cliff" /> Dashed line = talent cliff
-        </span>
-      </div>
     </div>
   );
 }

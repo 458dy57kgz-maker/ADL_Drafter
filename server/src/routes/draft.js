@@ -1,11 +1,10 @@
 import { Router } from 'express';
 import { db, getSetting, setSetting, logDebug } from '../db/index.js';
-import { mapPlayerRow } from '../lib/mapPlayer.js';
-import { scarcityStyle } from '../lib/scarcity.js';
+import { mapPlayerRow, normalizePosList } from '../lib/mapPlayer.js';
 import { round, nextPickForSlot, slotForPick } from '../lib/draftMath.js';
 import { poolCoverage } from './players.js';
 import { buildBoard } from '../lib/draftBoard.js';
-import { inferDraftOrder, planSync, normalizeName } from '../lib/pickFeed.js';
+import { inferDraftOrder, planSync, normalizeName, PLACEHOLDER_NAME } from '../lib/pickFeed.js';
 import {
   POS_ORDER,
   BENCH_WEIGHT,
@@ -19,11 +18,10 @@ import {
 
 export const draftRouter = Router();
 
-// Cards per column. The columns are a fixed 400px tall and don't scroll (see
-// design/draft_board_mockup.html), and three cards plus a cliff divider is
-// what fits without the last one being sliced in half — which is also what the
-// mockup itself shows. Raising this only ships rows nobody can see.
-const BOARD_DEPTH = 3;
+// Cards per column. The columns start at the mockup's 400px and grow into
+// whatever height the window has spare, so this is sized for a tall monitor;
+// the column scrolls if it can't show them all.
+const BOARD_DEPTH = 6;
 
 function buildState() {
   const league = getSetting('league');
@@ -46,38 +44,46 @@ function buildState() {
   const myNextPick = isMyTurnNow ? currentPick : nextPickForSlot(currentPick + 1, teamCount, mySlot);
   const picksUntilMe = isMyTurnNow ? 0 : myNextPick - currentPick;
 
-  // How thin each position is getting. This used to fall out of building the
-  // lanes; the board computes its own counts from the same pool, so this is
-  // now its own small pass rather than a by-product of one.
-  const scarcity = {};
-  POS_ORDER.forEach((pos) => {
-    const atPos = players.filter((p) => p.posList.includes(pos));
-    const left = atPos.filter((p) => !p.drafted).length;
-    // Counted directly rather than derived as (total - left): subtracting only
-    // holds if the pool happens to be exactly `total` deep, so it reported a
-    // full sweep of phantom picks whenever the pool was smaller.
-    const taken = atPos.filter((p) => p.drafted).length;
-    // How many the league still needs here, from the roster settings rather
-    // than a hardcoded guess.
-    const total = (rosterSlots[pos] ?? 0) * teamCount;
-    scarcity[pos] = {
-      left,
-      taken,
-      takenPct: total ? Math.round((taken / total) * 100) : 0,
-      ...scarcityStyle(left),
-    };
-  });
+  // Players an opponent drafted who aren't in my list at all. I only import
+  // the players I'd consider taking, so most of the room's picks are people
+  // I've never rated — and a roster with holes in it where those picks went
+  // is worse than useless. They come through as pick rows with no player_id,
+  // so they're rebuilt here as stat-less roster entries: the real name, the
+  // position the draft room reported, and dashes for everything else.
+  const myTeamName = league.teams?.find((t) => t.id === league.myTeamId)?.name ?? null;
+  const unknownPicks = db
+    .prepare('SELECT * FROM draft_picks WHERE player_id IS NULL')
+    .all()
+    .filter((r) => r.player_name !== PLACEHOLDER_NAME)
+    .map((r) => ({
+      id: `pick-${r.pick_num}`,
+      name: r.player_name,
+      pos: r.pos,
+      posList: normalizePosList(r.pos),
+      drafted: true,
+      draftedBy: r.team,
+      mine: !!myTeamName && r.team === myTeamName,
+      // What makes the UI show a name and dashes rather than a name and zeros.
+      unknown: true,
+      overallRank: null,
+      tier: null,
+      adp: null,
+    }));
+
+  // Rosters count them; the board and its scarcity counts don't, since they
+  // were never on my board to begin with.
+  const rosterable = [...players, ...unknownPicks];
 
   // My own roster, shaped by the same code the Results page uses for the
   // other nine — see server/src/lib/roster.js.
-  const mine = players.filter((p) => p.mine);
+  const mine = rosterable.filter((p) => p.mine);
   const myRoster = assignRoster(mine, rosterSlots);
   const rosterSlotRows = myRoster.rows;
 
   // Target Progress compares my weighted totals against whoever currently
   // leads each category, so the bar is the room rather than the calendar.
   // Bench players count at BENCH_WEIGHT for every manager alike.
-  const teamSummaries = buildTeamSummaries(players, league, rosterSlots, targets);
+  const teamSummaries = buildTeamSummaries(rosterable, league, rosterSlots, targets);
   const myTotals = categoryTotals(myRoster.starters, myRoster.bench);
 
   const targetRows = TARGET_CATEGORIES.map((cat) => {
@@ -158,7 +164,6 @@ function buildState() {
     targets: targetRows,
     overall: overallRow,
     benchWeight: BENCH_WEIGHT,
-    scarcity,
     liveFeed,
     tracked,
   };
@@ -196,7 +201,25 @@ draftRouter.get('/results', (req, res) => {
     if (r.player_id != null) pickByPlayer.set(r.player_id, { pickNum: r.pick_num, round: r.round });
   }
 
-  const summaries = buildTeamSummaries(players, league, rosterSlots, targets);
+  // Same treatment as the War Room: picks that matched nobody in my list are
+  // still real players on somebody's roster.
+  const unknownPicks = db
+    .prepare('SELECT * FROM draft_picks WHERE player_id IS NULL')
+    .all()
+    .filter((r) => r.player_name !== PLACEHOLDER_NAME)
+    .map((r) => ({
+      id: `pick-${r.pick_num}`,
+      name: r.player_name,
+      pos: r.pos,
+      posList: normalizePosList(r.pos),
+      drafted: true,
+      draftedBy: r.team,
+      unknown: true,
+      pickNum: r.pick_num,
+      round: r.round,
+    }));
+
+  const summaries = buildTeamSummaries([...players, ...unknownPicks], league, rosterSlots, targets);
   const decorate = (p) => (p ? { ...p, ...(pickByPlayer.get(p.id) ?? { pickNum: null, round: null }) } : null);
 
   const teams = summaries.map((t) => {

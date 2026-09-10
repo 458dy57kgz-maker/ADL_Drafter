@@ -170,7 +170,7 @@ export default function WarRoom() {
     return <div className="war-room war-room--empty">Loading draft state…</div>;
   }
 
-  const { pickInfo, yahooConnected, board, roster, targets, overall, scarcity, liveFeed, tracked } = data;
+  const { pickInfo, yahooConnected, board, roster, targets, overall, liveFeed, tracked } = data;
 
   return (
     <div className="war-room">
@@ -295,10 +295,12 @@ export default function WarRoom() {
             <div className={`roster-row${slot.pos === 'BN' ? ' roster-row--bench' : ''}`} key={i}>
               <div className="mono roster-row__pos">{slot.pos}</div>
               <div
-                className="roster-row__name"
+                className={`roster-row__name${slot.player?.unknown ? ' roster-row__name--unknown' : ''}`}
                 style={{ color: slot.player ? 'var(--text-primary)' : 'var(--text-faint)' }}
+                title={slot.player?.unknown ? 'Drafted from the room but not in your player list — no projections for him' : undefined}
               >
                 {slot.player ? slot.player.name : 'empty'}
+                {slot.player?.unknown && <span className="roster-row__untracked">no stats</span>}
               </div>
               <div className="mono">{slot.player?.g ?? '–'}</div>
               <div className="mono">{slot.player?.a ?? '–'}</div>
@@ -313,33 +315,10 @@ export default function WarRoom() {
         </div>
 
         <div className="side-col">
-          <div className="card">
-            <div className="card-title">Position Scarcity</div>
-            {POS_ORDER.map((pos) => {
-              const sc = scarcity[pos];
-              if (!sc) return null;
-              return (
-                <div className="scarcity-row" key={pos}>
-                  <div className="mono scarcity-row__pos">{pos}</div>
-                  <div
-                    className="scarcity-row__pill mono"
-                    style={{ background: sc.bg, color: sc.fg, borderColor: sc.border }}
-                  >
-                    {sc.left} left
-                  </div>
-                  <div className="progress-track progress-track--flex">
-                    <div className="progress-fill progress-fill--neutral" style={{ width: `${sc.takenPct}%` }} />
-                  </div>
-                  <div className="scarcity-row__taken">{sc.taken} taken</div>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* The feed and the tracked list used to share a third column. With
-              the bottom band down to two, they sit side by side under
-              scarcity — each scrolls in place so the band's height stays
-              fixed no matter how long the draft runs. */}
+          {/* Side by side, each scrolling in place so the band's height stays
+              fixed no matter how long the draft runs. Position Scarcity used
+              to sit above them and said nothing the board's own rings don't
+              say better, right next to the players it's about. */}
           <div className="side-col__pair">
             <div className="card side-col__scroller">
               <div className="card-title">Live Pick Feed</div>

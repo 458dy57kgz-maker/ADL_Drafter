@@ -145,8 +145,13 @@ export default function Results() {
             {team.rows.map((row, i) => (
               <div className={`results-row${row.pos === 'BN' ? ' results-row--bench' : ''}`} key={i}>
                 <div className="mono results-row__pos">{row.pos}</div>
-                <div className="results-row__name" style={{ color: row.player ? 'var(--text-primary)' : 'var(--text-faint)' }}>
+                <div
+                  className="results-row__name"
+                  style={{ color: row.player ? 'var(--text-primary)' : 'var(--text-faint)' }}
+                  title={row.player?.unknown ? 'Drafted from the room but not in your player list — no projections for him' : undefined}
+                >
                   {row.player ? row.player.name : 'empty'}
+                  {row.player?.unknown && <span className="results-row__untracked">no stats</span>}
                 </div>
                 <div className="mono results-row__meta">{row.player ? row.player.pos : ''}</div>
                 <div className="mono results-row__pick">{row.player?.pickNum ? `#${row.player.pickNum}` : ''}</div>
