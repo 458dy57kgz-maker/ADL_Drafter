@@ -117,6 +117,26 @@ export default function Legend() {
             Where the market takes him, then where you rank him. On an overdue card the second half becomes how many
             picks ago his ADP passed.
           </Row>
+          <Row
+            sample={
+              <span className="legend-pills">
+                <span className="card-copy">
+                  <svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true">
+                    <rect x="5.5" y="2.5" width="8" height="9" rx="1.5" fill="none" stroke="currentColor" strokeWidth="1.4" />
+                    <path d="M10.5 13.5H4a1.5 1.5 0 0 1-1.5-1.5V5" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+                  </svg>
+                </span>
+                <span className="card-copy card-copy--done">
+                  <svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true">
+                    <path d="M3 8.6 6.2 12 13 4.6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </span>
+              </span>
+            }
+          >
+            Copies the player’s name to the clipboard so it can be pasted straight into Yahoo’s draft search. It turns
+            into a green check for three seconds once the copy lands.
+          </Row>
         </div>
       </div>
 

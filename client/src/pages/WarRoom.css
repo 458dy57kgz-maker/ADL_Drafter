@@ -242,17 +242,27 @@
 .targets-strip__rings {
   display: flex;
   align-items: center;
-  justify-content: space-around;
-  gap: 12px;
+  justify-content: space-between;
+  gap: 10px;
   flex: 1;
   min-width: 0;
 }
 
 .target-ring-wrap {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
-  gap: 3px;
+  gap: 9px;
+  min-width: 0;
+}
+
+/* Label over leader, right-aligned against the ring. Stacking these to the
+   left instead of underneath frees the vertical room the ring then takes. */
+.target-ring-wrap__text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
   min-width: 0;
 }
 
@@ -261,8 +271,8 @@
    punched out of the middle to leave a ring rather than a pie. */
 .target-ring {
   position: relative;
-  width: 40px;
-  height: 40px;
+  width: 58px;
+  height: 58px;
   border-radius: 50%;
   background: conic-gradient(var(--accent) calc(var(--pct) * 1%), var(--track-bg) 0);
   display: flex;
@@ -272,20 +282,21 @@
 }
 
 .target-ring__inner {
-  width: 30px;
-  height: 30px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   background: var(--bg-card);
   display: flex;
   align-items: center;
   justify-content: center;
-  font: 700 11px var(--font-mono);
+  font: 700 14px var(--font-mono);
   color: var(--text-primary);
   font-variant-numeric: tabular-nums;
 }
 
 .target-ring__label {
-  font: 600 10.5px var(--font-ui);
+  font: 600 12px var(--font-ui);
+  text-align: right;
   color: var(--text-muted);
   white-space: nowrap;
 }
@@ -295,13 +306,14 @@
 .target-leader {
   display: flex;
   align-items: baseline;
+  justify-content: flex-end;
   gap: 5px;
-  max-width: 108px;
+  max-width: 96px;
   min-width: 0;
 }
 
 .target-leader__team {
-  font: 500 10px var(--font-ui);
+  font: 500 11px var(--font-ui);
   color: var(--text-faint);
   white-space: nowrap;
   overflow: hidden;
@@ -311,7 +323,7 @@
 
 .target-leader__value {
   flex: none;
-  font: 700 10.5px var(--font-mono);
+  font: 700 12px var(--font-mono);
   color: var(--text-secondary);
   font-variant-numeric: tabular-nums;
 }
@@ -323,16 +335,17 @@
 }
 
 .target-leader--none {
-  font: 500 10px var(--font-mono);
+  font: 500 11px var(--font-mono);
   color: var(--text-faint);
+  text-align: right;
 }
 
 /* Overall is a summary of the seven to its left, so it sits past a divider
    rather than reading as an eighth category. */
 .target-ring-wrap--overall {
   border-left: 1px solid var(--border-hairline-strong);
-  padding-left: 16px;
-  margin-left: 4px;
+  padding-left: 14px;
+  margin-left: 2px;
 }
 
 .target-ring--overall {
@@ -340,7 +353,7 @@
 }
 
 .target-ring--overall .target-ring__inner {
-  font: 700 10.5px var(--font-mono);
+  font: 700 13px var(--font-mono);
 }
 
 /* Hover reveals the goal. Written as its own bubble rather than a `title`

@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react';
 import { scarcityStyle } from '../lib/scarcity.js';
 import './DraftBoard.css';
 
@@ -57,6 +58,86 @@ function LeftRing({ left, taken, pos }) {
   );
 }
 
+// Copy the name so it can go straight into Yahoo's own search box. The
+// Clipboard API needs a secure context, which the NAS deployment has over
+// Tailscale but a bare-http dev origin does not, so fall back to a hidden
+// textarea + execCommand rather than failing silently on http://.
+function legacyCopy(text) {
+  const el = document.createElement('textarea');
+  el.value = text;
+  el.setAttribute('readonly', '');
+  el.style.position = 'fixed';
+  el.style.opacity = '0';
+  document.body.appendChild(el);
+  el.select();
+  const ok = document.execCommand('copy');
+  document.body.removeChild(el);
+  return ok;
+}
+
+async function copyText(text) {
+  // The Clipboard API can also reject on a secure origin — an unfocused
+  // document is enough — so a rejection falls through to the old path rather
+  // than ending the attempt.
+  if (navigator.clipboard?.writeText) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch {
+      /* fall through */
+    }
+  }
+  return legacyCopy(text);
+}
+
+function CopyName({ name }) {
+  const [copied, setCopied] = useState(false);
+  const timer = useRef(null);
+
+  useEffect(() => () => clearTimeout(timer.current), []);
+
+  async function handleCopy() {
+    let ok = false;
+    try {
+      ok = await copyText(name);
+    } catch {
+      ok = false;
+    }
+    if (!ok) return;
+    setCopied(true);
+    clearTimeout(timer.current);
+    timer.current = setTimeout(() => setCopied(false), 3000);
+  }
+
+  return (
+    <button
+      type="button"
+      className={`card-copy${copied ? ' card-copy--done' : ''}`}
+      onClick={handleCopy}
+      title={copied ? 'Copied' : `Copy "${name}" to the clipboard`}
+      aria-label={copied ? `Copied ${name}` : `Copy ${name} to the clipboard`}
+    >
+      {copied ? (
+        <svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true">
+          <path
+            d="M3 8.6 6.2 12 13 4.6"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      ) : (
+        <svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true">
+          <rect x="5.5" y="2.5" width="8" height="9" rx="1.5" fill="none" stroke="currentColor" strokeWidth="1.4" />
+          <path d="M10.5 13.5H4a1.5 1.5 0 0 1-1.5-1.5V5" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+        </svg>
+      )}
+    </button>
+  );
+}
+
 function Card({ card, tracked, onToggleTrack }) {
   const wait = card.status ? WAIT[card.status] : null;
   const classes = ['card'];
@@ -70,6 +151,7 @@ function Card({ card, tracked, onToggleTrack }) {
         <span className="name" title={card.name}>
           {card.name}
         </span>
+        <CopyName name={card.name} />
         {card.tier != null && <span className={`tier-chip ${tierClass(card.tier)}`}>T{card.tier}</span>}
         {card.status === 'overdue' && <span className="value-flag">★ VALUE</span>}
         {/* Not in the mockup. The board replaced the only place in the app

@@ -254,6 +254,38 @@
   background: var(--board-tier3-bg);
 }
 
+/* Also not in the mockup. Quiet by default so it doesn't compete with the
+   tier chip, and it holds the green check for three seconds so the copy is
+   confirmed even after you've looked away at Yahoo's search box. */
+.draft-board .card-copy {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  padding: 0;
+  line-height: 0;
+  color: var(--board-text-faint);
+  cursor: pointer;
+  transition: color 0.12s ease;
+}
+
+.draft-board .card-copy:hover {
+  color: var(--board-text);
+}
+
+.draft-board .card-copy--done,
+.draft-board .card-copy--done:hover {
+  color: var(--board-safe);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .draft-board .card-copy {
+    transition: none;
+  }
+}
+
 /* The one element with no counterpart in the mockup: quiet until it's on, so
    it reads as an affordance rather than another status colour. */
 .draft-board .card-star {

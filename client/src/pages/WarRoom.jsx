@@ -233,8 +233,10 @@ export default function WarRoom() {
 
       {/* Targets sit between the board and the roster as a single band. Top
           row is me: a ring filling toward the season goal, with the running
-          total in the middle and the goal on hover. Under each ring is
-          whoever currently leads that category, so the number you read is
+          total in the middle and the goal on hover. The label and the
+          category leader sit to the left of each ring rather than stacked
+          under it — the same band then buys a noticeably larger ring. The
+          leader is whoever currently leads that category, so the number you read is
           "am I ahead in the room", not just "am I on pace". Bench players
           count toward every manager's totals at 75% — see
           server/src/lib/roster.js. Overall on the right is the average of
@@ -248,6 +250,10 @@ export default function WarRoom() {
         <div className="targets-strip__rings">
           {targets.map((t) => (
             <div className="target-ring-wrap" key={t.key}>
+              <div className="target-ring-wrap__text">
+                <div className="target-ring__label">{t.label}</div>
+                <TargetLeader leader={t.leader} suffix="" />
+              </div>
               <div
                 className="target-ring"
                 style={{ '--pct': t.pct }}
@@ -257,11 +263,13 @@ export default function WarRoom() {
               >
                 <div className="target-ring__inner mono">{t.current}</div>
               </div>
-              <div className="target-ring__label">{t.label}</div>
-              <TargetLeader leader={t.leader} suffix="" />
             </div>
           ))}
           <div className="target-ring-wrap target-ring-wrap--overall">
+            <div className="target-ring-wrap__text">
+              <div className="target-ring__label">Overall</div>
+              <TargetLeader leader={overall.leader} suffix="%" />
+            </div>
             <div
               className="target-ring target-ring--overall"
               style={{ '--pct': overall.pct }}
@@ -271,8 +279,6 @@ export default function WarRoom() {
             >
               <div className="target-ring__inner mono">{overall.pct}%</div>
             </div>
-            <div className="target-ring__label">Overall</div>
-            <TargetLeader leader={overall.leader} suffix="%" />
           </div>
         </div>
       </div>
