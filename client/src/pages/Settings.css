@@ -15,7 +15,9 @@
 }
 
 .settings-sidebar__title {
-  font: 700 15px var(--font-ui);
+  font: 800 12px var(--font-ui);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
   color: var(--text-primary);
   padding: 0 8px;
   margin-bottom: 14px;
@@ -44,7 +46,8 @@
 }
 
 .settings-sidebar__footer-title {
-  font: 700 11px var(--font-ui);
+  font: 800 10px var(--font-ui);
+  letter-spacing: 0.12em;
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -84,7 +87,8 @@
 }
 
 .settings-section-title {
-  font: 700 20px var(--font-ui);
+  font: 800 24px var(--font-ui);
+  letter-spacing: -0.015em;
   color: var(--text-primary);
 }
 

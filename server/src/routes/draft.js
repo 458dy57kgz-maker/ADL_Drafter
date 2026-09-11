@@ -3,7 +3,8 @@ import { db, getSetting, setSetting, logDebug } from '../db/index.js';
 import { mapPlayerRow, normalizePosList } from '../lib/mapPlayer.js';
 import { round, nextPickForSlot, slotForPick } from '../lib/draftMath.js';
 import { poolCoverage } from './players.js';
-import { buildBoard } from '../lib/draftBoard.js';
+import { buildBoard, offNightShare } from '../lib/draftBoard.js';
+import { reconcileLeague } from '../lib/leagueSync.js';
 import { inferDraftOrder, planSync, normalizeName, PLACEHOLDER_NAME } from '../lib/pickFeed.js';
 import {
   POS_ORDER,
@@ -18,10 +19,10 @@ import {
 
 export const draftRouter = Router();
 
-// Cards per column. The columns start at the mockup's 400px and grow into
-// whatever height the window has spare, so this is sized for a tall monitor;
-// the column scrolls if it can't show them all.
-const BOARD_DEPTH = 6;
+// Cards per column. The 2a layout draws each player as a flat ~70px row
+// rather than a boxed card, so a tall monitor fits ten; the column scrolls
+// if the window can't show them all.
+const BOARD_DEPTH = 10;
 
 function buildState() {
   const league = getSetting('league');
@@ -43,6 +44,22 @@ function buildState() {
   const isMyTurnNow = slotForPick(currentPick, teamCount) === mySlot;
   const myNextPick = isMyTurnNow ? currentPick : nextPickForSlot(currentPick + 1, teamCount, mySlot);
   const picksUntilMe = isMyTurnNow ? 0 : myNextPick - currentPick;
+
+  // One round per roster seat (IR isn't drafted into), which is what the
+  // header's "ROUND 4 OF 16" and the feed's "46 of 192" count against.
+  const totalRounds = [...POS_ORDER, 'BENCH'].reduce((sum, pos) => sum + (rosterSlots[pos] ?? 0), 0);
+  const totalPicks = teamCount * totalRounds;
+  const teamAtPick = (pick) => league.teams?.[slotForPick(pick, teamCount) - 1]?.name ?? null;
+  const myPicks = [myNextPick, nextPickForSlot(myNextPick + 1, teamCount, mySlot)].filter(
+    (pk) => !totalPicks || pk <= totalPicks
+  );
+  // Every pick from now through my next one, named — "then Five Hole 48 ·
+  // Blue Line 49 · YOU 50". Capped because at the turn of a round it can
+  // be most of two rounds away.
+  const upcoming = [];
+  for (let pk = currentPick; pk <= myNextPick && upcoming.length < 20; pk++) {
+    upcoming.push({ pickNum: pk, team: teamAtPick(pk), isMine: slotForPick(pk, teamCount) === mySlot });
+  }
 
   // Players an opponent drafted who aren't in my list at all. I only import
   // the players I'd consider taking, so most of the room's picks are people
@@ -78,7 +95,23 @@ function buildState() {
   // other nine — see server/src/lib/roster.js.
   const mine = rosterable.filter((p) => p.mine);
   const myRoster = assignRoster(mine, rosterSlots);
-  const rosterSlotRows = myRoster.rows;
+  // Tier, off-night share and points are what the 2a roster table shows, so
+  // the off-night share is computed here with the board's own definition
+  // rather than re-derived in the browser.
+  const rosterSlotRows = myRoster.rows.map((row) =>
+    row.player
+      ? {
+          ...row,
+          player: {
+            ...row.player,
+            ongPct: row.player.unknown ? null : (() => {
+              const share = offNightShare(row.player);
+              return share == null ? null : Math.round(share * 100);
+            })(),
+          },
+        }
+      : row
+  );
 
   // Target Progress compares my weighted totals against whoever currently
   // leads each category, so the bar is the room rather than the calendar.
@@ -103,6 +136,9 @@ function buildState() {
       current: Math.round(myTotals[cat.key]),
       goal,
       pct: pctOf(myTotals[cat.key], goal),
+      // My total as a share of the leader's — "am I ahead in the room",
+      // which is the figure the 2a strip prints under each ring.
+      pctOfLeader: leader ? (leader.isMine ? 100 : Math.round((myTotals[cat.key] / leader.total) * 100)) : null,
       leader: leader
         ? { team: leader.team, current: Math.round(leader.total), pct: pctOf(leader.total, goal), isMine: leader.isMine }
         : null,
@@ -116,7 +152,13 @@ function buildState() {
       overallLeader = { team: t.name, pct: t.overallPct, isMine: t.isMine };
     }
   }
-  const overallRow = { label: 'Overall', pct: myOverall, leader: overallLeader };
+  const ledCats = targetRows.filter((t) => t.pctOfLeader != null);
+  const overallRow = {
+    label: 'Overall',
+    pct: myOverall,
+    leader: overallLeader,
+    pctOfLeader: ledCats.length ? Math.round(ledCats.reduce((s, t) => s + t.pctOfLeader, 0) / ledCats.length) : null,
+  };
 
   // The Best Available board. `nextPick` is always my next turn strictly
   // AFTER the current pick — including while I'm on the clock, since the
@@ -131,14 +173,18 @@ function buildState() {
     depth: BOARD_DEPTH,
   });
 
+  // Enough history to fill the two-column Live Picks panel on a tall screen;
+  // it clips rather than scrolls, like the design.
   const liveFeed = db
-    .prepare('SELECT * FROM draft_picks ORDER BY pick_num DESC LIMIT 6')
+    .prepare('SELECT * FROM draft_picks ORDER BY pick_num DESC LIMIT 40')
     .all()
-    .map((r) => ({ pickNum: r.pick_num, team: r.team, playerName: r.player_name, pos: r.pos }));
-
-  const tracked = players
-    .filter((p) => p.tracked)
-    .map((p) => ({ id: p.id, name: p.name, pos: p.pos, drafted: p.drafted, draftedBy: p.draftedBy }));
+    .map((r) => ({
+      pickNum: r.pick_num,
+      team: r.team,
+      playerName: r.player_name,
+      pos: r.pos,
+      isMine: !!myTeamName && r.team === myTeamName,
+    }));
 
   const onTheClockSlot = slotForPick(currentPick, teamCount);
   const onTheClockTeam = league.teams?.[onTheClockSlot - 1] ?? null;
@@ -150,6 +196,11 @@ function buildState() {
       picksUntilMe,
       onTheClock: onTheClockTeam?.name ?? null,
       isMyTurnNow,
+      pickCount,
+      totalRounds,
+      totalPicks,
+      myPicks,
+      upcoming,
     },
     yahooConnected: !!yahoo.connected,
     // Liveness for whatever is pushing picks — the Yahoo tracker bookmarklet,
@@ -165,7 +216,6 @@ function buildState() {
     overall: overallRow,
     benchWeight: BENCH_WEIGHT,
     liveFeed,
-    tracked,
   };
 }
 
@@ -381,11 +431,12 @@ draftRouter.post('/feed/apply-order', (req, res) => {
   const teams = inferred.teams.map((t) => ({ id: byName.get(normalizeName(t.name))?.id ?? `t${t.slot}`, name: t.name }));
   const mine = inferred.myTeamSlot ? teams[inferred.myTeamSlot - 1] : null;
 
-  setSetting('league', {
+  const updated = setSetting('league', {
     teams,
     teamCount: inferred.teamCount,
     ...(mine ? { myTeamId: mine.id, myTeamSlot: inferred.myTeamSlot } : {}),
   });
+  reconcileLeague(db, league, updated);
 
   logDebug(`Draft order recovered from the live feed: ${inferred.teamCount} teams, you at slot ${inferred.myTeamSlot ?? '?'}`, 'OK', 'app');
   res.json({ teams, teamCount: inferred.teamCount, myTeamSlot: inferred.myTeamSlot, myTeamId: mine?.id ?? null });

@@ -1,49 +1,69 @@
+/* Shared primitives, on the Modernist system's own conventions: panel titles
+   are heavy uppercase micro-labels (the wireframe's "MY ROSTER", "LIVE
+   PICKS"), buttons carry the heading weight, and nothing is rounded. */
+
 .card {
   background: var(--bg-card);
-  border: 1px solid var(--border-hairline-strong);
+  border: 1px solid var(--rule-mid);
   border-radius: var(--radius-card);
   padding: 16px;
 }
 
 .card-title {
-  font: 700 14px var(--font-ui);
+  font: 800 12px var(--font-ui);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
   color: var(--text-primary);
-  margin-bottom: 8px;
+  margin-bottom: 10px;
 }
 
 .card-subtitle {
   font: 500 12px var(--font-ui);
-  color: var(--text-faint);
+  color: var(--text-muted);
   margin-bottom: 12px;
 }
 
 .section-eyebrow {
-  font: 600 12px var(--font-ui);
-  color: var(--text-muted);
+  font: 800 12px var(--font-ui);
+  color: var(--text-primary);
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.12em;
 }
 
 .btn {
-  background: var(--bg-row);
+  background: transparent;
   border: 1px solid var(--border-hairline-strong);
   color: var(--text-primary);
-  font: 600 12px var(--font-ui);
+  font: 800 12px var(--font-ui);
+  letter-spacing: 0.02em;
   padding: 8px 14px;
   border-radius: 0;
 }
 
+.btn:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--text-primary) 7%, transparent);
+}
+
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 .btn-sm {
-  font: 600 11px var(--font-ui);
+  font: 800 11px var(--font-ui);
   padding: 6px 12px;
   border-radius: 0;
 }
 
 .btn-primary {
   background: var(--accent);
-  border: none;
+  border: 1px solid var(--accent);
   color: var(--accent-on-text);
-  font: 700 12px var(--font-ui);
+  font: 800 12px var(--font-ui);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--accent-hover);
 }
 
 .btn-danger {
@@ -60,21 +80,23 @@
   border: 1px solid var(--success-border);
   padding: 6px 12px;
   border-radius: var(--radius-pill);
-  font: 600 12px var(--font-ui);
+  font: 700 11px var(--font-ui);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
   color: var(--success-text);
 }
 
+/* Square, like the wireframe's status markers — not a dot. */
 .status-dot {
   width: 7px;
   height: 7px;
-  border-radius: 50%;
   background: var(--success);
   flex: none;
 }
 
 .pill-select,
 .pill-input {
-  background: var(--bg-row);
+  background: var(--bg-input);
   border: 1px solid var(--border-hairline-strong);
   color: var(--text-primary);
   font: 600 12px var(--font-ui);
@@ -87,9 +109,18 @@
   background: var(--bg-input);
   border: 1px solid var(--border-hairline-strong);
   color: var(--text-primary);
-  font: 500 12px var(--font-mono);
+  caret-color: var(--accent);
+  font: 500 13px var(--font-mono);
   padding: 9px 12px;
   border-radius: 0;
+}
+
+.field-input:focus-visible,
+.field-select:focus-visible,
+.pill-input:focus-visible,
+.pill-select:focus-visible {
+  outline: none;
+  border-color: var(--accent);
 }
 
 .mono {

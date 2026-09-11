@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { db, getSetting, setSetting, logDebug } from '../db/index.js';
+import { reconcileLeague } from '../lib/leagueSync.js';
 
 export const settingsRouter = Router();
 
@@ -52,7 +53,11 @@ settingsRouter.patch('/:section', (req, res) => {
   }
 
   if (!SECTIONS.includes(key)) return res.status(404).json({ error: `unknown settings section: ${key}` });
+  const before = key === 'league' ? getSetting('league') : null;
   const updated = setSetting(key, req.body);
+  // Picks are stored by team name and `mine` is stamped at pick time, so a
+  // rename or a change of "my team" has to be carried through to them.
+  if (key === 'league') reconcileLeague(db, before, updated);
   logDebug(`Settings section "${key}" updated`, 'OK', 'app');
   res.json({ [key]: updated });
 });

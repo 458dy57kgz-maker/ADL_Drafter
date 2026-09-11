@@ -11,7 +11,7 @@
   align-items: flex-start;
   gap: 14px;
   padding: 9px 0;
-  border-top: 1px solid var(--border-hairline);
+  border-top: 1px solid var(--rule-faint);
 }
 
 .legend-row:first-of-type {
@@ -31,58 +31,64 @@
 
 .legend-row__text {
   font: 500 12.5px var(--font-ui);
-  color: var(--text-muted);
+  color: var(--text-secondary);
   line-height: 1.55;
   min-width: 0;
 }
 
 .legend-row__text strong {
-  color: var(--text-secondary);
-  font-weight: 600;
+  color: var(--text-primary);
+  font-weight: 700;
 }
 
-.legend-pills {
+/* The board's own scope, minus its five-column grid. */
+.draft-board.draft-board--legend {
+  display: block;
+  border-bottom: none;
+}
+
+.legend-gutter {
   display: flex;
-  gap: 4px;
+  flex-direction: column;
+  align-items: flex-start;
 }
 
-/* The cliff is a full-width rule on the board; here it just needs to read. */
+.legend-inline {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.legend-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
 .legend-cliff {
+  display: block;
   width: 140px;
 }
 
-/* Stands in for a whole card, since the thing being explained is its border. */
-.plain-card-sample {
-  display: block;
-  width: 132px;
-  height: 26px;
-  border-radius: 0;
+/* Samples sit on a card surface, so the ring's punched-out centre matches
+   the card rather than the page. */
+.legend-ring-inner {
+  background: var(--bg-card);
+}
+
+.legend-shade {
+  font: 700 11px var(--font-ui);
   background: var(--bg-row);
-  border: 1px solid var(--border-hairline-strong);
-  box-shadow: 0 0 0 1px var(--border-hairline-strong) inset;
-}
-
-.legend-ring {
-  flex: none;
-}
-
-.legend-leader {
-  font: 700 11px var(--font-mono);
-  color: var(--text-secondary);
-}
-
-.legend-overall {
-  font: 700 13px var(--font-mono);
-  color: var(--gold);
+  padding: 1px 6px;
 }
 
 .legend-bench {
-  font: 700 13px var(--font-mono);
-  color: var(--text-secondary);
+  font: 800 13px var(--font-ui);
+  color: var(--text-primary);
 }
 
 .legend-diff {
-  font: 600 12px var(--font-mono);
+  font: 700 12px var(--font-mono);
 }
 
 .legend-diff--good {

@@ -6,17 +6,25 @@
    or grey. Sharp corners throughout (the system's own --radius-* are all
    0) rather than the app's old rounded cards. */
 :root {
-  /* Backgrounds */
-  --bg-app: #e2e0dd;
+  /* Backgrounds. The app sits on the paper ground (#f3f2f2) — the design's
+     #e2e0dd is only the canvas the mockups float on, not part of the app.
+     Cards take the system's surface (#eae9e9); rows and fields inside a card
+     go back to the ground so they read as lighter insets. */
+  --bg-app: #f3f2f2;
   --bg-panel: #eae9e9;
-  --bg-card: #f3f2f2;
-  --bg-input: #eae9e9;
-  --bg-row: #eae9e9;
-  --bg-row-alt: #f3f2f2;
+  --bg-card: #eae9e9;
+  --bg-input: #f3f2f2;
+  --bg-row: #f3f2f2;
+  --bg-row-alt: #eae9e9;
+  --bg-shade: #eae9e9;
 
-  /* Borders */
+  /* Borders — the design's four rule weights: 2px at .4 between regions,
+     1px at .25 between columns, .16 between cards, .12 between table rows. */
   --border-hairline: rgba(32, 30, 29, 0.16);
   --border-hairline-strong: rgba(32, 30, 29, 0.4);
+  --rule-mid: rgba(32, 30, 29, 0.25);
+  --rule-faint: rgba(32, 30, 29, 0.12);
+  --neutral-600: #7d7979;
 
   /* Text */
   --text-primary: #201e1d;

@@ -1,63 +1,39 @@
 import { useEffect, useRef, useState } from 'react';
-import { scarcityStyle } from '../lib/scarcity.js';
 import './DraftBoard.css';
 
-// The four wait states, in the mockup's own language. `overdue` and `gone`
-// share the same accent-strong red in the Modernist palette — the source
-// design spends red on exactly two things (the cliff, and value like this),
-// so overdue and danger read the same color and the numeric gutter carries
-// the real distinction between them.
+// Best Available, drawn as the wireframe's option 2a: five flat columns of
+// ruled rows rather than boxed cards, with a left "value gutter" that prints
+// how far past his ADP an overdue player has fallen. That figure is the only
+// thing that ranks several overdue players against each other, so it gets the
+// biggest type on the card; everything that says "take someone else" recedes.
+
+// Status by weight, not hue — Modernist is mono red on a light ground, so
+// "likely gone" and overdue carry the red, risky is ink, safe is quiet grey.
 const WAIT = {
-  overdue: { cls: 'value', label: 'Already overdue' },
-  gone: { cls: 'danger', label: 'Likely gone' },
-  risky: { cls: 'risk', label: 'Wait = risky' },
-  safe: { cls: 'safe', label: 'Safe to wait' },
+  overdue: { cls: 'value', label: 'OVERDUE — VALUE' },
+  gone: { cls: 'gone', label: 'LIKELY GONE' },
+  risky: { cls: 'risky', label: 'WAIT = RISKY' },
+  safe: { cls: 'safe', label: 'SAFE TO WAIT' },
 };
 
-// Where an off-night share stops being ordinary and starts being a reason to
-// prefer a player — matches the mockup, which highlights 44% and up.
-const ONG_HIGH = 44;
+// A position this thin is printed in red. Same threshold as the wireframe.
+const LOW_LEFT = 7;
 
-function tierClass(tier) {
-  if (tier == null) return null;
-  return `t${Math.min(tier, 3)}`;
+// Off-night share worth acting on. Below it the figure isn't printed at all
+// rather than printed quietly — the wireframe's rule.
+export const ONG_FLOOR = 44;
+
+function tierLine(col) {
+  const parts = col.counts.tiers.map((t) => `${t.count} T${t.tier}`);
+  const text = parts.length ? `${parts.join(' · ')} left` : '';
+  const full = col.sub?.kind === 'roster';
+  return full ? `${text}${text ? ' · ' : ''}full` : text;
 }
 
-function adpLine(card) {
-  if (card.adp == null) return <span className="adp-line">ADP —</span>;
-  return (
-    <span className="adp-line">
-      ADP <span className="adp-num">{card.adp}</span>
-      {card.picksAgo != null
-        ? ` · ${card.picksAgo} pick${card.picksAgo === 1 ? '' : 's'} ago`
-        : card.overallRank != null
-          ? ` · you ${card.overallRank}`
-          : ''}
-    </span>
-  );
-}
-
-// How much of this position's board is still on it, as a ring that drains
-// toward empty. The colour is the same three-step scarcity scale the app has
-// always used, so the ring reads at a glance even before the number does.
-function LeftRing({ left, taken, pos }) {
-  const total = left + taken;
-  const pct = total ? Math.round((left / total) * 100) : 0;
-  const style = scarcityStyle(left);
-  return (
-    <span
-      className="left-ring"
-      style={{ '--pct': pct, '--ring-color': style.fg }}
-      title={`${left} of ${total} still available at ${pos}${taken ? ` — ${taken} drafted` : ''}`}
-      role="img"
-      aria-label={`${left} players left at ${pos}`}
-    >
-      <span className="left-ring__inner">
-        <span className="left-ring__num mono">{left}</span>
-        <span className="left-ring__label">LEFT</span>
-      </span>
-    </span>
-  );
+// "30G  50A" — the two categories he moves furthest, packed the way the
+// wireframe packs them.
+function catsText(cats) {
+  return cats.map((c) => c.text.replace(' ', '')).join('   ');
 }
 
 // Copy the name so it can go straight into Yahoo's own search box. The
@@ -92,6 +68,19 @@ async function copyText(text) {
   return legacyCopy(text);
 }
 
+export function CopyIcon({ done = false }) {
+  return done ? (
+    <svg viewBox="0 0 16 16" width="12" height="12" aria-hidden="true">
+      <path d="M3 8.6 6.2 12 13 4.6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="square" />
+    </svg>
+  ) : (
+    <svg viewBox="0 0 16 16" width="12" height="12" aria-hidden="true">
+      <rect x="5.5" y="2.5" width="8" height="9" fill="none" stroke="currentColor" strokeWidth="1.4" />
+      <path d="M10.5 13.5H2.5V5" fill="none" stroke="currentColor" strokeWidth="1.4" />
+    </svg>
+  );
+}
+
 function CopyName({ name }) {
   const [copied, setCopied] = useState(false);
   const timer = useRef(null);
@@ -114,129 +103,86 @@ function CopyName({ name }) {
   return (
     <button
       type="button"
-      className={`card-copy${copied ? ' card-copy--done' : ''}`}
+      className={`bcard__copy${copied ? ' bcard__copy--done' : ''}`}
       onClick={handleCopy}
       title={copied ? 'Copied' : `Copy "${name}" to the clipboard`}
       aria-label={copied ? `Copied ${name}` : `Copy ${name} to the clipboard`}
     >
-      {copied ? (
-        <svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true">
-          <path
-            d="M3 8.6 6.2 12 13 4.6"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
-      ) : (
-        <svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true">
-          <rect x="5.5" y="2.5" width="8" height="9" rx="1.5" fill="none" stroke="currentColor" strokeWidth="1.4" />
-          <path d="M10.5 13.5H4a1.5 1.5 0 0 1-1.5-1.5V5" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-        </svg>
-      )}
+      <CopyIcon done={copied} />
     </button>
   );
 }
 
-function Card({ card, tracked, onToggleTrack }) {
+function Card({ card }) {
   const wait = card.status ? WAIT[card.status] : null;
-  const classes = ['card'];
-  if (card.status === 'overdue') classes.push('value');
-  else if (card.suggested) classes.push('suggested');
+  const past = card.status === 'overdue' && card.picksAgo != null;
+  const showOng = card.ongPct != null && card.ongPct >= ONG_FLOOR;
 
   return (
-    <div className={classes.join(' ')}>
-      <div className="card-top">
-        <span className="rank-badge">#{card.rank}</span>
-        <span className="name" title={card.name}>
-          {card.name}
-        </span>
-        <CopyName name={card.name} />
-        {card.tier != null && <span className={`tier-chip ${tierClass(card.tier)}`}>T{card.tier}</span>}
-        {card.status === 'overdue' && <span className="value-flag">★ VALUE</span>}
-        {/* Not in the mockup. The board replaced the only place in the app
-            that could star a player, and the Tracked Players panel would have
-            had no way to fill up without it. */}
-        <button
-          type="button"
-          className={`card-star${tracked ? ' card-star--on' : ''}`}
-          onClick={() => onToggleTrack(card.id, tracked)}
-          title={tracked ? 'Stop tracking' : 'Track this player'}
-          aria-pressed={tracked}
-        >
-          {tracked ? '★' : '☆'}
-        </button>
+    <div className={`bcard${card.status === 'safe' ? ' bcard--quiet' : ''}`}>
+      <div className="bcard__gutter">
+        <span className="bcard__value">{past ? `+${card.picksAgo}` : ''}</span>
+        <span className="bcard__value-label">{past ? 'PAST' : ''}</span>
+        <span className="bcard__rank">{card.overallRank != null ? `#${card.overallRank}` : ''}</span>
       </div>
-
-      <div className="card-mid">
-        <span className="cat-tags">
-          {card.cats.map((c) => (
-            <span className="cat-tag" key={c.key}>
-              {c.text}
-            </span>
-          ))}
-        </span>
-        {/* Dropped entirely rather than shown as 0% when the player has no
-            off-night data — a wrong percentage reads exactly like a real one. */}
-        {card.ongPct != null && (
-          <span className={`ong${card.ongPct >= ONG_HIGH ? ' high' : ''}`}>ONG {card.ongPct}%</span>
-        )}
-      </div>
-
-      <div className="card-bottom">
-        {adpLine(card)}
-        {wait && <span className={`wait-chip ${wait.cls}`}>{wait.label}</span>}
+      <div className="bcard__body">
+        <div className="bcard__row">
+          <span className="bcard__name" title={card.name}>
+            {card.name}
+          </span>
+          <CopyName name={card.name} />
+          <span className="bcard__tier">{card.tier != null ? `T${card.tier}` : ''}</span>
+        </div>
+        <div className="bcard__row bcard__row--sub">
+          <span className="bcard__cats">{catsText(card.cats)}</span>
+          {/* Dropped rather than shown as 0% when there's no data — a wrong
+              percentage reads exactly like a real one. */}
+          {showOng && <span className="bcard__ong">ONG {card.ongPct}%</span>}
+        </div>
+        <div className="bcard__row bcard__row--sub">
+          <span className="bcard__adp">ADP {card.adp ?? '—'}</span>
+          {wait && <span className={`bcard__wait bcard__wait--${wait.cls}`}>{wait.label}</span>}
+        </div>
       </div>
     </div>
   );
 }
 
-export default function DraftBoard({ board, trackedFor, onToggleTrack }) {
+export default function DraftBoard({ board }) {
   if (!board) return null;
 
   return (
     <div className="draft-board">
-      <div className="board">
-        {board.columns.map((col) => (
-          <div className="col" key={col.pos}>
-            <div className="col-head">
-              <div className="col-head-row">
-                <span className="pos">{col.pos}</span>
-                {/* Only tiers that still have somebody in them. "0 T1" was a
-                    fact about the past taking up room that the next live tier
-                    can use. */}
-                <span className="scarcity-pills">
-                  {col.counts.tiers.map((t) => (
-                    <span className={`mini-pill ${tierClass(t.tier)}`} key={t.tier}>
-                      {t.count} T{t.tier}
-                    </span>
-                  ))}
-                </span>
-                <LeftRing left={col.counts.total} taken={col.counts.taken} pos={col.pos} />
-              </div>
-              <div className="sub">{col.sub.text}</div>
-            </div>
-            <div className="cards">
-              {col.cards.map((card, i) => (
-                <div className="card-slot" key={card.id}>
-                  <Card card={card} tracked={trackedFor(card)} onToggleTrack={onToggleTrack} />
-                  {col.cliffAfter === i && (
-                    <div className="cliff">
-                      <span className="line" />
-                      <span className="label">TALENT CLIFF</span>
-                      <span className="line" />
-                    </div>
-                  )}
-                </div>
-              ))}
-              {col.cards.length === 0 && <div className="col-empty">Nobody left at {col.pos}</div>}
-            </div>
+      {board.columns.map((col) => (
+        <div className="bcol" key={col.pos}>
+          <div className="bcol__head">
+            <span className="bcol__pos">{col.pos}</span>
+            <span
+              className={`bcol__left${col.counts.total <= LOW_LEFT ? ' bcol__left--low' : ''}`}
+              title={`${col.counts.total} still available at ${col.pos} — ${col.counts.taken} drafted`}
+            >
+              {col.counts.total}
+            </span>
+            <span className="bcol__left-label">LEFT</span>
+            <span className="bcol__spacer" />
+            <span className="bcol__tiers" title={col.sub?.text}>
+              {tierLine(col)}
+            </span>
           </div>
-        ))}
-      </div>
-
+          <div className="bcol__cards">
+            {col.cards.map((card, i) => (
+              <div key={card.id}>
+                <Card card={card} />
+                {/* The talent cliff: a solid accent rule under the last card
+                    before the tier drops. Red is spent on this and on value,
+                    nothing else. */}
+                {col.cliffAfter === i && <div className="bcard-cliff" role="separator" aria-label="Talent cliff" />}
+              </div>
+            ))}
+            {col.cards.length === 0 && <div className="bcol__empty">Nobody left at {col.pos}</div>}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }

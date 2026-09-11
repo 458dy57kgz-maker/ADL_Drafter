@@ -14,7 +14,8 @@
 }
 
 .players-page__title {
-  font: 700 18px var(--font-ui);
+  font: 800 24px var(--font-ui);
+  letter-spacing: -0.015em;
   color: var(--text-primary);
 }
 
@@ -72,9 +73,9 @@
 .players-table th {
   padding: 9px 10px;
   text-align: left;
-  font: 700 11px var(--font-ui);
+  font: 800 10.5px var(--font-ui);
   color: var(--text-muted);
-  border-bottom: 1px solid var(--border-hairline-strong);
+  border-bottom: 2px solid var(--border-hairline-strong);
   cursor: pointer;
   white-space: nowrap;
   text-transform: uppercase;

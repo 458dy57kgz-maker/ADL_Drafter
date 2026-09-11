@@ -2,24 +2,37 @@ import { useEffect, useState } from 'react';
 import { api } from '../lib/api.js';
 import { usePolling } from '../lib/usePolling.js';
 import ConfirmDialog from '../components/ConfirmDialog.jsx';
-import DraftBoard from '../components/DraftBoard.jsx';
+import DraftBoard, { ONG_FLOOR } from '../components/DraftBoard.jsx';
 import { useLivePickFeed } from '../lib/useLivePickFeed.jsx';
 import './WarRoom.css';
 
-const POS_ORDER = ['C', 'LW', 'RW', 'D', 'G'];
+// War Room, built to option 2a of the War Room Redesign wireframe: a red
+// command band, the value-gutter board, a Season Totals strip, and a fixed
+// two-panel band for My Roster and Live Picks. Tracked Players is gone.
 
 // Anything pushed within two minutes counts as live: the tracker only pushes
 // when a pick lands, and a quiet stretch mid-round is normal.
 const FEED_LIVE_MS = 120000;
 
-function FeedChip({ feed, push }) {
+// A category at under this share of the leader's total is one you're losing,
+// so its ring and caption go red. The wireframe's threshold.
+const LOSING_PCT = 65;
+
+// Shaded "still to come" rows at the top of Live Picks. The wireframe shows
+// the three picks between now and yours; at the turn of a round that can be
+// eighteen, which would bury the history, so it's capped.
+const MAX_UPCOMING = 4;
+
+const SLOT_ORDER = ['C', 'LW', 'RW', 'D', 'G', 'BN'];
+
+function FeedStatus({ feed, push }) {
   const pushedRecently = push && Date.now() - push.at < FEED_LIVE_MS;
 
   if (push?.blocked) {
     return (
-      <div className="feed-chip feed-chip--blocked" title={`${push.blocked} — ${push.received} picks waiting. Fix it in Settings > Live Pick Feed.`}>
-        <span className="status-dot status-dot--off" />
-        Feed blocked
+      <div className="cmd__line" title={`${push.blocked} — ${push.received} picks waiting. Fix it in Settings > Live Pick Feed.`}>
+        <span className="cmd__mark cmd__mark--off" />
+        FEED BLOCKED
       </div>
     );
   }
@@ -28,11 +41,11 @@ function FeedChip({ feed, push }) {
     const lastPick = push?.lastPick ?? feed.report?.lastPick ?? 0;
     return (
       <div
-        className="feed-chip feed-chip--live"
+        className="cmd__line cmd__line--strong"
         title={push ? `Picks pushed from the draft room — through pick ${lastPick}` : `Reading ${feed.fileName ?? 'the pick file'}`}
       >
-        <span className="status-dot" />
-        Live feed · {lastPick}
+        <span className="cmd__mark" />
+        LIVE FEED · {lastPick}
       </div>
     );
   }
@@ -41,40 +54,206 @@ function FeedChip({ feed, push }) {
   // file to go back to; otherwise say so and leave setup to Settings.
   if (feed.supported && feed.hasHandle) {
     return (
-      <button type="button" className="feed-chip" onClick={feed.connect} disabled={feed.busy} title="Click to give the pick file permission again">
-        <span className="status-dot status-dot--off" />
-        Reconnect feed
+      <button
+        type="button"
+        className="cmd__line cmd__line--button"
+        onClick={feed.connect}
+        disabled={feed.busy}
+        title="Click to give the pick file permission again"
+      >
+        <span className="cmd__mark cmd__mark--off" />
+        RECONNECT FEED
       </button>
     );
   }
 
   return (
-    <div className="feed-chip" title={push ? `Last push ${Math.round((Date.now() - push.at) / 1000)}s ago` : 'Set this up in Settings > Live Pick Feed'}>
-      <span className="status-dot status-dot--off" />
-      {push ? 'Feed quiet' : 'No live feed'}
+    <div className="cmd__line" title={push ? `Last push ${Math.round((Date.now() - push.at) / 1000)}s ago` : 'Set this up in Settings > Live Pick Feed'}>
+      <span className="cmd__mark cmd__mark--off" />
+      {push ? 'FEED QUIET' : 'NO LIVE FEED'}
     </div>
   );
 }
 
-// The category leader, shown under my own ring. Nobody leads a category
-// nobody has scored in yet, so before the draft starts this is a dash rather
-// than an arbitrary team name.
-function TargetLeader({ leader, suffix }) {
-  if (!leader) {
-    return <div className="target-leader target-leader--none">—</div>;
-  }
-  const label = leader.isMine ? 'You' : leader.team;
+function CommandBand({ pickInfo, data, feed, pollInterval, mockDraftMode, onToggleMock, onReset }) {
+  const { pickNum, round, totalRounds, picksUntilMe, isMyTurnNow, myPicks = [], upcoming = [], onTheClock } = pickInfo;
+  const clockTeam = isMyTurnNow ? 'You' : onTheClock;
+  const then = upcoming.slice(1).map((u) => `${u.isMine ? 'YOU' : u.team ?? 'Pick'} ${u.pickNum}`);
+
   return (
-    <div
-      className={`target-leader${leader.isMine ? ' target-leader--mine' : ''}`}
-      title={`Leader: ${label} — ${leader.current ?? leader.pct}${suffix}`}
-    >
-      <span className="target-leader__team">{label}</span>
-      <span className="mono target-leader__value">
-        {leader.current ?? leader.pct}
-        {suffix}
-      </span>
+    <header className="cmd">
+      <div className="cmd__left">
+        <div className="cmd__main">
+          <div className="cmd__meta">
+            <span>PICK {pickNum}</span>
+            <span className="cmd__dot">·</span>
+            <span>
+              ROUND {round}
+              {totalRounds ? ` OF ${totalRounds}` : ''}
+            </span>
+            {myPicks.length > 0 && (
+              <>
+                <span className="cmd__dot">·</span>
+                <span>YOU PICK AT {myPicks.join(' & ')}</span>
+              </>
+            )}
+          </div>
+          <div className="cmd__count">
+            {isMyTurnNow ? (
+              <span className="cmd__num cmd__num--now">YOUR PICK</span>
+            ) : (
+              <>
+                <span className="cmd__num">{picksUntilMe}</span>
+                <span className="cmd__count-label">{picksUntilMe === 1 ? 'PICK UNTIL YOU' : 'PICKS UNTIL YOU'}</span>
+              </>
+            )}
+          </div>
+        </div>
+        {clockTeam && (
+          <div className="cmd__clock">
+            <div className="cmd__clock-label">ON THE CLOCK</div>
+            <div className="cmd__clock-team">{clockTeam}</div>
+            {then.length > 0 && <div className="cmd__clock-then">Then {then.join(' · ')}</div>}
+          </div>
+        )}
+      </div>
+
+      <div className="cmd__status">
+        {/* One indicator for both ways picks arrive: the Yahoo tracker
+            pushing to the server, or this browser watching a file. */}
+        <FeedStatus feed={feed} push={data.feed} />
+        <div className="cmd__line">
+          <span className={`cmd__mark${data.yahooConnected ? '' : ' cmd__mark--off'}`} />
+          {data.yahooConnected ? 'YAHOO CONNECTED' : 'YAHOO DISCONNECTED'}
+        </div>
+        <div className="cmd__line">POLL {pollInterval}s</div>
+        <label className="cmd__toggle" title="Mock Draft mode — switching either way starts a fresh draft">
+          <input type="checkbox" checked={mockDraftMode} onChange={onToggleMock} />
+          <span className="cmd__toggle-track">
+            <span className="cmd__toggle-thumb" />
+          </span>
+          MOCK DRAFT
+        </label>
+        {mockDraftMode && (
+          <button type="button" className="cmd__reset" onClick={onReset}>
+            RESET DRAFT
+          </button>
+        )}
+      </div>
+    </header>
+  );
+}
+
+// One ring in the Season Totals strip. The arc is my total against my season
+// target; the caption underneath is my total against the room's leader, and
+// that's what turns it red — "on pace" and "winning" are different questions.
+function TotalItem({ label, current, goal, arcPct, pctOfLeader, leader, overall = false }) {
+  const losing = pctOfLeader != null && pctOfLeader < LOSING_PCT;
+  const arcColor = overall ? 'var(--text-primary)' : losing ? 'var(--accent)' : 'var(--text-muted)';
+  const leaderText = leader ? `${leader.isMine ? 'You' : leader.team} lead${leader.isMine ? '' : 's'} with ${leader.current ?? `${leader.pct}%`}` : 'Nobody has scored here yet';
+
+  let caption;
+  if (pctOfLeader == null) caption = 'no leader yet';
+  else if (leader?.isMine) caption = 'you lead';
+  else caption = `${pctOfLeader}% of leader`;
+
+  return (
+    <div className={`totals__item${overall ? ' totals__item--overall' : ''}`} title={leaderText}>
+      <div
+        className="totals__ring"
+        style={{ background: `conic-gradient(${arcColor} ${Math.min(arcPct, 100)}%, var(--track-bg) 0)` }}
+        role="img"
+        aria-label={`${label}: ${current}${overall ? '' : ` of ${goal}`}, ${caption}`}
+      >
+        <div className="totals__ring-inner">{current}</div>
+      </div>
+      <div className="totals__text">
+        <span className="totals__label">{label}</span>
+        <span className="totals__goal">{overall ? 'all seven cats' : `of ${goal}`}</span>
+        <span className={`totals__pct${losing && !overall ? ' totals__pct--losing' : ''}`}>{caption}</span>
+      </div>
     </div>
+  );
+}
+
+function stillToFill(slots) {
+  const empty = {};
+  for (const s of slots) if (!s.player) empty[s.pos] = (empty[s.pos] ?? 0) + 1;
+  const parts = SLOT_ORDER.filter((pos) => empty[pos]).map((pos) => `${empty[pos]}${pos}`);
+  return parts.length ? `Still to fill ${parts.join(' · ')}` : 'Every seat filled';
+}
+
+function RosterRow({ slot }) {
+  const p = slot.player;
+  const ongHigh = p?.ongPct != null && p.ongPct >= ONG_FLOOR;
+  return (
+    <div className="wr-roster__row">
+      <span className="wr-roster__pos">{slot.pos}</span>
+      <span
+        className={`wr-roster__name${p ? '' : ' wr-roster__name--empty'}`}
+        title={p?.unknown ? 'Drafted from the room but not in your player list — no projections for him' : p?.name}
+      >
+        {p ? p.name : 'empty'}
+        {p?.unknown && <span className="wr-roster__nostats">NO STATS</span>}
+      </span>
+      <span className={`wr-roster__num${p?.tier != null ? ' wr-roster__num--ink' : ''}`}>{p?.tier != null ? `T${p.tier}` : '—'}</span>
+      <span className={`wr-roster__num${ongHigh ? ' wr-roster__num--hot' : ''}`}>{p?.ongPct != null ? `${p.ongPct}%` : '—'}</span>
+      <span className={`wr-roster__num wr-roster__num--pts${p?.p != null ? ' wr-roster__num--ink' : ''}`}>{p?.p ?? '—'}</span>
+    </div>
+  );
+}
+
+function RosterHeader() {
+  return (
+    <div className="wr-roster__row wr-roster__row--head">
+      <span />
+      <span>NAME</span>
+      <span className="wr-roster__num">TIER</span>
+      <span className="wr-roster__num">ONG</span>
+      <span className="wr-roster__num">PTS</span>
+    </div>
+  );
+}
+
+function LivePicks({ pickInfo, liveFeed }) {
+  const { upcoming = [], isMyTurnNow, pickCount, totalPicks, pickNum } = pickInfo;
+  // The picks still to come before mine, shaded. When I'm on the clock the
+  // only one worth showing is my own.
+  const ahead = (isMyTurnNow ? upcoming.slice(0, 1) : upcoming.filter((u) => !u.isMine)).slice(0, MAX_UPCOMING);
+
+  return (
+    <section className="wr-panel wr-feed">
+      <div className="wr-panel__head">
+        <span className="wr-panel__title">LIVE PICKS</span>
+        <span className="wr-panel__note">
+          {pickCount}
+          {totalPicks ? ` of ${totalPicks}` : ''}
+          {ahead.length ? ` · next ${ahead.length === 1 ? 'one' : ahead.length} shaded` : ''}
+        </span>
+      </div>
+      <div className="wr-feed__grid">
+        {ahead.map((u) => (
+          <div className="wr-feed__row wr-feed__row--ahead" key={`u${u.pickNum}`}>
+            <span className="wr-feed__num">#{u.pickNum}</span>
+            <span className="wr-feed__team wr-feed__team--ahead">{u.isMine ? 'You' : u.team ?? '—'}</span>
+            <span className={`wr-feed__player${u.pickNum === pickNum ? ' wr-feed__player--clock' : ' wr-feed__player--wait'}`}>
+              {u.pickNum === pickNum ? 'ON THE CLOCK' : '—'}
+            </span>
+          </div>
+        ))}
+        {liveFeed.map((f) => (
+          <div className={`wr-feed__row${f.isMine ? ' wr-feed__row--mine' : ''}`} key={f.pickNum}>
+            <span className="wr-feed__num">#{f.pickNum}</span>
+            <span className="wr-feed__team">{f.isMine ? 'You' : f.team}</span>
+            <span className="wr-feed__player">
+              {f.playerName}
+              {f.pos ? ` (${f.pos})` : ''}
+            </span>
+          </div>
+        ))}
+        {liveFeed.length === 0 && ahead.length === 0 && <div className="wr-feed__empty">No picks yet</div>}
+      </div>
+    </section>
   );
 }
 
@@ -86,11 +265,6 @@ export default function WarRoom() {
   const [pollInterval, setPollInterval] = useState(8);
   const { data, error, refetch } = usePolling(api.getDraftState, pollInterval, [pollInterval]);
 
-  // Instant star feedback: the click flips this local override immediately,
-  // rather than waiting for the poll's next tick (up to `pollInterval`
-  // seconds away) to reflect the change — that lag was reading as "did my
-  // click not register?" and inviting a double-click that undid it.
-  const [trackedOverrides, setTrackedOverrides] = useState({});
   const [pending, setPending] = useState(null); // 'toggle' | 'reset'
   const [resetBusy, setResetBusy] = useState(false);
   const [resetError, setResetError] = useState(null);
@@ -102,39 +276,6 @@ export default function WarRoom() {
       setPollInterval(data.pollInterval);
     }
   }, [data, pollInterval]);
-
-  // Drop an override once fresh server data confirms the same value, so the
-  // map doesn't grow stale/unbounded across a long draft session.
-  useEffect(() => {
-    if (!data) return;
-    const allPlayers = (data.board?.columns ?? []).flatMap((col) => col.cards);
-    setTrackedOverrides((prev) => {
-      const next = { ...prev };
-      let changed = false;
-      for (const p of allPlayers) {
-        if (p.id in next && next[p.id] === p.tracked) {
-          delete next[p.id];
-          changed = true;
-        }
-      }
-      return changed ? next : prev;
-    });
-  }, [data]);
-
-  function trackedFor(p) {
-    return p.id in trackedOverrides ? trackedOverrides[p.id] : p.tracked;
-  }
-
-  async function handleToggleTrack(playerId, tracked) {
-    const next = !tracked;
-    setTrackedOverrides((prev) => ({ ...prev, [playerId]: next }));
-    try {
-      await api.updatePlayer(playerId, { tracked: next });
-      refetch();
-    } catch {
-      setTrackedOverrides((prev) => ({ ...prev, [playerId]: tracked }));
-    }
-  }
 
   // Both switching Mock Draft mode and the in-mode Reset button wipe the
   // draft, so both go through the same confirmation. `pending` is which one
@@ -159,9 +300,7 @@ export default function WarRoom() {
   if (error) {
     return (
       <div className="war-room war-room--empty">
-        <div className="card">
-          Could not reach the API server. Is it running? ({error.message})
-        </div>
+        <div className="card">Could not reach the API server. Is it running? ({error.message})</div>
       </div>
     );
   }
@@ -170,63 +309,21 @@ export default function WarRoom() {
     return <div className="war-room war-room--empty">Loading draft state…</div>;
   }
 
-  const { pickInfo, yahooConnected, board, roster, targets, overall, liveFeed, tracked } = data;
+  const { pickInfo, board, roster, targets, overall, liveFeed } = data;
 
   return (
     <div className="war-room">
-      {/* The command band: a full-width red header rather than a thin dark
-          bar, with the countdown to your next pick as the one thing it's
-          impossible to miss. Everything that was a status bar before is
-          still here, just pushed into a stacked column on the right behind
-          a divider, the way the source design keeps command-band controls
-          out of the reading path of the number that matters. */}
-      <header className="war-room__header">
-        <div className="war-room__header-main">
-          <div className="war-room__header-meta">
-            <span>PICK {pickInfo.pickNum}</span>
-            <span className="war-room__header-dot">·</span>
-            <span>ROUND {pickInfo.round}</span>
-          </div>
-          <div className="war-room__countdown">
-            <span className="war-room__countdown-num mono">{pickInfo.picksUntilMe}</span>
-            <span className="war-room__countdown-label">
-              {pickInfo.picksUntilMe === 1 ? 'PICK UNTIL YOU' : 'PICKS UNTIL YOU'}
-            </span>
-          </div>
-        </div>
-        {pickInfo.onTheClock && (
-          <div className="war-room__onclock">
-            <div className="war-room__onclock-label">On the clock</div>
-            <div className="war-room__onclock-team">{pickInfo.onTheClock}</div>
-          </div>
-        )}
-        <div className="war-room__header-status">
-          <FeedChip feed={feed} push={data.feed} />
-          <div className="yahoo-status">
-            <span className={`status-dot${yahooConnected ? '' : ' status-dot--off'}`} />
-            {yahooConnected ? 'Yahoo connected' : 'Yahoo disconnected'}
-          </div>
-          <div className="poll-chip mono">poll {pollInterval}s</div>
-          <label className="mock-toggle" title="Mock Draft mode — switching either way starts a fresh draft">
-            <input type="checkbox" checked={mockDraftMode} onChange={() => setPending('toggle')} />
-            <span className="mock-toggle__track">
-              <span className="mock-toggle__thumb" />
-            </span>
-            Mock Draft
-          </label>
-          {mockDraftMode && (
-            <button type="button" className="btn btn-sm btn-danger war-room__reset-btn" onClick={() => setPending('reset')}>
-              Reset Draft
-            </button>
-          )}
-        </div>
-      </header>
+      <CommandBand
+        pickInfo={pickInfo}
+        data={data}
+        feed={feed}
+        pollInterval={pollInterval}
+        mockDraftMode={mockDraftMode}
+        onToggleMock={() => setPending('toggle')}
+        onReset={() => setPending('reset')}
+      />
 
-      {resetError && (
-        <div className="card" style={{ marginBottom: 12, color: 'var(--danger-text)', font: '600 12px var(--font-ui)' }}>
-          {resetError}
-        </div>
-      )}
+      {resetError && <div className="wr-error">{resetError}</div>}
 
       <ConfirmDialog
         open={pending !== null}
@@ -242,137 +339,59 @@ export default function WarRoom() {
         onCancel={() => setPending(null)}
       />
 
-      <div className="war-room__board-section">
-        <div className="war-room__board-heading">
-          <div className="section-eyebrow">Best Available — next per position</div>
-          <div className="war-room__board-hint">Red card = falling past his ADP. Line under a card = talent cliff.</div>
-        </div>
-        <DraftBoard board={board} trackedFor={trackedFor} onToggleTrack={handleToggleTrack} />
+      <div className="wr-board">
+        <DraftBoard board={board} />
       </div>
 
-      {/* Targets sit between the board and the roster as a single band. Top
-          row is me: a ring filling toward the season goal, with the running
-          total in the middle and the goal on hover. The label and the
-          category leader sit to the left of each ring rather than stacked
-          under it — the same band then buys a noticeably larger ring. The
-          leader is whoever currently leads that category, so the number you read is
-          "am I ahead in the room", not just "am I on pace". Bench players
-          count toward every manager's totals at 75% — see
-          server/src/lib/roster.js. Overall on the right is the average of
-          the seven percentages. */}
-      <div className="card targets-strip">
-        <div className="targets-strip__title">
-          Target
+      {/* Season Totals. Arc = my total against my target; caption = my total
+          against whoever leads the room, which is what turns a ring red.
+          Bench players count at 75% for every manager — server/src/lib/roster.js. */}
+      <div className="totals">
+        <div className="totals__title">
+          SEASON
           <br />
-          Progress
+          TOTALS
         </div>
-        <div className="targets-strip__rings">
+        <div className="totals__items">
           {targets.map((t) => (
-            <div className="target-ring-wrap" key={t.key}>
-              <div className="target-ring-wrap__text">
-                <div className="target-ring__label">{t.label}</div>
-                <TargetLeader leader={t.leader} suffix="" />
-              </div>
-              <div
-                className="target-ring"
-                style={{ '--pct': t.pct }}
-                data-goal={`${t.current} of ${t.goal} — ${t.pct}%`}
-                role="img"
-                aria-label={`${t.label}: ${t.current} of ${t.goal}`}
-              >
-                <div className="target-ring__inner mono">{t.current}</div>
-              </div>
-            </div>
+            <TotalItem
+              key={t.key}
+              label={t.label.toUpperCase()}
+              current={t.current}
+              goal={t.goal}
+              arcPct={t.pct}
+              pctOfLeader={t.pctOfLeader}
+              leader={t.leader}
+            />
           ))}
-          <div className="target-ring-wrap target-ring-wrap--overall">
-            <div className="target-ring-wrap__text">
-              <div className="target-ring__label">Overall</div>
-              <TargetLeader leader={overall.leader} suffix="%" />
-            </div>
-            <div
-              className="target-ring target-ring--overall"
-              style={{ '--pct': overall.pct }}
-              role="img"
-              aria-label={`Overall: ${overall.pct}% of target across the seven tracked categories`}
-              data-goal="Average across the 7 categories"
-            >
-              <div className="target-ring__inner mono">{overall.pct}%</div>
-            </div>
-          </div>
+          <TotalItem
+            overall
+            label="OVERALL"
+            current={`${overall.pct}%`}
+            arcPct={overall.pct}
+            pctOfLeader={overall.pctOfLeader}
+            leader={overall.leader}
+          />
         </div>
       </div>
 
-      <div className="war-room__bottom-grid">
-        <div className="card roster-card">
-          <div className="card-title">My Roster</div>
-          <div className="roster-header">
-            <div>SLOT</div>
-            <div>PLAYER</div>
-            <div>G</div>
-            <div>A</div>
-            <div>P</div>
-            <div>PPP</div>
-            <div>+/-</div>
-            <div>SH</div>
-            <div>BLK</div>
+      <div className="wr-bottom">
+        <section className="wr-panel wr-roster">
+          <div className="wr-panel__head">
+            <span className="wr-panel__title">MY ROSTER</span>
+            <span className="wr-panel__note">{stillToFill(roster.slots)}</span>
           </div>
-          {roster.slots.map((slot, i) => (
-            <div className={`roster-row${slot.pos === 'BN' ? ' roster-row--bench' : ''}`} key={i}>
-              <div className="mono roster-row__pos">{slot.pos}</div>
-              <div
-                className={`roster-row__name${slot.player?.unknown ? ' roster-row__name--unknown' : ''}`}
-                style={{ color: slot.player ? 'var(--text-primary)' : 'var(--text-faint)' }}
-                title={slot.player?.unknown ? 'Drafted from the room but not in your player list — no projections for him' : undefined}
-              >
-                {slot.player ? slot.player.name : 'empty'}
-                {slot.player?.unknown && <span className="roster-row__untracked">no stats</span>}
-              </div>
-              <div className="mono">{slot.player?.g ?? '–'}</div>
-              <div className="mono">{slot.player?.a ?? '–'}</div>
-              <div className="mono">{slot.player?.p ?? '–'}</div>
-              <div className="mono">{slot.player?.ppp ?? '–'}</div>
-              <div className="mono">{slot.player?.plusMinus ?? '–'}</div>
-              <div className="mono">{slot.player?.shots ?? '–'}</div>
-              <div className="mono">{slot.player?.blocks ?? '–'}</div>
-            </div>
-          ))}
-          <div className="roster-footer">IR x{roster.irCount} — empty</div>
-        </div>
-
-        <div className="side-col">
-          {/* Side by side, each scrolling in place so the band's height stays
-              fixed no matter how long the draft runs. Position Scarcity used
-              to sit above them and said nothing the board's own rings don't
-              say better, right next to the players it's about. */}
-          <div className="side-col__pair">
-            <div className="card side-col__scroller">
-              <div className="card-title">Live Pick Feed</div>
-              {liveFeed.map((f) => (
-                <div className="feed-row" key={f.pickNum}>
-                  <span className="mono feed-row__num">#{f.pickNum}</span> {f.team} → {f.playerName} ({f.pos})
-                </div>
-              ))}
-              {liveFeed.length === 0 && <div className="feed-row feed-row--empty">No picks yet</div>}
-            </div>
-            <div className="card side-col__scroller">
-              <div className="card-title">Tracked Players</div>
-              {tracked.map((tr) => (
-                <div className="tracked-row" key={tr.id}>
-                  <div>
-                    {tr.name} <span className="tracked-row__pos">— {tr.pos}</span>
-                  </div>
-                  <div
-                    className="tracked-row__status"
-                    style={{ color: tr.drafted ? 'var(--danger-text)' : 'var(--success-text)' }}
-                  >
-                    {tr.drafted ? `Taken by ${tr.draftedBy}` : 'Still available'}
-                  </div>
-                </div>
-              ))}
-              {tracked.length === 0 && <div className="tracked-row tracked-row--empty">No players tracked yet</div>}
-            </div>
+          <div className="wr-roster__grid wr-roster__grid--head">
+            <RosterHeader />
+            <RosterHeader />
           </div>
-        </div>
+          <div className="wr-roster__grid wr-roster__grid--body">
+            {roster.slots.map((slot, i) => (
+              <RosterRow slot={slot} key={i} />
+            ))}
+          </div>
+        </section>
+        <LivePicks pickInfo={pickInfo} liveFeed={liveFeed} />
       </div>
     </div>
   );

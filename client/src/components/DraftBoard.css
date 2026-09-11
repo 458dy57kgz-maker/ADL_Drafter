@@ -1,231 +1,157 @@
-/* Best Available board — recolored onto the Modernist system (see
-   styles/theme.css). Status used to run gold/silver/bronze tiers plus a
-   green/amber/red wait scale; the source design keeps almost everything in
-   ink and grey and spends its one red only on what's actually urgent
-   (overdue value, the cliff), so tier1 and every "bad" status now share the
-   same accent-strong red, tier2/risky share near-black, and tier3/safe share
-   a quiet mid-grey. Board-local tokens are kept (rather than inlining the
-   theme vars everywhere below) so this file still reads as one palette. */
+/* Best Available — option 2a of the War Room Redesign wireframe. Sizes,
+   weights and rules are transcribed from the wireframe (including its own
+   14px overrides on the rank and tier), not re-derived. Everything is
+   scoped under .draft-board so it can't collide with the global .card. */
 
 .draft-board {
-  --board-panel: var(--bg-card);
-  --board-panel-2: var(--bg-row);
-  --board-border: var(--border-hairline-strong);
-  --board-text: var(--text-primary);
-  --board-text-dim: var(--text-secondary);
-  --board-text-faint: var(--text-muted);
-  --board-tier1: var(--accent-strong);
-  --board-tier1-bg: var(--accent-strong-bg);
-  --board-tier2: var(--text-primary);
-  --board-tier2-bg: var(--bg-row-alt);
-  --board-tier3: var(--text-muted);
-  --board-tier3-bg: var(--bg-row-alt);
-  --board-safe: var(--text-muted);
-  --board-safe-bg: var(--bg-row-alt);
-  --board-risk: var(--text-primary);
-  --board-risk-bg: var(--bg-row-alt);
-  --board-danger: var(--accent-strong);
-  --board-danger-bg: var(--accent-strong-bg);
-
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  flex: 1;
-  min-height: 0;
-}
-
-.draft-board .board {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 10px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   flex: 1;
   min-height: 0;
+  border-bottom: 2px solid var(--border-hairline-strong);
 }
 
-/* The mockup fixed these at 400px, which was right when a legend sat under
-   them. With that gone the leftover height was dead space, so the columns
-   take it and show more players — never less than the 400px they were. */
-.draft-board .col {
-  background: var(--board-panel);
-  border: 1px solid var(--board-border);
-  border-radius: 0;
-  min-height: 400px;
+.draft-board .bcol {
+  min-width: 0;
+  min-height: 0;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  border-right: 1px solid var(--rule-mid);
 }
 
-.draft-board .col-head {
-  padding: 10px 12px 9px;
-  border-bottom: 1px solid var(--board-border);
-  flex-shrink: 0;
+.draft-board .bcol:last-child {
+  border-right: none;
 }
 
-.draft-board .col-head-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 0;
-}
-
-.draft-board .col-head .pos {
-  font-size: 15px;
-  font-weight: 700;
-  letter-spacing: 0.3px;
-  color: var(--board-text);
-}
-
-.draft-board .scarcity-pills {
-  display: flex;
-  gap: 4px;
-  flex: 1;
-  min-width: 0;
-  flex-wrap: wrap;
-}
-
-/* How much of this position's board is left, draining anticlockwise-free:
-   the conic sweep is the remaining share, the rest is the track. Bigger than
-   the pill it replaces because scarcity is the thing you glance at most. */
-.draft-board .left-ring {
+.draft-board .bcol__head {
   flex: none;
-  width: 46px;
-  height: 46px;
-  border-radius: 50%;
-  background: conic-gradient(var(--ring-color) calc(var(--pct) * 1%), var(--board-border) 0);
+  padding: 9px 12px;
   display: flex;
-  align-items: center;
-  justify-content: center;
+  align-items: baseline;
+  gap: 8px;
+  border-bottom: 1px solid var(--rule-mid);
+  min-width: 0;
 }
 
-.draft-board .left-ring__inner {
-  width: 37px;
-  height: 37px;
-  border-radius: 50%;
-  background: var(--board-panel);
+.draft-board .bcol__pos {
+  font: 900 20px var(--font-ui);
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+}
+
+.draft-board .bcol__left {
+  font: 800 13px var(--font-ui);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+}
+
+.draft-board .bcol__left--low {
+  color: var(--accent-strong);
+}
+
+.draft-board .bcol__left-label {
+  font: 600 9.5px var(--font-ui);
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+}
+
+.draft-board .bcol__spacer {
+  flex: 1;
+}
+
+.draft-board .bcol__tiers {
+  font: 600 10px var(--font-ui);
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+/* Scrolls rather than clips: a column sized to the window will sometimes
+   land mid-card, and half a player you can't reach is a bug. */
+.draft-board .bcol__cards {
+  flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  line-height: 1;
+  overflow-y: auto;
 }
 
-.draft-board .left-ring__num {
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--ring-color);
+.draft-board .bcol__empty {
+  padding: 10px 12px;
+  font: 500 11px var(--font-ui);
+  color: var(--text-muted);
+}
+
+.draft-board .bcard {
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr);
+  gap: 8px;
+  padding: 8px 12px 9px;
+  border-bottom: 1px solid var(--border-hairline);
+}
+
+/* Safe-to-wait players are the ones not to draft, so they recede. */
+.draft-board .bcard--quiet {
+  opacity: 0.62;
+}
+
+.draft-board .bcard__gutter {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.draft-board .bcard__value {
+  font: 800 19px/1 var(--font-ui);
+  letter-spacing: -0.02em;
   font-variant-numeric: tabular-nums;
+  color: var(--accent-strong);
+  min-height: 19px;
 }
 
-.draft-board .left-ring__label {
-  font-size: 7.5px;
-  font-weight: 700;
-  letter-spacing: 0.6px;
-  color: var(--board-text-faint);
-  margin-top: 2px;
+.draft-board .bcard__value-label {
+  font: 700 7.5px var(--font-ui);
+  letter-spacing: 0.1em;
+  color: var(--accent-strong);
+  margin-top: 1px;
+  min-height: 9px;
 }
 
-.draft-board .mini-pill {
-  font-size: 10px;
-  font-weight: 700;
-  padding: 2px 6px;
-  border-radius: 0;
-  letter-spacing: 0.2px;
+.draft-board .bcard__rank {
+  margin-top: auto;
+  font: 600 14px var(--font-ui);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
 }
 
-.draft-board .mini-pill.t1 {
-  color: var(--board-tier1);
-  background: var(--board-tier1-bg);
+.draft-board .bcard__body {
+  min-width: 0;
 }
 
-.draft-board .mini-pill.t2 {
-  color: var(--board-tier2);
-  background: var(--board-tier2-bg);
+.draft-board .bcard__row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
 }
 
-.draft-board .mini-pill.t3 {
-  color: var(--board-tier3);
-  background: var(--board-tier3-bg);
+.draft-board .bcard__row--sub {
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 4px;
 }
 
-.draft-board .col-head .sub {
-  font-size: 11px;
-  color: var(--board-text-faint);
+.draft-board .bcard__row--sub + .bcard__row--sub {
   margin-top: 3px;
 }
 
-.draft-board .cards {
-  padding: 8px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  /* Scrolls rather than clips: a column that grows to fit the window will
-     sometimes land mid-card, and half a player you can't reach is a bug. */
-  overflow-y: auto;
-  flex: 1;
-}
-
-/* A card and the cliff that may follow it travel together, so the divider
-   lands between the right two cards without a second gap rule. */
-.draft-board .card-slot {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.draft-board .col-empty {
-  font-size: 11px;
-  color: var(--board-text-faint);
-  padding: 6px 2px;
-}
-
-.draft-board .card {
-  background: var(--board-panel-2);
-  border: 1px solid var(--board-border);
-  border-radius: 0;
-  padding: 8px 10px;
-  position: relative;
-}
-
-.draft-board .card.suggested {
-  border-color: var(--border-hairline-strong);
-  box-shadow: 0 0 0 1px var(--border-hairline-strong) inset;
-}
-
-.draft-board .card.value {
-  border-color: var(--accent-strong);
-  box-shadow: 0 0 0 1px var(--accent-strong-bg) inset;
-}
-
-.draft-board .value-flag {
-  font-size: 10px;
-  font-weight: 700;
-  color: var(--board-tier1);
-  background: var(--board-tier1-bg);
-  padding: 1px 6px;
-  border-radius: 0;
-  flex-shrink: 0;
-  letter-spacing: 0.2px;
-}
-
-.draft-board .card-top {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  margin-bottom: 5px;
-}
-
-.draft-board .rank-badge {
-  font-size: 10px;
-  color: var(--board-text-faint);
-  font-variant-numeric: tabular-nums;
-  width: 16px;
-  flex-shrink: 0;
-}
-
-.draft-board .name {
-  font-size: 13.5px;
-  font-weight: 600;
-  color: var(--board-text);
+.draft-board .bcard__name {
+  font: 700 14px var(--font-ui);
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
   flex: 1;
   min-width: 0;
   white-space: nowrap;
@@ -233,197 +159,79 @@
   text-overflow: ellipsis;
 }
 
-.draft-board .tier-chip {
-  font-size: 10px;
-  font-weight: 700;
-  padding: 1px 6px;
-  border-radius: 0;
-  flex-shrink: 0;
-  letter-spacing: 0.2px;
+.draft-board .bcard__tier {
+  flex: none;
+  font: 700 14px var(--font-ui);
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
 }
 
-.draft-board .tier-chip.t1 {
-  color: var(--board-tier1);
-  background: var(--board-tier1-bg);
-}
-
-.draft-board .tier-chip.t2 {
-  color: var(--board-tier2);
-  background: var(--board-tier2-bg);
-}
-
-.draft-board .tier-chip.t3 {
-  color: var(--board-tier3);
-  background: var(--board-tier3-bg);
-}
-
-/* Also not in the mockup. Quiet by default so it doesn't compete with the
-   tier chip, and it holds a solid ink check for three seconds so the copy is
-   confirmed even after you've looked away at Yahoo's search box. No green in
-   this palette — near-black is the strongest confirmation available that
-   isn't the accent red, which is reserved for value/urgency elsewhere. */
-.draft-board .card-copy {
-  flex-shrink: 0;
+/* Quiet until used, and it holds a solid ink check for three seconds so the
+   copy is confirmed even after you've looked away at Yahoo's search box. */
+.draft-board .bcard__copy {
+  flex: none;
   display: inline-flex;
   align-items: center;
-  justify-content: center;
   background: transparent;
   border: none;
   padding: 0;
   line-height: 0;
-  color: var(--board-text-faint);
+  color: var(--text-muted);
   cursor: pointer;
-  transition: color 0.12s ease;
 }
 
-.draft-board .card-copy:hover {
-  color: var(--board-text);
-}
-
-.draft-board .card-copy--done,
-.draft-board .card-copy--done:hover {
+.draft-board .bcard__copy:hover,
+.draft-board .bcard__copy--done {
   color: var(--text-primary);
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .draft-board .card-copy {
-    transition: none;
-  }
-}
-
-/* The one element with no counterpart in the mockup: quiet until it's on, so
-   it reads as an affordance rather than another status colour. */
-.draft-board .card-star {
-  flex-shrink: 0;
-  background: transparent;
-  border: none;
-  padding: 0;
-  line-height: 1;
-  font-size: 13px;
-  color: var(--board-text-faint);
-}
-
-.draft-board .card-star:hover {
-  color: var(--board-text-dim);
-}
-
-.draft-board .card-star--on,
-.draft-board .card-star--on:hover {
-  color: var(--board-tier1);
-}
-
-.draft-board .card-mid {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 6px;
-  margin-bottom: 5px;
-}
-
-.draft-board .cat-tags {
-  display: flex;
-  gap: 4px;
-  min-width: 0;
-}
-
-.draft-board .cat-tag {
-  font-size: 9.5px;
-  font-weight: 600;
-  color: var(--board-text-dim);
-  background: var(--bg-row-alt);
-  border: 1px solid var(--board-border);
-  padding: 1px 5px;
-  border-radius: 0;
-  letter-spacing: 0.2px;
-  white-space: nowrap;
-}
-
-.draft-board .ong {
-  font-size: 10px;
-  color: var(--board-text-faint);
-  white-space: nowrap;
-}
-
-/* Off-night share is a value signal in this palette's terms, so a high one
-   gets the same accent-strong red as an overdue card rather than an
-   out-of-palette green. */
-.draft-board .ong.high {
-  color: var(--accent-strong);
-  font-weight: 700;
-}
-
-.draft-board .card-bottom {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 6px;
-}
-
-.draft-board .adp-line {
-  font-size: 11px;
-  color: var(--board-text-dim);
+.draft-board .bcard__cats {
+  font: 600 10.5px var(--font-ui);
   font-variant-numeric: tabular-nums;
-  min-width: 0;
+  color: var(--text-secondary);
+  white-space: pre;
   overflow: hidden;
   text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.draft-board .bcard__ong {
+  flex: none;
+  font: 500 10.5px var(--font-ui);
+  font-variant-numeric: tabular-nums;
+  color: var(--neutral-600);
+}
+
+.draft-board .bcard__adp {
+  font: 500 10.5px var(--font-ui);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
 }
 
-.draft-board .adp-line .adp-num {
-  color: var(--board-text);
-  font-weight: 500;
+.draft-board .bcard__wait {
+  flex: none;
+  font: 800 9.5px var(--font-ui);
+  letter-spacing: 0.06em;
 }
 
-.draft-board .wait-chip {
-  font-size: 10.5px;
-  font-weight: 600;
-  padding: 2px 7px;
-  border-radius: 0;
-  white-space: nowrap;
-  flex-shrink: 0;
+.draft-board .bcard__wait--value,
+.draft-board .bcard__wait--gone {
+  color: var(--accent-strong);
 }
 
-.draft-board .wait-chip.safe {
-  color: var(--board-safe);
-  background: var(--board-safe-bg);
+.draft-board .bcard__wait--risky {
+  color: var(--text-primary);
 }
 
-.draft-board .wait-chip.risk {
-  color: var(--board-risk);
-  background: var(--board-risk-bg);
+.draft-board .bcard__wait--safe {
+  color: var(--text-muted);
 }
 
-.draft-board .wait-chip.danger {
-  color: var(--board-danger);
-  background: var(--board-danger-bg);
-}
-
-.draft-board .wait-chip.value {
-  color: var(--board-tier1);
-  background: var(--board-tier1-bg);
-}
-
-/* Solid, full-strength accent red rather than a dashed hairline — in the
-   source design red is spent on exactly two things (overdue value and this
-   line), so the cliff earns the loudest mark on the board. */
-.draft-board .cliff {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 3px 2px;
-  margin: -1px 0;
-}
-
-.draft-board .cliff .line {
-  flex: 1;
+.draft-board .bcard-cliff {
   height: 2px;
   background: var(--accent);
-}
-
-.draft-board .cliff .label {
-  font-size: 9.5px;
-  color: var(--accent-strong);
-  font-weight: 800;
-  letter-spacing: 0.4px;
-  white-space: nowrap;
 }

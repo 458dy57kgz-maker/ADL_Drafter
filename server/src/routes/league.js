@@ -1,5 +1,6 @@
 import { Router } from 'express';
-import { getSetting, setSetting, logDebug } from '../db/index.js';
+import { db, getSetting, setSetting, logDebug } from '../db/index.js';
+import { reconcileLeague } from '../lib/leagueSync.js';
 import { fetchLeagueTeams } from '../lib/yahooOAuth.js';
 
 export const leagueRouter = Router();
@@ -51,6 +52,7 @@ leagueRouter.post('/pull-teams', async (req, res) => {
     myTeamSlot,
     teamsFromYahoo: true,
   });
+  reconcileLeague(db, league, updated);
 
   logDebug(`Pulled ${result.teams.length} teams from Yahoo league ${league.leagueId}`, 'OK', 'yahoo');
   res.json({ league: updated, teamCount: result.teams.length });

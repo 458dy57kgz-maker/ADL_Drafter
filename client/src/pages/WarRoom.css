@@ -1,34 +1,49 @@
+/* War Room — option 2a of the War Room Redesign wireframe. One flat paper
+   surface divided by rules (2px between regions, 1px between columns),
+   never boxed cards. Type sizes and weights are the wireframe's. */
+
 .war-room {
   display: flex;
   flex-direction: column;
   height: 100%;
-  min-height: 100%;
+  min-height: 0;
+  background: var(--bg-app);
+  color: var(--text-primary);
 }
 
 .war-room--empty {
-  display: flex;
   align-items: center;
   justify-content: center;
-  height: 100%;
   color: var(--text-muted);
   font: 500 13px var(--font-ui);
   padding: 24px;
 }
 
-/* The command band. Full-width accent red with a heavy near-black bottom
-   border, so it reads as one solid instrument rather than a toolbar — the
-   one place in the app where the accent is a fill, not just ink. */
-.war-room__header {
-  display: flex;
-  align-items: stretch;
-  padding: 0;
-  border-bottom: 2px solid var(--text-primary);
-  background: var(--accent);
-  color: var(--accent-on-text);
+.wr-error {
   flex: none;
+  margin: 10px 22px 0;
+  font: 700 12px var(--font-ui);
+  color: var(--danger-text);
 }
 
-.war-room__header-main {
+/* --- Command band -------------------------------------------------------- */
+
+.cmd {
+  flex: none;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  background: var(--accent);
+  color: var(--accent-on-text);
+  border-bottom: 2px solid var(--text-primary);
+}
+
+.cmd__left {
+  display: flex;
+  align-items: stretch;
+  min-width: 0;
+}
+
+.cmd__main {
   padding: 14px 26px 16px;
   display: flex;
   flex-direction: column;
@@ -36,581 +51,513 @@
   min-width: 0;
 }
 
-.war-room__header-meta {
+.cmd__meta {
   display: flex;
   align-items: baseline;
-  gap: 10px;
+  gap: 16px;
   font: 700 12px var(--font-ui);
   letter-spacing: 0.1em;
+  white-space: nowrap;
 }
 
-.war-room__header-dot {
+.cmd__dot {
   opacity: 0.6;
 }
 
-.war-room__countdown {
+.cmd__count {
   display: flex;
   align-items: baseline;
   gap: 14px;
   margin-top: 2px;
 }
 
-.war-room__countdown-num {
-  font: 900 64px/0.9 var(--font-ui);
+.cmd__num {
+  font: 900 78px/0.9 var(--font-ui);
   letter-spacing: -0.03em;
   font-variant-numeric: tabular-nums;
 }
 
-.war-room__countdown-label {
-  font: 800 20px/1 var(--font-ui);
-  letter-spacing: -0.01em;
-  padding-bottom: 6px;
+/* On the clock myself: the words take the number's place at the same
+   weight, a little smaller so they fit the band. */
+.cmd__num--now {
+  font-size: 58px;
+  line-height: 1;
+  padding-top: 6px;
 }
 
-.war-room__onclock {
-  padding: 14px 24px;
+.cmd__count-label {
+  font: 800 26px/1 var(--font-ui);
+  letter-spacing: -0.01em;
+  padding-bottom: 8px;
+  white-space: nowrap;
+}
+
+.cmd__clock {
+  border-left: 2px solid rgba(243, 242, 242, 0.45);
+  padding: 14px 24px 16px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 5px;
   justify-content: center;
   min-width: 0;
-  border-left: 2px solid rgba(243, 242, 242, 0.45);
 }
 
-.war-room__onclock-label {
+.cmd__clock-label {
   font: 700 10px var(--font-ui);
   letter-spacing: 0.14em;
   opacity: 0.85;
 }
 
-.war-room__onclock-team {
-  font: 800 22px/1 var(--font-ui);
-  letter-spacing: -0.01em;
+.cmd__clock-team {
+  font: 800 30px/1 var(--font-ui);
+  letter-spacing: -0.015em;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 220px;
 }
 
-.war-room__header-status {
-  margin-left: auto;
-  flex: none;
+.cmd__clock-then {
+  font: 600 11.5px var(--font-ui);
+  letter-spacing: 0.02em;
+  opacity: 0.9;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cmd__status {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 7px;
-  padding: 12px 22px;
   justify-content: center;
+  gap: 5px;
+  padding: 12px 22px;
   border-left: 2px solid rgba(243, 242, 242, 0.45);
 }
 
-/* Every control in the status column sits on the accent fill, so each one
-   gets a light-on-red treatment instead of the app's usual card-on-ground
-   chip styling. */
-.war-room__header-status .feed-chip,
-.war-room__header-status .yahoo-status,
-.war-room__header-status .poll-chip {
+.cmd__line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font: 600 10px var(--font-ui);
+  letter-spacing: 0.08em;
+  opacity: 0.85;
+  white-space: nowrap;
+  color: inherit;
+}
+
+.cmd__line--strong {
+  font-weight: 700;
+  opacity: 1;
+}
+
+.cmd__line--button {
   background: transparent;
   border: none;
   padding: 0;
-  color: var(--accent-on-text);
-  opacity: 0.92;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
-.war-room__header-status .feed-chip:hover:not(:disabled) {
-  border: none;
-  color: var(--accent-on-text);
-  opacity: 1;
-}
-
-.war-room__header-status .feed-chip--live,
-.war-room__header-status .feed-chip--live:disabled,
-.war-room__header-status .feed-chip--blocked {
-  background: transparent;
-  border: none;
-  color: var(--accent-on-text);
-  opacity: 1;
-}
-
-.war-room__header-status .status-dot {
+.cmd__mark {
+  width: 7px;
+  height: 7px;
+  flex: none;
   background: var(--accent-on-text);
 }
 
-.war-room__header-status .status-dot--off {
-  background: rgba(243, 242, 242, 0.5);
+.cmd__mark--off {
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px var(--accent-on-text);
 }
 
-.war-room__header-status .mock-toggle {
-  color: var(--accent-on-text);
-}
-
-.war-room__header-status .mock-toggle__track {
-  background: rgba(32, 30, 29, 0.35);
-  border-color: transparent;
-}
-
-.war-room__reset-btn {
-  align-self: flex-end;
-}
-
-.mock-toggle {
-  display: inline-flex;
+.cmd__toggle {
+  display: flex;
   align-items: center;
-  gap: 8px;
-  font: 600 12px var(--font-ui);
-  color: var(--text-secondary);
+  gap: 7px;
+  margin-top: 2px;
+  font: 600 10px var(--font-ui);
+  letter-spacing: 0.08em;
   cursor: pointer;
   user-select: none;
 }
 
-/* The native checkbox stays in the DOM for keyboard/screen-reader use; the
-   painted track below is what's actually visible. */
-.mock-toggle input {
+/* The native checkbox stays for keyboard and screen readers; the painted
+   track is what shows. */
+.cmd__toggle input {
   position: absolute;
   opacity: 0;
   width: 0;
   height: 0;
 }
 
-.mock-toggle__track {
-  width: 34px;
-  height: 19px;
-  border-radius: 0;
-  background: var(--bg-row);
-  border: 1px solid var(--border-hairline-strong);
+.cmd__toggle-track {
+  width: 28px;
+  height: 14px;
   padding: 2px;
   display: flex;
-  transition: background 120ms ease, border-color 120ms ease;
+  background: rgba(32, 30, 29, 0.35);
 }
 
-.mock-toggle__thumb {
-  width: 13px;
-  height: 13px;
-  border-radius: 50%;
-  background: var(--text-faint);
-  transition: transform 120ms ease, background 120ms ease;
-}
-
-.mock-toggle input:checked + .mock-toggle__track {
-  background: var(--accent);
-  border-color: var(--accent);
-}
-
-.mock-toggle input:checked + .mock-toggle__track .mock-toggle__thumb {
+.cmd__toggle-thumb {
+  width: 10px;
+  height: 10px;
   background: var(--accent-on-text);
-  transform: translateX(15px);
+  transition: transform 120ms ease;
 }
 
-.mock-toggle input:focus-visible + .mock-toggle__track {
-  outline: 2px solid var(--accent);
+.cmd__toggle input:checked + .cmd__toggle-track {
+  background: var(--text-primary);
+}
+
+.cmd__toggle input:checked + .cmd__toggle-track .cmd__toggle-thumb {
+  transform: translateX(14px);
+}
+
+.cmd__toggle input:focus-visible + .cmd__toggle-track {
+  outline: 2px solid var(--accent-on-text);
   outline-offset: 2px;
 }
 
-.yahoo-status {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font: 500 12px var(--font-ui);
-  color: var(--text-muted);
+.cmd__reset {
+  margin-top: 3px;
+  background: transparent;
+  border: 1px solid rgba(243, 242, 242, 0.7);
+  color: var(--accent-on-text);
+  font: 800 10px var(--font-ui);
+  letter-spacing: 0.08em;
+  padding: 3px 8px;
 }
 
-.status-dot--off {
-  background: var(--danger-text);
+.cmd__reset:hover {
+  background: rgba(32, 30, 29, 0.2);
 }
 
-/* Live pick feed. A button rather than a label because reconnecting after a
-   reload is one click, and mid-draft is the worst time to go looking for a
-   settings page. */
-.feed-chip {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font: 600 12px var(--font-ui);
-  color: var(--text-muted);
-  background: var(--bg-row);
-  border: 1px solid var(--border-hairline-strong);
-  padding: 5px 11px;
-  border-radius: var(--radius-pill);
+@media (prefers-reduced-motion: reduce) {
+  .cmd__toggle-thumb {
+    transition: none;
+  }
 }
 
-.feed-chip:hover:not(:disabled) {
-  border-color: var(--accent);
-  color: var(--text-primary);
-}
+/* --- Board --------------------------------------------------------------- */
 
-.feed-chip--blocked {
-  background: var(--warning-bg);
-  border-color: var(--warning-border);
-  color: var(--warning-text);
-}
-
-.feed-chip--live,
-.feed-chip--live:disabled {
-  background: var(--success-bg);
-  border-color: var(--success-border);
-  color: var(--success-text);
-  cursor: default;
-}
-
-.poll-chip {
-  font: 500 12px var(--font-mono);
-  color: var(--text-muted);
-  background: var(--bg-row);
-  border: 1px solid var(--border-hairline-strong);
-  padding: 5px 10px;
-  border-radius: 0;
-}
-
-/* The board sits at its own fixed height (the mockup's 400px columns plus the
-   legend). It still takes the flexible slot so that any leftover window height
-   lands here as empty space rather than stretching the roster band below. */
-.war-room__board-section {
-  padding: 12px 22px 10px;
+.wr-board {
   flex: 1;
   min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  align-items: stretch;
-  justify-content: flex-start;
+  padding: 12px 22px 0;
 }
 
-.war-room__board-heading {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 16px;
-  padding-bottom: 7px;
-  border-bottom: 2px solid var(--border-hairline-strong);
-}
+/* --- Season Totals -------------------------------------------------------- */
 
-.war-room__board-hint {
-  font: 500 11px var(--font-ui);
-  color: var(--text-muted);
-  white-space: nowrap;
-}
-
-/* Pinned to the bottom of the page and sized to its content — it never
-   takes more room than the roster and the side column actually need, and never
-   less, so the board above gets every remaining pixel. */
-.war-room__bottom-grid {
-  display: grid;
-  /* My Roster carries nine stat columns and now some longer names, so it
-     takes the larger share — the side column lost Position Scarcity and only
-     holds two scrolling lists. */
-  grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr);
-  gap: 14px;
-  padding: 10px 22px 18px;
+.totals {
   flex: none;
-  align-items: start;
-}
-
-.roster-card {
-  overflow: visible;
-}
-
-.side-col {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  min-width: 0;
-}
-
-.side-col__pair {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-  min-width: 0;
-}
-
-.side-col__scroller {
-  max-height: 320px;
-  overflow-y: auto;
-  min-width: 0;
-}
-
-/* --- Target Progress: one thin full-width band of rings ------------------ */
-.targets-strip {
-  flex: none;
-  margin: 0 22px;
   display: flex;
   align-items: center;
   gap: 18px;
-  padding: 8px 16px;
+  padding: 9px 22px;
+  border-bottom: 2px solid var(--border-hairline-strong);
 }
 
-.targets-strip__title {
-  font: 700 11px var(--font-ui);
-  letter-spacing: 0.7px;
-  text-transform: uppercase;
-  color: var(--text-faint);
-  white-space: nowrap;
+.totals__title {
+  flex: none;
+  font: 800 11px/1.25 var(--font-ui);
+  letter-spacing: 0.1em;
 }
 
-.targets-strip__rings {
+.totals__items {
+  flex: 1;
+  min-width: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
-  flex: 1;
-  min-width: 0;
+  gap: 16px;
 }
 
-.target-ring-wrap {
+.totals__item {
   display: flex;
-  flex-direction: row;
   align-items: center;
   gap: 9px;
   min-width: 0;
 }
 
-/* Label over leader, right-aligned against the ring. Stacking these to the
-   left instead of underneath frees the vertical room the ring then takes. */
-.target-ring-wrap__text {
+.totals__item--overall {
+  border-left: 2px solid var(--border-hairline-strong);
+  padding-left: 16px;
+}
+
+.totals__ring {
+  width: 52px;
+  height: 52px;
+  flex: none;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.totals__ring-inner {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--bg-app);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font: 800 13px var(--font-ui);
+  font-variant-numeric: tabular-nums;
+}
+
+.totals__text {
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
-  gap: 2px;
+  gap: 1px;
   min-width: 0;
 }
 
-/* The conic sweep is the fill: --pct percent of the ring in the accent
-   colour, the remainder in the track colour, with the panel-coloured disc
-   punched out of the middle to leave a ring rather than a pie. */
-.target-ring {
-  position: relative;
-  width: 58px;
-  height: 58px;
-  border-radius: 50%;
-  background: conic-gradient(var(--accent) calc(var(--pct) * 1%), var(--track-bg) 0);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex: none;
+.totals__label {
+  font: 800 11px var(--font-ui);
+  letter-spacing: 0.06em;
 }
 
-.target-ring__inner {
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  background: var(--bg-card);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font: 700 14px var(--font-mono);
-  color: var(--text-primary);
-  font-variant-numeric: tabular-nums;
-}
-
-.target-ring__label {
-  font: 600 12px var(--font-ui);
-  text-align: right;
+.totals__goal {
+  font: 500 10px var(--font-ui);
   color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
 
-/* Second row: who leads this category right now. Deliberately quieter than
-   my own ring above it — it's the benchmark, not the reading. */
-.target-leader {
+.totals__pct {
+  font: 700 10px var(--font-ui);
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.totals__pct--losing {
+  color: var(--accent-strong);
+}
+
+/* --- Bottom band: My Roster + Live Picks ---------------------------------- */
+
+.wr-bottom {
+  flex: none;
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+  height: 214px;
+}
+
+.wr-panel {
+  padding: 12px 22px 14px;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.wr-roster {
+  border-right: 2px solid var(--border-hairline-strong);
+}
+
+.wr-panel__head {
+  flex: none;
   display: flex;
   align-items: baseline;
-  justify-content: flex-end;
-  gap: 5px;
-  max-width: 96px;
-  min-width: 0;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--rule-mid);
 }
 
-.target-leader__team {
+.wr-panel__title {
+  font: 800 12px var(--font-ui);
+  letter-spacing: 0.12em;
+}
+
+.wr-panel__note {
   font: 500 11px var(--font-ui);
-  color: var(--text-faint);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  min-width: 0;
-}
-
-.target-leader__value {
-  flex: none;
-  font: 700 12px var(--font-mono);
-  color: var(--text-secondary);
-  font-variant-numeric: tabular-nums;
-}
-
-/* Leading a category myself is the one state worth colouring. */
-.target-leader--mine .target-leader__team,
-.target-leader--mine .target-leader__value {
-  color: var(--gold);
-}
-
-.target-leader--none {
-  font: 500 11px var(--font-mono);
-  color: var(--text-faint);
-  text-align: right;
-}
-
-/* Overall is a summary of the seven to its left, so it sits past a divider
-   rather than reading as an eighth category. */
-.target-ring-wrap--overall {
-  border-left: 1px solid var(--border-hairline-strong);
-  padding-left: 14px;
-  margin-left: 2px;
-}
-
-.target-ring--overall {
-  background: conic-gradient(var(--gold) calc(var(--pct) * 1%), var(--track-bg) 0);
-}
-
-.target-ring--overall .target-ring__inner {
-  font: 700 13px var(--font-mono);
-}
-
-/* Hover reveals the goal. Written as its own bubble rather than a `title`
-   so it appears immediately — a half-second native tooltip delay is too
-   slow to be worth reaching for between picks. */
-.target-ring::after {
-  content: attr(data-goal);
-  position: absolute;
-  bottom: calc(100% + 6px);
-  left: 50%;
-  transform: translateX(-50%);
-  padding: 3px 8px;
-  border-radius: 0;
-  background: var(--bg-input);
-  border: 1px solid var(--border-hairline-strong);
-  color: var(--text-primary);
-  font: 600 11px var(--font-mono);
-  white-space: nowrap;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 90ms ease;
-}
-
-.target-ring:hover::after {
-  opacity: 1;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .target-ring::after {
-    transition: none;
-  }
-}
-
-.roster-header {
-  display: grid;
-  grid-template-columns: 28px minmax(0, 2fr) repeat(7, minmax(0, 1fr));
-  gap: 2px 4px;
-  font: 600 9.5px var(--font-ui);
-  color: var(--text-faint);
-  padding: 0 6px;
-  margin-bottom: 4px;
-}
-
-.roster-row--bench .roster-row__pos {
-  color: var(--text-faint);
-}
-
-.roster-row--bench {
-  background: transparent;
-  border: 1px solid var(--border-hairline);
-}
-
-.roster-row {
-  display: grid;
-  grid-template-columns: 28px minmax(0, 2fr) repeat(7, minmax(0, 1fr));
-  gap: 2px 4px;
-  align-items: center;
-  padding: 4px 6px;
-  border-radius: 0;
-  background: var(--bg-input);
-  margin-bottom: 2px;
-  min-width: 0;
-  font: 500 11px var(--font-mono);
-  color: var(--text-secondary);
-}
-
-.roster-row__pos {
   color: var(--text-muted);
-  font-weight: 700;
-}
-
-.roster-row__name {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font: 500 12px var(--font-ui);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   min-width: 0;
 }
 
-/* Somebody the room drafted who isn't in my list. The name is real; the
-   stat columns beside it are dashes, and this says why rather than leaving
-   a row that looks like a data bug. */
-.roster-row__untracked {
-  font: 600 8.5px var(--font-ui);
-  letter-spacing: 0.4px;
-  text-transform: uppercase;
-  color: var(--text-faint);
-  background: var(--bg-row);
-  border: 1px solid var(--border-hairline);
-  border-radius: 0;
-  padding: 1px 4px;
-  flex: none;
+/* Two roster columns, filled row-major: with every position's seat count
+   even, each line reads as a pair (C | C, LW | LW, …), as in the wireframe. */
+.wr-roster__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 26px;
 }
 
-.roster-footer {
-  font: 500 11px var(--font-ui);
-  color: var(--text-faint);
+.wr-roster__grid--head {
+  flex: none;
   margin-top: 4px;
 }
 
-
-
-
-
-
-
-
-
-.feed-row {
-  font: 500 12px var(--font-ui);
-  color: var(--text-secondary);
-  padding: 6px 8px;
-  background: var(--bg-input);
-  border-radius: 0;
-  margin-bottom: 4px;
+.wr-roster__grid--body {
+  margin-top: 2px;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  align-content: start;
 }
 
-.feed-row__num {
-  color: var(--text-faint);
+.wr-roster__row {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) 28px 34px 32px;
+  align-items: baseline;
+  gap: 8px;
+  padding: 2px 0;
+  border-bottom: 1px solid var(--rule-faint);
+  min-width: 0;
 }
 
-.tracked-row {
+.wr-roster__row--head {
+  padding: 0 0 3px;
+  border-bottom: 2px solid var(--border-hairline-strong);
+  font: 700 9px var(--font-ui);
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+}
+
+.wr-roster__pos {
+  font: 700 10px var(--font-ui);
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+
+.wr-roster__name {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font: 500 12px var(--font-ui);
-  color: var(--text-secondary);
-  padding: 6px 8px;
-  background: var(--bg-input);
-  border-radius: 0;
-  margin-bottom: 4px;
+  align-items: baseline;
+  gap: 6px;
+  font: 600 12.5px var(--font-ui);
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
 }
 
-.tracked-row--empty {
-  color: var(--text-faint);
-  justify-content: flex-start;
+.wr-roster__name--empty {
+  font: 400 11.5px var(--font-ui);
+  color: var(--text-muted);
 }
 
-.tracked-row__pos {
-  color: var(--text-faint);
+/* A player the room drafted who isn't in my list: real name, no numbers,
+   and this says why instead of leaving a row that looks broken. */
+.wr-roster__nostats {
+  flex: none;
+  font: 700 7.5px var(--font-ui);
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
 }
 
-.tracked-row__status {
-  font: 600 11px var(--font-ui);
+.wr-roster__num {
+  text-align: right;
+  font: 500 11px var(--font-ui);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
 }
 
-.feed-row--empty {
-  color: var(--text-faint);
+.wr-roster__row--head .wr-roster__num {
+  font: inherit;
+}
+
+.wr-roster__num--ink {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.wr-roster__num--pts.wr-roster__num--ink {
+  font-weight: 700;
+}
+
+.wr-roster__num--hot {
+  color: var(--accent-strong);
+  font-weight: 700;
+}
+
+.wr-feed__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 18px;
+  margin-top: 4px;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  align-content: start;
+}
+
+.wr-feed__row {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 88px) minmax(0, 1fr);
+  align-items: baseline;
+  gap: 7px;
+  padding: 1px 3px;
+  border-bottom: 1px solid var(--rule-faint);
+  min-width: 0;
+}
+
+.wr-feed__row--ahead {
+  background: var(--bg-shade);
+}
+
+.wr-feed__num {
+  font: 600 9.5px var(--font-ui);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+}
+
+.wr-feed__team {
+  font: 500 11px var(--font-ui);
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.wr-feed__team--ahead {
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.wr-feed__player {
+  font: 500 11px var(--font-ui);
+  letter-spacing: 0.02em;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.wr-feed__player--clock {
+  font: 700 10px var(--font-ui);
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+
+.wr-feed__player--wait {
+  color: var(--text-muted);
+}
+
+.wr-feed__row--mine .wr-feed__team {
+  font-weight: 800;
+  color: var(--accent-strong);
+}
+
+.wr-feed__row--mine .wr-feed__player {
+  font-weight: 700;
+}
+
+.wr-feed__empty {
+  grid-column: 1 / -1;
+  padding: 6px 0;
+  font: 500 11px var(--font-ui);
+  color: var(--text-muted);
 }
