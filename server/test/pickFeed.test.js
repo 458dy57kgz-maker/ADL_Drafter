@@ -4,7 +4,6 @@ import {
   normalizeName,
   parseFeedName,
   matchPlayer,
-  inferDraftOrder,
   planSync,
 } from '../src/lib/pickFeed.js';
 
@@ -100,7 +99,7 @@ test('an alias overrides the name matching entirely', () => {
   assert.equal(m.reason, 'alias');
 });
 
-// --- draft order recovery ------------------------------------------------
+// --- sync planning helpers -----------------------------------------------
 
 // A 6-team snake: round 1 forward, round 2 back, round 3 forward.
 const SIX_TEAM = ['A', 'B', 'C', 'D', 'E', 'F'];
@@ -117,51 +116,27 @@ function snakeFeed(teams, rounds, startPick = 1) {
   return out;
 }
 
-test('inferDraftOrder recovers the seating from a clean snake', () => {
-  const order = inferDraftOrder(snakeFeed(SIX_TEAM, 3), { minTeams: 4 });
-  assert.equal(order.teamCount, 6);
-  assert.deepEqual(order.teams.map((t) => t.name), SIX_TEAM);
-});
-
-test('inferDraftOrder finds my own seat from the You label', () => {
-  const teams = ['A', 'B', 'You', 'D', 'E', 'F'];
-  assert.equal(inferDraftOrder(snakeFeed(teams, 3), { minTeams: 4 }).myTeamSlot, 3);
-});
-
-test('inferDraftOrder works when the feed starts mid-draft', () => {
-  // Started at pick 9, i.e. part-way through round 2 — the reversal itself is
-  // what makes the seating recoverable without ever seeing round 1.
-  const order = inferDraftOrder(snakeFeed(SIX_TEAM, 4, 9), { minTeams: 4 });
-  assert.equal(order.teamCount, 6);
-  assert.deepEqual(order.teams.map((t) => t.name), SIX_TEAM);
-});
-
-test('inferDraftOrder refuses when a manager has not picked yet', () => {
-  // Only five of six seats seen: a partial fit is not a fit.
-  const partial = snakeFeed(SIX_TEAM, 3).filter((p) => p.draftedBy !== 'F');
-  assert.equal(inferDraftOrder(partial, { minTeams: 4 }), null);
-});
-
-test('inferDraftOrder refuses a feed that is not a snake at all', () => {
-  const picks = snakeFeed(SIX_TEAM, 3);
-  picks[7].draftedBy = 'A'; // someone picked twice in one round
-  assert.equal(inferDraftOrder(picks, { minTeams: 4 }), null);
-});
-
-test('inferDraftOrder refuses too short a feed to say anything', () => {
-  assert.equal(inferDraftOrder(snakeFeed(SIX_TEAM, 1).slice(0, 3), { minTeams: 4 }), null);
-});
-
 // --- sync planning -------------------------------------------------------
 
 const TEAMS = SIX_TEAM.map((name, i) => ({ id: `t${i + 1}`, name }));
 
-test('planSync seats each pick by slot and flags a feed that disagrees', () => {
+test('planSync seats every pick by slot and ignores the feed\'s own team names', () => {
+  // Yahoo's labels for the managers have nothing to do with the names in
+  // Settings > League, so they are never read, never compared, and never
+  // stored — the seat the pick number lands on decides everything.
   const feed = snakeFeed(SIX_TEAM, 2);
   feed[3].draftedBy = 'Someone Else';
-  const plan = planSync({ feedPicks: feed, players: [], teams: TEAMS, teamCount: 6, myTeamId: 't3' });
-  assert.equal(plan.rows[3].team, 'D', 'the slot decides, not the feed string');
-  assert.deepEqual(plan.teamMismatches, [{ pick: 4, expected: 'D', feed: 'Someone Else' }]);
+  feed[4].draftedBy = 'You';
+  const plan = planSync({ feedPicks: feed, players: [], teams: TEAMS, teamCount: 6, myTeamSlot: 3 });
+  assert.equal(plan.rows[3].team, 'D');
+  assert.equal(plan.rows[4].team, 'E');
+  assert.equal(plan.teamMismatches, undefined, 'nothing is reconciled, so nothing is reported');
+});
+
+test('planSync names an unseated slot rather than falling back to the feed', () => {
+  const feed = snakeFeed(SIX_TEAM, 1);
+  const plan = planSync({ feedPicks: feed, players: [], teams: TEAMS.slice(0, 4), teamCount: 6 });
+  assert.equal(plan.rows[4].team, 'Slot 5', "a Yahoo name must never reach drafted_by");
 });
 
 test('planSync fills the picks before the feed started so numbering stays contiguous', () => {
@@ -201,9 +176,14 @@ test('planSync records an unmatched pick without losing its place in the order',
   assert.deepEqual(plan.unmatched.map((u) => u.pick), [2]);
 });
 
-test('planSync marks my own picks', () => {
-  const plan = planSync({ feedPicks: snakeFeed(SIX_TEAM, 2), players: [], teams: TEAMS, teamCount: 6, myTeamId: 't3' });
+test('planSync marks my own picks from my slot alone', () => {
+  const plan = planSync({ feedPicks: snakeFeed(SIX_TEAM, 2), players: [], teams: TEAMS, teamCount: 6, myTeamSlot: 3 });
   assert.deepEqual(plan.rows.filter((r) => r.mine).map((r) => r.pickNum), [3, 10]);
+});
+
+test('planSync marks nothing as mine when no seat is set', () => {
+  const plan = planSync({ feedPicks: snakeFeed(SIX_TEAM, 2), players: [], teams: TEAMS, teamCount: 6 });
+  assert.deepEqual(plan.rows.filter((r) => r.mine), []);
 });
 
 test('planSync ignores a duplicated pick number in the file', () => {

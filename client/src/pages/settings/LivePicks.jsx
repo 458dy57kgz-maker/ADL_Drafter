@@ -21,26 +21,10 @@ function bookmarkletFor(origin) {
   return `javascript:(function(){var s=document.createElement('script');s.src='${origin}/tracker.js?'+Date.now();document.body.appendChild(s);})();`;
 }
 
-function OrderSeats({ inferred }) {
-  return (
-    <div className="live-feed__order">
-      {inferred.teams.map((t) => (
-        <div className={`live-feed__seat${t.slot === inferred.myTeamSlot ? ' live-feed__seat--mine' : ''}`} key={t.slot}>
-          <span className="mono live-feed__seat-num">{t.slot}</span>
-          <span className="live-feed__seat-name">{t.name}</span>
-          {t.slot === inferred.myTeamSlot && <span className="live-feed__seat-you">YOU</span>}
-        </div>
-      ))}
-    </div>
-  );
-}
-
 export default function LivePicks() {
   const feed = useLivePickFeed();
-  const { data: draftState, refetch } = usePolling(api.getDraftState, 5, []);
+  const { data: draftState } = usePolling(api.getDraftState, 5, []);
   const [copied, setCopied] = useState(false);
-  const [orderBusy, setOrderBusy] = useState(false);
-  const [orderError, setOrderError] = useState(null);
 
   const origin = window.location.origin;
   const secure = window.isSecureContext;
@@ -63,21 +47,6 @@ export default function LivePicks() {
       setTimeout(() => setCopied(false), 2000);
     } catch {
       setCopied(false);
-    }
-  }
-
-  // Works for both transports: the server keeps the last picks it was sent,
-  // so this needs nothing from the page but the click.
-  async function applyServerOrder() {
-    setOrderBusy(true);
-    setOrderError(null);
-    try {
-      await api.feedApplyOrder();
-      refetch();
-    } catch (err) {
-      setOrderError(err.message);
-    } finally {
-      setOrderBusy(false);
     }
   }
 
@@ -117,24 +86,11 @@ export default function LivePicks() {
           </div>
         </div>
 
-        {push?.blocked && push.inferred && (
-          <>
-            <div className="live-feed__order-note">
-              The picks themselves say what the draft order is — every manager lands on exactly one seat across{' '}
-              {push.inferred.roundsSeen} {push.inferred.roundsSeen === 1 ? 'round' : 'rounds'}:
-            </div>
-            <OrderSeats inferred={push.inferred} />
-            <button type="button" className="btn btn-primary" onClick={applyServerOrder} disabled={orderBusy}>
-              Use this order ({push.inferred.teamCount} teams)
-            </button>
-            {orderError && <div className="live-feed__error">{orderError}</div>}
-          </>
-        )}
-
-        {push?.blocked && !push.inferred && (
+        {push?.blocked && (
           <div className="live-feed__warn">
-            Not enough picks yet to work the order out — every manager has to have picked at least once. Set it by
-            hand in Settings → League, or wait for the first round to finish.
+            Picks are filed by draft slot, so the app needs your teams first: add them in Settings → League, in draft
+            order, and mark which one is yours. The names are yours to choose — they don’t have to match what Yahoo
+            calls those teams.
           </div>
         )}
 
@@ -221,15 +177,6 @@ export default function LivePicks() {
               </div>
             </div>
             {feed.error && <div className="live-feed__error">{feed.error}</div>}
-            {feed.orderIssue?.inferred && (
-              <>
-                <div className="live-feed__order-note">Draft order recovered from that file:</div>
-                <OrderSeats inferred={feed.orderIssue.inferred} />
-                <button type="button" className="btn btn-primary" onClick={feed.applyOrder} disabled={feed.busy}>
-                  Use this order ({feed.orderIssue.inferred.teamCount} teams)
-                </button>
-              </>
-            )}
           </>
         )}
       </div>

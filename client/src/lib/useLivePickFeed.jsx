@@ -29,14 +29,13 @@ export function LivePickFeedProvider({ children }) {
   const [handle, setHandle] = useState(null);
   const [permission, setPermission] = useState(null); // 'granted' | 'prompt' | 'denied'
   const [report, setReport] = useState(null); // last successful sync
-  const [orderIssue, setOrderIssue] = useState(null); // 409 payload: the order disagrees
   const [error, setError] = useState(null);
   const [lastSyncAt, setLastSyncAt] = useState(null);
   const [fileName, setFileName] = useState(null);
   const [busy, setBusy] = useState(false);
 
   // Last file state we acted on, so an unchanged file costs one stat and no
-  // request. `picks` is kept so Apply Order can act without re-reading.
+  // request.
   const seenRef = useRef({ lastModified: null, size: null, picks: null });
 
   // Remember the file across reloads. Chrome hands the handle back but not the
@@ -190,22 +189,6 @@ export function LivePickFeedProvider({ children }) {
     }
   }, [handle, readAndSync]);
 
-  // Writes the order the feed recovered into Settings > League, then syncs
-  // immediately — applying it is only ever done to unblock a sync.
-  const applyOrder = useCallback(async () => {
-    const picks = seenRef.current.picks;
-    if (!picks) return;
-    setBusy(true);
-    try {
-      await api.feedApplyOrder(picks);
-      await readAndSync(handle, { force: true });
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setBusy(false);
-    }
-  }, [handle, readAndSync]);
-
   const value = {
     supported: FEED_SUPPORTED,
     connected: !!handle && permission === 'granted',
@@ -213,14 +196,12 @@ export function LivePickFeedProvider({ children }) {
     permission,
     fileName,
     report,
-    orderIssue,
     error,
     lastSyncAt,
     busy,
     connect,
     disconnect,
     syncNow,
-    applyOrder,
   };
 
   return <LivePickFeedContext.Provider value={value}>{children}</LivePickFeedContext.Provider>;

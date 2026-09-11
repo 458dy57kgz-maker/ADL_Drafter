@@ -5,6 +5,8 @@
 // bench player on the other would make the Results totals disagree with
 // Target Progress for no visible reason.
 
+import { mySlot } from './league.js';
+
 export const POS_ORDER = ['C', 'LW', 'RW', 'D', 'G'];
 
 // A bench player still contributes: he covers injuries, off nights and the
@@ -104,7 +106,7 @@ export function buildTeamSummaries(players, league, rosterSlots, targets) {
       slot: i + 1,
       id: team.id ?? null,
       name: team.name,
-      isMine: team.id != null && team.id === league.myTeamId,
+      isMine: i + 1 === mySlot(league),
       rows,
       players: owned,
       benchIds: bench.map((p) => p.id),

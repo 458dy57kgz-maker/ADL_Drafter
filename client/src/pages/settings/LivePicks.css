@@ -77,57 +77,6 @@
   line-height: 1.45;
 }
 
-/* The recovered seating. Two columns of seats reads as an order far better
-   than a wrapped sentence of names does. */
-.live-feed__order {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 4px 10px;
-  margin-bottom: 12px;
-}
-
-.live-feed__seat {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 5px 9px;
-  background: var(--bg-input);
-  border: 1px solid var(--border-hairline);
-  border-radius: 0;
-  min-width: 0;
-}
-
-.live-feed__seat--mine {
-  border-color: var(--accent);
-}
-
-.live-feed__seat-num {
-  font: 700 11px var(--font-mono);
-  color: var(--text-faint);
-  width: 18px;
-  flex: none;
-}
-
-.live-feed__seat-name {
-  font: 600 12.5px var(--font-ui);
-  color: var(--text-primary);
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.live-feed__seat-you {
-  flex: none;
-  font: 700 9px var(--font-ui);
-  letter-spacing: 0.5px;
-  color: var(--accent-on-text);
-  background: var(--accent);
-  border-radius: 0;
-  padding: 1px 5px;
-}
-
 .live-feed__stats {
   display: flex;
   gap: 28px;

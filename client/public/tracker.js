@@ -50,7 +50,7 @@
     container: null,
     paused: false,
     lastPushedCount: -1,
-    sync: { status: 'idle', text: 'not synced yet', order: null },
+    sync: { status: 'idle', text: 'not synced yet' },
   };
 
   function log() {
@@ -238,43 +238,24 @@
           state.sync = {
             status: 'ok',
             text: 'synced ' + (res.data ? res.data.picks : picks.length) + ' picks' + (unmatched ? ' · ' + unmatched + ' name' + (unmatched === 1 ? '' : 's') + ' unmatched' : ''),
-            order: null,
           };
         } else if (res.status === 409) {
-          // The app won't attribute picks until its draft order matches the
-          // room — but the picks themselves say what that order is.
+          // The only thing the app refuses on now is having no teams at all:
+          // picks are filed by draft slot, so it needs to know how many seats
+          // there are and which one is yours.
           state.sync = {
             status: 'blocked',
-            text: (res.data && res.data.error) || 'draft order not set in the app',
-            order: (res.data && res.data.inferred) || null,
+            text: (res.data && res.data.error) || 'set your teams in Settings > League',
           };
         } else {
-          state.sync = { status: 'error', text: (res.data && res.data.error) || 'app said ' + res.status, order: null };
+          state.sync = { status: 'error', text: (res.data && res.data.error) || 'app said ' + res.status };
         }
       })
       .catch(function (err) {
-        state.sync = { status: 'error', text: "can't reach the app — " + err.message, order: null };
+        state.sync = { status: 'error', text: "can't reach the app — " + err.message };
       })
       .then(function () {
         pushing = false;
-        render();
-      });
-  }
-
-  function applyOrder() {
-    if (!APP_ORIGIN) return;
-    state.sync = { status: 'idle', text: 'setting draft order…', order: null };
-    render();
-    post('/api/draft/feed/apply-order', { picks: getPicks() })
-      .then(function (res) {
-        if (!res.ok) {
-          state.sync = { status: 'error', text: (res.data && res.data.error) || 'could not set the order', order: null };
-          return render();
-        }
-        return push(true);
-      })
-      .catch(function (err) {
-        state.sync = { status: 'error', text: err.message, order: null };
         render();
       });
   }
@@ -295,7 +276,7 @@
     } catch (e) {
       /* nothing stored */
     }
-    state.sync = { status: 'idle', text: 'cleared — paused', order: null };
+    state.sync = { status: 'idle', text: 'cleared — paused' };
     render();
     if (APP_ORIGIN) {
       post('/api/draft/reset', {})
@@ -303,12 +284,11 @@
           state.sync = {
             status: 'idle',
             text: res.ok ? 'cleared — press Start for the new draft' : 'cleared here, but the app said ' + res.status,
-            order: null,
           };
           render();
         })
         .catch(function () {
-          state.sync = { status: 'error', text: 'cleared here, but could not reach the app', order: null };
+          state.sync = { status: 'error', text: 'cleared here, but could not reach the app' };
           render();
         });
     }
@@ -316,7 +296,7 @@
 
   function resume() {
     state.paused = false;
-    state.sync = { status: 'idle', text: 'capturing…', order: null };
+    state.sync = { status: 'idle', text: 'capturing…' };
     scan();
     push(true);
     render();
@@ -367,10 +347,6 @@
     ui.status.textContent = state.picks.size + ' picks captured' + (last ? ' — last: ' + last.player : '');
     ui.sync.textContent = state.sync.text;
     ui.sync.style.color = SYNC_COLOR[state.sync.status] || SYNC_COLOR.idle;
-    ui.orderBtn.style.display = state.sync.status === 'blocked' && state.sync.order ? 'block' : 'none';
-    if (state.sync.order) {
-      ui.orderBtn.textContent = 'Set order (' + state.sync.order.teamCount + ' teams)';
-    }
     ui.resetBtn.textContent = state.paused ? 'Start capturing' : 'Reset draft';
     ui.resetBtn.style.background = state.paused ? '#2f7a4f' : '#8a2f22';
   }
@@ -426,9 +402,6 @@
     var sync = document.createElement('div');
     sync.style.cssText = 'font-size:12px;margin-bottom:8px;';
 
-    var orderBtn = button('Set order', applyOrder, { bg: '#8a6520' });
-    orderBtn.style.cssText += ';width:100%;flex:none;margin-bottom:8px;display:none;';
-
     var row = document.createElement('div');
     row.style.cssText = 'display:flex;gap:6px;';
     row.appendChild(button('Export CSV', exportCsv));
@@ -446,7 +419,6 @@
 
     body.appendChild(status);
     body.appendChild(sync);
-    body.appendChild(orderBtn);
     body.appendChild(row);
     body.appendChild(row2);
     panel.appendChild(title);
@@ -460,7 +432,7 @@
     });
 
     document.body.appendChild(panel);
-    ui = { panel: panel, status: status, sync: sync, orderBtn: orderBtn, resetBtn: resetBtn };
+    ui = { panel: panel, status: status, sync: sync, resetBtn: resetBtn };
   }
 
   // --- start ---------------------------------------------------------------

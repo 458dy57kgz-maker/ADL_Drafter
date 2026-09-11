@@ -13,9 +13,8 @@ async function request(path, options = {}) {
     } catch {
       /* not JSON — the text is all there is */
     }
-    // Some failures are structured and actionable (the live feed's "your
-    // draft order disagrees with the file", which carries the order it
-    // recovered), so the parsed body rides along on the error.
+    // Some failures are structured and actionable (the live feed's "no teams
+    // set up yet"), so the parsed body rides along on the error.
     const err = new Error(body?.error ?? `${options.method || 'GET'} ${path} failed (${res.status}): ${text}`);
     err.status = res.status;
     err.body = body;
@@ -41,10 +40,8 @@ export const api = {
   undoPick: () => request('/draft/undo', { method: 'POST' }),
   resetDraft: () => request('/draft/reset', { method: 'POST' }),
 
-  // Live pick feed — the whole file is posted each time, not a delta.
-  feedPreview: (picks) => request('/draft/feed/preview', { method: 'POST', body: JSON.stringify({ picks }) }),
-  // With no picks the server falls back to the last set it was sent.
-  feedApplyOrder: (picks) => request('/draft/feed/apply-order', { method: 'POST', body: JSON.stringify(picks ? { picks } : {}) }),
+  // Live pick feed — the whole pick list is posted each time, not a delta.
+  // Picks are filed by draft slot; the feed's own team names are ignored.
   feedSync: (picks) => request('/draft/feed/sync', { method: 'POST', body: JSON.stringify({ picks }) }),
 
   getSettings: () => request('/settings'),

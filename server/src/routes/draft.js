@@ -1,11 +1,11 @@
 import { Router } from 'express';
-import { db, getSetting, setSetting, logDebug } from '../db/index.js';
+import { db, getSetting, logDebug } from '../db/index.js';
 import { mapPlayerRow, normalizePosList } from '../lib/mapPlayer.js';
 import { round, nextPickForSlot, slotForPick } from '../lib/draftMath.js';
 import { poolCoverage } from './players.js';
 import { buildBoard, offNightShare } from '../lib/draftBoard.js';
-import { reconcileLeague } from '../lib/leagueSync.js';
-import { inferDraftOrder, planSync, normalizeName, PLACEHOLDER_NAME } from '../lib/pickFeed.js';
+import { planSync, normalizeName, PLACEHOLDER_NAME } from '../lib/pickFeed.js';
+import { mySlot, myTeamName } from '../lib/league.js';
 import {
   POS_ORDER,
   BENCH_WEIGHT,
@@ -40,9 +40,9 @@ function buildState() {
   const pickCount = db.prepare('SELECT COUNT(*) AS n FROM draft_picks').get().n;
   const currentPick = pickCount + 1;
   const currentRound = round(currentPick, teamCount);
-  const mySlot = league.myTeamSlot ?? 1;
-  const isMyTurnNow = slotForPick(currentPick, teamCount) === mySlot;
-  const myNextPick = isMyTurnNow ? currentPick : nextPickForSlot(currentPick + 1, teamCount, mySlot);
+  const myDraftSlot = mySlot(league) ?? 1;
+  const isMyTurnNow = slotForPick(currentPick, teamCount) === myDraftSlot;
+  const myNextPick = isMyTurnNow ? currentPick : nextPickForSlot(currentPick + 1, teamCount, myDraftSlot);
   const picksUntilMe = isMyTurnNow ? 0 : myNextPick - currentPick;
 
   // One round per roster seat (IR isn't drafted into), which is what the
@@ -50,7 +50,7 @@ function buildState() {
   const totalRounds = [...POS_ORDER, 'BENCH'].reduce((sum, pos) => sum + (rosterSlots[pos] ?? 0), 0);
   const totalPicks = teamCount * totalRounds;
   const teamAtPick = (pick) => league.teams?.[slotForPick(pick, teamCount) - 1]?.name ?? null;
-  const myPicks = [myNextPick, nextPickForSlot(myNextPick + 1, teamCount, mySlot)].filter(
+  const myPicks = [myNextPick, nextPickForSlot(myNextPick + 1, teamCount, myDraftSlot)].filter(
     (pk) => !totalPicks || pk <= totalPicks
   );
   // Every pick from now through my next one, named — "then Five Hole 48 ·
@@ -58,7 +58,7 @@ function buildState() {
   // be most of two rounds away.
   const upcoming = [];
   for (let pk = currentPick; pk <= myNextPick && upcoming.length < 20; pk++) {
-    upcoming.push({ pickNum: pk, team: teamAtPick(pk), isMine: slotForPick(pk, teamCount) === mySlot });
+    upcoming.push({ pickNum: pk, team: teamAtPick(pk), isMine: slotForPick(pk, teamCount) === myDraftSlot });
   }
 
   // Players an opponent drafted who aren't in my list at all. I only import
@@ -67,7 +67,7 @@ function buildState() {
   // is worse than useless. They come through as pick rows with no player_id,
   // so they're rebuilt here as stat-less roster entries: the real name, the
   // position the draft room reported, and dashes for everything else.
-  const myTeamName = league.teams?.find((t) => t.id === league.myTeamId)?.name ?? null;
+  const myName = myTeamName(league);
   const unknownPicks = db
     .prepare('SELECT * FROM draft_picks WHERE player_id IS NULL')
     .all()
@@ -79,7 +79,7 @@ function buildState() {
       posList: normalizePosList(r.pos),
       drafted: true,
       draftedBy: r.team,
-      mine: !!myTeamName && r.team === myTeamName,
+      mine: !!myName && r.team === myName,
       // What makes the UI show a name and dashes rather than a name and zeros.
       unknown: true,
       overallRank: null,
@@ -169,7 +169,7 @@ function buildState() {
     rosterSlots,
     myPlayers: mine,
     currentPick,
-    nextPick: nextPickForSlot(currentPick + 1, teamCount, mySlot),
+    nextPick: nextPickForSlot(currentPick + 1, teamCount, myDraftSlot),
     depth: BOARD_DEPTH,
   });
 
@@ -183,7 +183,7 @@ function buildState() {
       team: r.team,
       playerName: r.player_name,
       pos: r.pos,
-      isMine: !!myTeamName && r.team === myTeamName,
+      isMine: !!myName && r.team === myName,
     }));
 
   const onTheClockSlot = slotForPick(currentPick, teamCount);
@@ -325,7 +325,7 @@ draftRouter.post('/pick', (req, res) => {
   const slot = slotForPick(pickNum, teamCount);
   const team = league.teams[slot - 1];
   if (!team) return res.status(400).json({ error: `no team configured for slot ${slot}` });
-  const isMine = team.id === league.myTeamId;
+  const isMine = slot === mySlot(league);
 
   db.transaction(() => {
     db.prepare(
@@ -381,7 +381,6 @@ draftRouter.post('/undo', (req, res) => {
 let lastFeedPush = null;
 // The last array anything sent us, kept so the draft order can be recovered
 // from Settings even when the sync itself was refused for lacking one.
-let lastFeedPicks = null;
 
 function aliasMap() {
   const map = new Map();
@@ -391,57 +390,10 @@ function aliasMap() {
   return map;
 }
 
-// The order recovered from the feed, and whether it agrees with Settings.
-function orderReport(feedPicks, league) {
-  const inferred = inferDraftOrder(feedPicks);
-  if (!inferred) return { inferred: null, agrees: false, reason: 'not enough picks yet to recover the draft order' };
-  const configured = league.teams ?? [];
-  const agrees =
-    configured.length === inferred.teamCount &&
-    league.teamCount === inferred.teamCount &&
-    inferred.teams.every((t) => normalizeName(configured[t.slot - 1]?.name) === normalizeName(t.name));
-  return { inferred, agrees, reason: agrees ? null : 'the draft order in Settings > League does not match the feed' };
-}
-
-draftRouter.post('/feed/preview', (req, res) => {
-  const picks = req.body?.picks;
-  if (!Array.isArray(picks)) return res.status(400).json({ error: 'picks must be an array' });
-  const league = getSetting('league');
-  res.json({ ...orderReport(picks, league), configured: league.teams ?? [], feedPicks: picks.length });
-});
-
-// Writes the feed's recovered order into Settings > League. Slots are the
-// arithmetic the whole app runs on, so this is the one thing that has to be
-// right before any pick can be attributed — and the feed knows it exactly.
-draftRouter.post('/feed/apply-order', (req, res) => {
-  // Falls back to whatever last arrived, so the button on the Live Pick Feed
-  // page works even though that page never held the picks itself.
-  const picks = Array.isArray(req.body?.picks) ? req.body.picks : lastFeedPicks;
-  if (!Array.isArray(picks)) return res.status(400).json({ error: 'no picks to work from yet' });
-
-  const inferred = inferDraftOrder(picks);
-  if (!inferred) {
-    return res.status(422).json({ error: 'Not enough picks in the feed yet to recover the draft order — every team has to have picked at least once.' });
-  }
-
-  const league = getSetting('league');
-  // Keep an existing team's id when the same name is already configured, so
-  // anything else pointing at it survives a re-apply.
-  const byName = new Map((league.teams ?? []).map((t) => [normalizeName(t.name), t]));
-  const teams = inferred.teams.map((t) => ({ id: byName.get(normalizeName(t.name))?.id ?? `t${t.slot}`, name: t.name }));
-  const mine = inferred.myTeamSlot ? teams[inferred.myTeamSlot - 1] : null;
-
-  const updated = setSetting('league', {
-    teams,
-    teamCount: inferred.teamCount,
-    ...(mine ? { myTeamId: mine.id, myTeamSlot: inferred.myTeamSlot } : {}),
-  });
-  reconcileLeague(db, league, updated);
-
-  logDebug(`Draft order recovered from the live feed: ${inferred.teamCount} teams, you at slot ${inferred.myTeamSlot ?? '?'}`, 'OK', 'app');
-  res.json({ teams, teamCount: inferred.teamCount, myTeamSlot: inferred.myTeamSlot, myTeamId: mine?.id ?? null });
-});
-
+// Takes the tracker's whole pick list and files every pick by the slot its
+// number lands on. The feed's own team names are Yahoo's labels for those
+// managers and are never read — the names in Settings > League are the
+// user's own, and the app does not try to reconcile the two.
 draftRouter.post('/feed/sync', (req, res) => {
   const picks = req.body?.picks;
   if (!Array.isArray(picks)) return res.status(400).json({ error: 'picks must be an array' });
@@ -451,25 +403,21 @@ draftRouter.post('/feed/sync', (req, res) => {
   // mean "delete the draft": that is what /draft/reset is for, and a stray
   // empty push wiping a draft mid-round is unrecoverable.
   if (picks.length === 0) {
-    return res.json({ picks: db.prepare('SELECT COUNT(*) AS n FROM draft_picks').get().n, added: 0, noop: true, unmatched: [], teamMismatches: [], gapBefore: 0, lastPick: 0, matched: 0 });
+    return res.json({ picks: db.prepare('SELECT COUNT(*) AS n FROM draft_picks').get().n, added: 0, noop: true, unmatched: [], gapBefore: 0, lastPick: 0, matched: 0 });
   }
 
-  lastFeedPicks = picks;
   const league = getSetting('league');
 
-  // Refuse rather than guess: attributing picks to the wrong managers is
-  // silent and poisons the roster, the targets and the board at once. The
-  // refusal is still recorded as a push, so the app can say "something IS
-  // feeding me, it just can't be filed yet" instead of "nothing has arrived".
-  const order = orderReport(picks, league);
+  // The only thing a push can't work without is the seating: how many teams
+  // there are, and which seat is mine. Every pick is filed by the slot its
+  // number lands on, and the feed's own team names are never read — those are
+  // Yahoo's labels, and the names in Settings > League are the user's.
   const blocked = !league.teams?.length
-    ? 'no draft order configured'
-    : order.inferred && !order.agrees
-      ? order.reason
-      : null;
+    ? 'no teams set up yet — add them in Settings > League, in draft order'
+    : null;
   if (blocked) {
-    lastFeedPush = { at: Date.now(), blocked, received: picks.length, inferred: order.inferred };
-    return res.status(409).json({ error: blocked, ...order });
+    lastFeedPush = { at: Date.now(), blocked, received: picks.length };
+    return res.status(409).json({ error: blocked });
   }
 
   const players = db
@@ -482,7 +430,7 @@ draftRouter.post('/feed/sync', (req, res) => {
     players,
     teams: league.teams,
     teamCount: league.teamCount,
-    myTeamId: league.myTeamId,
+    myTeamSlot: mySlot(league),
     aliases: aliasMap(),
     existingBefore: db.prepare('SELECT * FROM draft_picks').all(),
   });
@@ -527,7 +475,6 @@ draftRouter.post('/feed/sync', (req, res) => {
     lastPick: plan.lastPick,
     gapBefore: plan.gapBefore,
     unmatched: plan.unmatched,
-    teamMismatches: plan.teamMismatches,
     matched: plan.rows.filter((r) => r.source === 'feed' && r.playerId != null).length,
   });
 });

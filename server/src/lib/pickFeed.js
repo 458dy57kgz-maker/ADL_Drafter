@@ -113,78 +113,25 @@ export function matchPlayer(entry, players, aliases = new Map()) {
 }
 
 /**
- * Recover the draft order from the picks themselves.
- *
- * A snake draft leaves a signature: with the right team count, every manager
- * lands on exactly one slot in every round. With the wrong count they smear
- * across several. So this tries each plausible team count and keeps the ones
- * where the pattern holds perfectly — no guessing, and it says so when the
- * evidence is thin rather than inventing an order.
- *
- * Needs picks from at least two rounds to be meaningful: inside a single round
- * every count "works" trivially, because each team has only picked once.
- */
-export function inferDraftOrder(feedPicks, { minTeams = 4, maxTeams = 24, youLabel = 'You' } = {}) {
-  const picks = [...feedPicks].filter((p) => Number.isInteger(p.pick) && p.draftedBy).sort((a, b) => a.pick - b.pick);
-  if (picks.length < minTeams * 2) return null;
-
-  const candidates = [];
-  for (let n = minTeams; n <= maxTeams; n++) {
-    const bySlot = new Map();
-    const byTeam = new Map();
-    let ok = true;
-    for (const p of picks) {
-      const slot = slotForPick(p.pick, n);
-      const seatedTeam = bySlot.get(slot);
-      const seatedSlot = byTeam.get(p.draftedBy);
-      if ((seatedTeam && seatedTeam !== p.draftedBy) || (seatedSlot && seatedSlot !== slot)) {
-        ok = false;
-        break;
-      }
-      bySlot.set(slot, p.draftedBy);
-      byTeam.set(p.draftedBy, slot);
-    }
-    // Every seat filled and every manager seated: a partial fit is not a fit,
-    // it just means we haven't seen enough of the draft yet.
-    if (ok && bySlot.size === n && byTeam.size === n) {
-      candidates.push({ teamCount: n, bySlot });
-    }
-  }
-  if (candidates.length !== 1) return null;
-
-  const { teamCount, bySlot } = candidates[0];
-  const teams = [];
-  for (let slot = 1; slot <= teamCount; slot++) teams.push({ slot, name: bySlot.get(slot) });
-  const mine = teams.find((t) => normalizeName(t.name) === normalizeName(youLabel));
-
-  return {
-    teamCount,
-    teams,
-    myTeamSlot: mine?.slot ?? null,
-    roundsSeen: new Set(picks.map((p) => Math.floor((p.pick - 1) / teamCount) + 1)).size,
-  };
-}
-
-/**
  * Turn the feed into the exact pick list the draft should hold.
  *
- * Teams come from the slot the pick number implies, not from the feed's
- * `draftedBy` string: slots are arithmetic, names are typing. The feed's name
- * is still compared against the seated team, and any disagreement is reported
- * — that mismatch is the signal that the configured order is wrong.
+ * Teams come from the slot the pick number implies and nothing else. The
+ * feed's own `draftedBy` string is Yahoo's label for that manager; the names
+ * in Settings > League are the user's own. They are never compared — the
+ * user owns the names, the snake math owns the seating, and a pick is filed
+ * by the seat its number lands on.
  *
  * Picks the feed doesn't cover (it can be started mid-draft) become explicit
  * placeholder rows, because pick numbering has to stay contiguous for the
  * snake math above it to mean anything.
  */
-export function planSync({ feedPicks, players, teams, teamCount, myTeamId, aliases = new Map(), existingBefore = [] }) {
+export function planSync({ feedPicks, players, teams, teamCount, myTeamSlot = null, aliases = new Map(), existingBefore = [] }) {
   const picks = [...feedPicks]
     .filter((p) => Number.isInteger(p.pick) && p.pick > 0)
     .sort((a, b) => a.pick - b.pick);
 
   const rows = [];
   const unmatched = [];
-  const teamMismatches = [];
 
   const feedStart = picks.length ? picks[0].pick : 1;
   const keptBefore = new Map(existingBefore.filter((r) => r.pick_num < feedStart).map((r) => [r.pick_num, r]));
@@ -219,20 +166,17 @@ export function planSync({ feedPicks, players, teams, teamCount, myTeamId, alias
 
     const slot = slotForPick(entry.pick, teamCount);
     const team = teams[slot - 1];
-    if (team && entry.draftedBy && normalizeName(team.name) !== normalizeName(entry.draftedBy)) {
-      teamMismatches.push({ pick: entry.pick, expected: team.name, feed: entry.draftedBy });
-    }
 
     const match = matchPlayer(entry, players, aliases);
     if (!match) unmatched.push({ pick: entry.pick, name: entry.player, position: entry.position, nhlTeam: entry.nhlTeam });
 
     rows.push({
       pickNum: entry.pick,
-      team: team?.name ?? entry.draftedBy,
+      team: team?.name ?? `Slot ${slot}`,
       playerId: match?.player.id ?? null,
       playerName: match?.player.name ?? entry.player,
       pos: match?.player.pos ?? entry.position ?? '—',
-      mine: !!team && team.id === myTeamId,
+      mine: slot === myTeamSlot,
       confidence: match?.confidence ?? null,
       source: 'feed',
     });
@@ -241,7 +185,6 @@ export function planSync({ feedPicks, players, teams, teamCount, myTeamId, alias
   return {
     rows,
     unmatched,
-    teamMismatches,
     feedStart,
     gapBefore: Math.max(0, feedStart - 1),
     lastPick: rows.length ? rows[rows.length - 1].pickNum : 0,
