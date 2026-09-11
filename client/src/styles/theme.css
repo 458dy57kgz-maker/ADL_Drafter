@@ -1,61 +1,78 @@
+/* "Modernist" palette — imported from the claude.ai/design project
+   "Wireframe screen selection" (War Room Redesign.dc.html, option 2a):
+   a light ink-on-paper ground with a single hot-red accent reserved for
+   what actually needs the eye — overdue value, the talent cliff, a
+   category you're losing. Everything else in the room stays near-black
+   or grey. Sharp corners throughout (the system's own --radius-* are all
+   0) rather than the app's old rounded cards. */
 :root {
   /* Backgrounds */
-  --bg-app: #0a0c0f;
-  --bg-panel: #0e1114;
-  --bg-card: #14171b;
-  --bg-input: #191d22;
-  --bg-row: #1a1e23;
-  --bg-row-alt: #17191d;
+  --bg-app: #e2e0dd;
+  --bg-panel: #eae9e9;
+  --bg-card: #f3f2f2;
+  --bg-input: #eae9e9;
+  --bg-row: #eae9e9;
+  --bg-row-alt: #f3f2f2;
 
   /* Borders */
-  --border-hairline: rgba(255, 255, 255, 0.07);
-  --border-hairline-strong: rgba(255, 255, 255, 0.1);
+  --border-hairline: rgba(32, 30, 29, 0.16);
+  --border-hairline-strong: rgba(32, 30, 29, 0.4);
 
   /* Text */
-  --text-primary: #e8eaed;
-  --text-secondary: #c7cbd1;
-  --text-muted: #8b929c;
-  --text-faint: #5a6068;
+  --text-primary: #201e1d;
+  --text-secondary: #444141;
+  --text-muted: #605d5d;
+  --text-faint: #9b9797;
 
-  /* Accent */
-  --accent: #e0603f;
-  --accent-hover: #ef7454;
-  --accent-on-text: #0a0c0f;
-  --gold: #f2c34d;
+  /* Accent — a fill red for one-off command surfaces (the pick header)
+     and a darker ink red for text/emphasis, so a whole red panel and a
+     red number never fight for the same weight. */
+  --accent: #ec3013;
+  --accent-hover: #dd2b0f;
+  --accent-on-text: #f3f2f2;
+  --accent-strong: #ae1800;
+  --accent-strong-bg: #ffe0d9;
+  --gold: #ae1800;
+  --gold-bg: #ffe0d9;
 
-  /* Success */
-  --success: #3fa66b;
-  --success-bg: #12241a;
-  --success-bg-alt: #1e2a20;
-  --success-text: #7fd9a3;
-  --success-border: #2a4a35;
+  /* Success/danger/warning collapse onto the same red/ink/grey scale as
+     the rest of the system — a status that means "good" is a confident
+     near-black, "bad" is the accent red, nothing borrows an out-of-palette
+     green or amber. */
+  --success: #201e1d;
+  --success-bg: #eae9e9;
+  --success-bg-alt: #eae9e9;
+  --success-text: #201e1d;
+  --success-border: rgba(32, 30, 29, 0.25);
 
-  /* Danger */
-  --danger-text: #e8837a;
-  --danger-bg: #3a2020;
-  --danger-bg-alt: #2a1414;
-  --danger-border: #4a2020;
+  --danger-text: #ae1800;
+  --danger-bg: #ffe0d9;
+  --danger-bg-alt: #ffe0d9;
+  --danger-border: rgba(174, 24, 0, 0.35);
 
-  /* Warning */
-  --warning-bg: #3a2f18;
-  --warning-text: #f2c34d;
-  --warning-border: #4a3a22;
+  --warning-bg: #eae9e9;
+  --warning-text: #201e1d;
+  --warning-border: rgba(32, 30, 29, 0.3);
 
-  /* Schedule / off-night accent — distinct from the app's warm accent so an
-     off-night edge doesn't read as a recommendation. */
-  --teal-text: #6fcfc4;
+  /* Schedule / off-night accent — was a teal to stay distinct from the
+     old warm accent; the new accent is red enough on its own that a
+     muted ink reads as "distinct" without adding a second hue. */
+  --teal-text: #605d5d;
 
-  /* Shape */
-  --radius-card: 10px;
-  --radius-chip: 6px;
-  --radius-pill: 20px;
+  /* Shape — the system's own tokens are all 0. */
+  --radius-card: 0px;
+  --radius-chip: 0px;
+  --radius-pill: 0px;
 
   /* Progress bars */
-  --track-bg: #1e2226;
+  --track-bg: #d7d3d3;
 
-  /* Fonts */
-  --font-ui: 'Inter', -apple-system, sans-serif;
-  --font-mono: 'JetBrains Mono', 'SFMono-Regular', monospace;
+  /* Fonts — Archivo carries both display and numeric roles in the
+     source design (tabular-nums on the same face), so --font-mono
+     points at it too rather than keeping a separate monospace family. */
+  --font-ui: 'Archivo', system-ui, sans-serif;
+  --font-mono: 'Archivo', system-ui, sans-serif;
+  --font-ui-weight-heading: 800;
 }
 
 * {

@@ -107,7 +107,7 @@
   color: var(--text-secondary);
   font: 500 11.5px var(--font-mono);
   padding: 3px 6px;
-  border-radius: 5px;
+  border-radius: 0;
 }
 
 .cell-input:hover {

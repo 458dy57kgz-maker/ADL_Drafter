@@ -1,28 +1,31 @@
-/* Best Available board.
-   Colors, sizes and spacing are transcribed from design/draft_board_mockup.html
-   rather than re-derived — the mockup's palette is close to the app's but not
-   identical, so its tokens are declared here, scoped to the board, instead of
-   being approximated with the app's. Nothing outside .draft-board is affected. */
+/* Best Available board — recolored onto the Modernist system (see
+   styles/theme.css). Status used to run gold/silver/bronze tiers plus a
+   green/amber/red wait scale; the source design keeps almost everything in
+   ink and grey and spends its one red only on what's actually urgent
+   (overdue value, the cliff), so tier1 and every "bad" status now share the
+   same accent-strong red, tier2/risky share near-black, and tier3/safe share
+   a quiet mid-grey. Board-local tokens are kept (rather than inlining the
+   theme vars everywhere below) so this file still reads as one palette. */
 
 .draft-board {
-  --board-panel: #171a21;
-  --board-panel-2: #1d212b;
-  --board-border: #2a2f3a;
-  --board-text: #e8eaed;
-  --board-text-dim: #8b93a3;
-  --board-text-faint: #5c6373;
-  --board-tier1: #d4af37;
-  --board-tier1-bg: rgba(212, 175, 55, 0.12);
-  --board-tier2: #9ca8c9;
-  --board-tier2-bg: rgba(156, 168, 201, 0.1);
-  --board-tier3: #c07a4a;
-  --board-tier3-bg: rgba(192, 122, 74, 0.1);
-  --board-safe: #4caf7d;
-  --board-safe-bg: rgba(76, 175, 125, 0.12);
-  --board-risk: #e0a53c;
-  --board-risk-bg: rgba(224, 165, 60, 0.12);
-  --board-danger: #e0603c;
-  --board-danger-bg: rgba(224, 96, 60, 0.12);
+  --board-panel: var(--bg-card);
+  --board-panel-2: var(--bg-row);
+  --board-border: var(--border-hairline-strong);
+  --board-text: var(--text-primary);
+  --board-text-dim: var(--text-secondary);
+  --board-text-faint: var(--text-muted);
+  --board-tier1: var(--accent-strong);
+  --board-tier1-bg: var(--accent-strong-bg);
+  --board-tier2: var(--text-primary);
+  --board-tier2-bg: var(--bg-row-alt);
+  --board-tier3: var(--text-muted);
+  --board-tier3-bg: var(--bg-row-alt);
+  --board-safe: var(--text-muted);
+  --board-safe-bg: var(--bg-row-alt);
+  --board-risk: var(--text-primary);
+  --board-risk-bg: var(--bg-row-alt);
+  --board-danger: var(--accent-strong);
+  --board-danger-bg: var(--accent-strong-bg);
 
   display: flex;
   flex-direction: column;
@@ -45,7 +48,7 @@
 .draft-board .col {
   background: var(--board-panel);
   border: 1px solid var(--board-border);
-  border-radius: 10px;
+  border-radius: 0;
   min-height: 400px;
   display: flex;
   flex-direction: column;
@@ -125,7 +128,7 @@
   font-size: 10px;
   font-weight: 700;
   padding: 2px 6px;
-  border-radius: 4px;
+  border-radius: 0;
   letter-spacing: 0.2px;
 }
 
@@ -178,19 +181,19 @@
 .draft-board .card {
   background: var(--board-panel-2);
   border: 1px solid var(--board-border);
-  border-radius: 8px;
+  border-radius: 0;
   padding: 8px 10px;
   position: relative;
 }
 
 .draft-board .card.suggested {
-  border-color: rgba(76, 175, 125, 0.5);
-  box-shadow: 0 0 0 1px rgba(76, 175, 125, 0.15) inset;
+  border-color: var(--border-hairline-strong);
+  box-shadow: 0 0 0 1px var(--border-hairline-strong) inset;
 }
 
 .draft-board .card.value {
-  border-color: rgba(212, 175, 55, 0.55);
-  box-shadow: 0 0 0 1px rgba(212, 175, 55, 0.18) inset;
+  border-color: var(--accent-strong);
+  box-shadow: 0 0 0 1px var(--accent-strong-bg) inset;
 }
 
 .draft-board .value-flag {
@@ -199,7 +202,7 @@
   color: var(--board-tier1);
   background: var(--board-tier1-bg);
   padding: 1px 6px;
-  border-radius: 4px;
+  border-radius: 0;
   flex-shrink: 0;
   letter-spacing: 0.2px;
 }
@@ -234,7 +237,7 @@
   font-size: 10px;
   font-weight: 700;
   padding: 1px 6px;
-  border-radius: 4px;
+  border-radius: 0;
   flex-shrink: 0;
   letter-spacing: 0.2px;
 }
@@ -255,8 +258,10 @@
 }
 
 /* Also not in the mockup. Quiet by default so it doesn't compete with the
-   tier chip, and it holds the green check for three seconds so the copy is
-   confirmed even after you've looked away at Yahoo's search box. */
+   tier chip, and it holds a solid ink check for three seconds so the copy is
+   confirmed even after you've looked away at Yahoo's search box. No green in
+   this palette — near-black is the strongest confirmation available that
+   isn't the accent red, which is reserved for value/urgency elsewhere. */
 .draft-board .card-copy {
   flex-shrink: 0;
   display: inline-flex;
@@ -277,7 +282,7 @@
 
 .draft-board .card-copy--done,
 .draft-board .card-copy--done:hover {
-  color: var(--board-safe);
+  color: var(--text-primary);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -325,10 +330,10 @@
   font-size: 9.5px;
   font-weight: 600;
   color: var(--board-text-dim);
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--bg-row-alt);
   border: 1px solid var(--board-border);
   padding: 1px 5px;
-  border-radius: 3px;
+  border-radius: 0;
   letter-spacing: 0.2px;
   white-space: nowrap;
 }
@@ -339,8 +344,12 @@
   white-space: nowrap;
 }
 
+/* Off-night share is a value signal in this palette's terms, so a high one
+   gets the same accent-strong red as an overdue card rather than an
+   out-of-palette green. */
 .draft-board .ong.high {
-  color: var(--board-safe);
+  color: var(--accent-strong);
+  font-weight: 700;
 }
 
 .draft-board .card-bottom {
@@ -369,7 +378,7 @@
   font-size: 10.5px;
   font-weight: 600;
   padding: 2px 7px;
-  border-radius: 4px;
+  border-radius: 0;
   white-space: nowrap;
   flex-shrink: 0;
 }
@@ -394,25 +403,27 @@
   background: var(--board-tier1-bg);
 }
 
+/* Solid, full-strength accent red rather than a dashed hairline — in the
+   source design red is spent on exactly two things (overdue value and this
+   line), so the cliff earns the loudest mark on the board. */
 .draft-board .cliff {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 1px 2px;
+  padding: 3px 2px;
   margin: -1px 0;
 }
 
 .draft-board .cliff .line {
   flex: 1;
-  height: 0;
-  border-top: 1px dashed var(--board-danger);
-  opacity: 0.5;
+  height: 2px;
+  background: var(--accent);
 }
 
 .draft-board .cliff .label {
   font-size: 9.5px;
-  color: var(--board-danger);
-  font-weight: 700;
+  color: var(--accent-strong);
+  font-weight: 800;
   letter-spacing: 0.4px;
   white-space: nowrap;
 }

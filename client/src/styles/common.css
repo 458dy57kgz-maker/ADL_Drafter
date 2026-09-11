@@ -30,13 +30,13 @@
   color: var(--text-primary);
   font: 600 12px var(--font-ui);
   padding: 8px 14px;
-  border-radius: 7px;
+  border-radius: 0;
 }
 
 .btn-sm {
   font: 600 11px var(--font-ui);
   padding: 6px 12px;
-  border-radius: 6px;
+  border-radius: 0;
 }
 
 .btn-primary {
@@ -89,9 +89,10 @@
   color: var(--text-primary);
   font: 500 12px var(--font-mono);
   padding: 9px 12px;
-  border-radius: 7px;
+  border-radius: 0;
 }
 
 .mono {
   font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
 }

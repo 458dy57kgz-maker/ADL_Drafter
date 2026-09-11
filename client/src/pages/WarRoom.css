@@ -15,21 +15,142 @@
   padding: 24px;
 }
 
+/* The command band. Full-width accent red with a heavy near-black bottom
+   border, so it reads as one solid instrument rather than a toolbar — the
+   one place in the app where the accent is a fill, not just ink. */
 .war-room__header {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 14px 22px;
-  border-bottom: 1px solid var(--border-hairline);
-  background: var(--bg-panel);
+  align-items: stretch;
+  padding: 0;
+  border-bottom: 2px solid var(--text-primary);
+  background: var(--accent);
+  color: var(--accent-on-text);
   flex: none;
 }
 
-.war-room__header-left,
-.war-room__header-right {
+.war-room__header-main {
+  padding: 14px 26px 16px;
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+}
+
+.war-room__header-meta {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font: 700 12px var(--font-ui);
+  letter-spacing: 0.1em;
+}
+
+.war-room__header-dot {
+  opacity: 0.6;
+}
+
+.war-room__countdown {
+  display: flex;
+  align-items: baseline;
   gap: 14px;
+  margin-top: 2px;
+}
+
+.war-room__countdown-num {
+  font: 900 64px/0.9 var(--font-ui);
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+
+.war-room__countdown-label {
+  font: 800 20px/1 var(--font-ui);
+  letter-spacing: -0.01em;
+  padding-bottom: 6px;
+}
+
+.war-room__onclock {
+  padding: 14px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  justify-content: center;
+  min-width: 0;
+  border-left: 2px solid rgba(243, 242, 242, 0.45);
+}
+
+.war-room__onclock-label {
+  font: 700 10px var(--font-ui);
+  letter-spacing: 0.14em;
+  opacity: 0.85;
+}
+
+.war-room__onclock-team {
+  font: 800 22px/1 var(--font-ui);
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 220px;
+}
+
+.war-room__header-status {
+  margin-left: auto;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 7px;
+  padding: 12px 22px;
+  justify-content: center;
+  border-left: 2px solid rgba(243, 242, 242, 0.45);
+}
+
+/* Every control in the status column sits on the accent fill, so each one
+   gets a light-on-red treatment instead of the app's usual card-on-ground
+   chip styling. */
+.war-room__header-status .feed-chip,
+.war-room__header-status .yahoo-status,
+.war-room__header-status .poll-chip {
+  background: transparent;
+  border: none;
+  padding: 0;
+  color: var(--accent-on-text);
+  opacity: 0.92;
+}
+
+.war-room__header-status .feed-chip:hover:not(:disabled) {
+  border: none;
+  color: var(--accent-on-text);
+  opacity: 1;
+}
+
+.war-room__header-status .feed-chip--live,
+.war-room__header-status .feed-chip--live:disabled,
+.war-room__header-status .feed-chip--blocked {
+  background: transparent;
+  border: none;
+  color: var(--accent-on-text);
+  opacity: 1;
+}
+
+.war-room__header-status .status-dot {
+  background: var(--accent-on-text);
+}
+
+.war-room__header-status .status-dot--off {
+  background: rgba(243, 242, 242, 0.5);
+}
+
+.war-room__header-status .mock-toggle {
+  color: var(--accent-on-text);
+}
+
+.war-room__header-status .mock-toggle__track {
+  background: rgba(32, 30, 29, 0.35);
+  border-color: transparent;
+}
+
+.war-room__reset-btn {
+  align-self: flex-end;
 }
 
 .mock-toggle {
@@ -54,7 +175,7 @@
 .mock-toggle__track {
   width: 34px;
   height: 19px;
-  border-radius: 999px;
+  border-radius: 0;
   background: var(--bg-row);
   border: 1px solid var(--border-hairline-strong);
   padding: 2px;
@@ -83,34 +204,6 @@
 .mock-toggle input:focus-visible + .mock-toggle__track {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
-}
-
-.pick-chip {
-  background: var(--accent);
-  color: var(--accent-on-text);
-  font: 800 26px var(--font-mono);
-  padding: 6px 18px;
-  border-radius: 8px;
-  letter-spacing: 0.5px;
-  width: 151px;
-  height: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.war-room__round {
-  font: 600 15px var(--font-ui);
-  color: var(--text-secondary);
-}
-
-.picks-until-pill {
-  background: var(--bg-row);
-  border: 1px solid var(--border-hairline-strong);
-  padding: 6px 14px;
-  border-radius: var(--radius-pill);
-  font: 700 14px var(--font-ui);
-  color: var(--gold);
 }
 
 .yahoo-status {
@@ -165,21 +258,36 @@
   background: var(--bg-row);
   border: 1px solid var(--border-hairline-strong);
   padding: 5px 10px;
-  border-radius: 6px;
+  border-radius: 0;
 }
 
 /* The board sits at its own fixed height (the mockup's 400px columns plus the
    legend). It still takes the flexible slot so that any leftover window height
    lands here as empty space rather than stretching the roster band below. */
 .war-room__board-section {
-  padding: 14px 22px 10px;
+  padding: 12px 22px 10px;
   flex: 1;
   min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
   align-items: stretch;
   justify-content: flex-start;
+}
+
+.war-room__board-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 7px;
+  border-bottom: 2px solid var(--border-hairline-strong);
+}
+
+.war-room__board-hint {
+  font: 500 11px var(--font-ui);
+  color: var(--text-muted);
+  white-space: nowrap;
 }
 
 /* Pinned to the bottom of the page and sized to its content — it never
@@ -366,7 +474,7 @@
   left: 50%;
   transform: translateX(-50%);
   padding: 3px 8px;
-  border-radius: 5px;
+  border-radius: 0;
   background: var(--bg-input);
   border: 1px solid var(--border-hairline-strong);
   color: var(--text-primary);
@@ -412,7 +520,7 @@
   gap: 2px 4px;
   align-items: center;
   padding: 4px 6px;
-  border-radius: 5px;
+  border-radius: 0;
   background: var(--bg-input);
   margin-bottom: 2px;
   min-width: 0;
@@ -446,7 +554,7 @@
   color: var(--text-faint);
   background: var(--bg-row);
   border: 1px solid var(--border-hairline);
-  border-radius: 4px;
+  border-radius: 0;
   padding: 1px 4px;
   flex: none;
 }
@@ -470,7 +578,7 @@
   color: var(--text-secondary);
   padding: 6px 8px;
   background: var(--bg-input);
-  border-radius: 6px;
+  border-radius: 0;
   margin-bottom: 4px;
 }
 
@@ -486,7 +594,7 @@
   color: var(--text-secondary);
   padding: 6px 8px;
   background: var(--bg-input);
-  border-radius: 6px;
+  border-radius: 0;
   margin-bottom: 4px;
 }
 

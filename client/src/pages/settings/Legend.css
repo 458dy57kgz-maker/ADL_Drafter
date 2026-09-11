@@ -56,10 +56,10 @@
   display: block;
   width: 132px;
   height: 26px;
-  border-radius: 8px;
-  background: #1d212b;
-  border: 1px solid rgba(76, 175, 125, 0.5);
-  box-shadow: 0 0 0 1px rgba(76, 175, 125, 0.15) inset;
+  border-radius: 0;
+  background: var(--bg-row);
+  border: 1px solid var(--border-hairline-strong);
+  box-shadow: 0 0 0 1px var(--border-hairline-strong) inset;
 }
 
 .legend-ring {

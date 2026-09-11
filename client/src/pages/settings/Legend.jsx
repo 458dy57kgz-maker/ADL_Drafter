@@ -34,13 +34,14 @@ export default function Legend() {
         </div>
         <div className="draft-board">
           <Row sample={<span className="wait-chip value">Already overdue</span>}>
-            His ADP has <strong>already passed</strong> — the room let him fall. A value signal, not a warning, which
-            is why it’s gold rather than red. The card gets a gold border and a <span className="mono">★ VALUE</span>{' '}
-            badge, and it keeps them even when that position is full on your roster: bench and trade value are still
-            value.
+            His ADP has <strong>already passed</strong> — the room let him fall. Red is spent on exactly two things
+            in this system: the cliff, and value like this. The card gets a red border and a{' '}
+            <span className="mono">★ VALUE</span> badge, and it keeps them even when that position is full on your
+            roster: bench and trade value are still value.
           </Row>
           <Row sample={<span className="wait-chip danger">Likely gone</span>}>
-            His ADP falls <strong>between now and your next pick</strong>. If you want him, this is the pick.
+            His ADP falls <strong>between now and your next pick</strong>. If you want him, this is the pick — same
+            red as overdue, since both mean "act now," just for opposite reasons.
           </Row>
           <Row sample={<span className="wait-chip risk">Wait = risky</span>}>
             His ADP is just past your next pick — inside half the gap again. Often survives, sometimes doesn’t.
@@ -49,7 +50,7 @@ export default function Legend() {
             Real room past your next pick. Take someone else and come back to him.
           </Row>
           <Row sample={<span className="plain-card-sample" />}>
-            A <strong>green border</strong> marks the top card at a position you still have a starting slot for.
+            A <strong>bold border</strong> marks the top card at a position you still have a starting slot for.
             It’s a nudge, not a recommendation — the whole board is there so the call stays yours.
           </Row>
         </div>
@@ -60,7 +61,7 @@ export default function Legend() {
         <div className="draft-board">
           <Row
             sample={
-              <span className="left-ring" style={{ '--pct': 40, '--ring-color': '#f2c34d' }}>
+              <span className="left-ring" style={{ '--pct': 40, '--ring-color': 'var(--text-primary)' }}>
                 <span className="left-ring__inner">
                   <span className="left-ring__num mono">6</span>
                   <span className="left-ring__label">LEFT</span>
@@ -68,8 +69,8 @@ export default function Legend() {
               </span>
             }
           >
-            How many players you rated at that position are still undrafted, and the ring drains as they go. Green
-            above 7, amber at 4–7, red at 3 or fewer.
+            How many players you rated at that position are still undrafted, and the ring drains as they go. Grey
+            above 7, ink at 4–7, red at 3 or fewer.
           </Row>
           <Row
             sample={
@@ -96,7 +97,7 @@ export default function Legend() {
             than reaching after one.
           </Row>
           <Row sample={<span className="tier-chip t1">T1</span>}>
-            The player’s own tier. Gold is your best tier, then silver, then bronze for anything third or deeper.
+            The player’s own tier. Red is your best tier, then ink, then grey for anything third or deeper.
           </Row>
           <Row
             sample={
@@ -110,8 +111,9 @@ export default function Legend() {
             <strong>his own position</strong>, so a defenceman’s shot total isn’t judged against a winger’s.
           </Row>
           <Row sample={<span className="ong high">ONG 46%</span>}>
-            Share of his games on off-nights, when fewer teams play and a start is worth more. Green above 44%. Absent
-            entirely when the data isn’t there, rather than shown as a made-up 0%.
+            Share of his games on off-nights, when fewer teams play and a start is worth more. Red above 44% — the
+            same value-red as an overdue card. Absent entirely when the data isn’t there, rather than shown as a
+            made-up 0%.
           </Row>
           <Row sample={<span className="adp-line">ADP <span className="adp-num">71</span> · you 58</span>}>
             Where the market takes him, then where you rank him. On an overdue card the second half becomes how many
@@ -135,7 +137,7 @@ export default function Legend() {
             }
           >
             Copies the player’s name to the clipboard so it can be pasted straight into Yahoo’s draft search. It turns
-            into a green check for three seconds once the copy lands.
+            into a solid ink check for three seconds once the copy lands.
           </Row>
         </div>
       </div>
@@ -154,7 +156,7 @@ export default function Legend() {
           </Row>
           <Row sample={<span className="legend-leader mono">Mike’s Team 214</span>}>
             Underneath each ring: whoever leads that category right now, so the number you read is “am I ahead in this
-            room”, not just “am I on pace”. Gold when the leader is you.
+            room”, not just “am I on pace”. Red when the leader is you.
           </Row>
           <Row sample={<span className="legend-overall mono">76%</span>}>
             <strong>Overall</strong> on the right is the average of your seven category percentages, each capped at

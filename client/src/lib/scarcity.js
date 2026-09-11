@@ -1,12 +1,14 @@
-// Colors the "{n} left" scarcity pill (Best Available card headers, Position
-// Scarcity list). Thresholds and colors ported 1:1 from the design source.
+// Colors the "{n} left" scarcity ring (Best Available card headers). Ported
+// from the mockup's own two-step rule (leftFg: red at 7-or-fewer, ink
+// otherwise) with a third, more urgent step added at 3-or-fewer so "almost
+// gone" and "getting thin" don't share a color.
 
 export function scarcityStyle(left) {
   if (left <= 3) {
-    return { bg: '#3a2020', fg: '#e8837a', border: '#4a2020' };
+    return { bg: 'var(--danger-bg)', fg: 'var(--danger-text)', border: 'var(--danger-border)' };
   }
   if (left <= 7) {
-    return { bg: '#3a2f18', fg: '#f2c34d', border: '#4a3a22' };
+    return { bg: 'var(--bg-row)', fg: 'var(--text-primary)', border: 'var(--border-hairline-strong)' };
   }
-  return { bg: '#12241a', fg: '#7fd9a3', border: '#2a4a35' };
+  return { bg: 'var(--bg-row-alt)', fg: 'var(--text-muted)', border: 'var(--border-hairline)' };
 }

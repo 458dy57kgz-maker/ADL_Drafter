@@ -2,9 +2,11 @@ import { useEffect, useRef, useState } from 'react';
 import { scarcityStyle } from '../lib/scarcity.js';
 import './DraftBoard.css';
 
-// The four wait states, in the mockup's own language. `overdue` is gold rather
-// than red on purpose: a player who has fallen past his ADP is a value signal,
-// not a warning.
+// The four wait states, in the mockup's own language. `overdue` and `gone`
+// share the same accent-strong red in the Modernist palette — the source
+// design spends red on exactly two things (the cliff, and value like this),
+// so overdue and danger read the same color and the numeric gutter carries
+// the real distinction between them.
 const WAIT = {
   overdue: { cls: 'value', label: 'Already overdue' },
   gone: { cls: 'danger', label: 'Likely gone' },

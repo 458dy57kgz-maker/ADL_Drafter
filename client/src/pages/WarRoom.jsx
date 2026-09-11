@@ -174,13 +174,39 @@ export default function WarRoom() {
 
   return (
     <div className="war-room">
+      {/* The command band: a full-width red header rather than a thin dark
+          bar, with the countdown to your next pick as the one thing it's
+          impossible to miss. Everything that was a status bar before is
+          still here, just pushed into a stacked column on the right behind
+          a divider, the way the source design keeps command-band controls
+          out of the reading path of the number that matters. */}
       <header className="war-room__header">
-        <div className="war-room__header-left">
-          <div className="pick-chip mono">PICK {pickInfo.pickNum}</div>
-          <div className="war-room__round">Round {pickInfo.round}</div>
-          <div className="picks-until-pill">{pickInfo.picksUntilMe} picks until you</div>
+        <div className="war-room__header-main">
+          <div className="war-room__header-meta">
+            <span>PICK {pickInfo.pickNum}</span>
+            <span className="war-room__header-dot">·</span>
+            <span>ROUND {pickInfo.round}</span>
+          </div>
+          <div className="war-room__countdown">
+            <span className="war-room__countdown-num mono">{pickInfo.picksUntilMe}</span>
+            <span className="war-room__countdown-label">
+              {pickInfo.picksUntilMe === 1 ? 'PICK UNTIL YOU' : 'PICKS UNTIL YOU'}
+            </span>
+          </div>
         </div>
-        <div className="war-room__header-right">
+        {pickInfo.onTheClock && (
+          <div className="war-room__onclock">
+            <div className="war-room__onclock-label">On the clock</div>
+            <div className="war-room__onclock-team">{pickInfo.onTheClock}</div>
+          </div>
+        )}
+        <div className="war-room__header-status">
+          <FeedChip feed={feed} push={data.feed} />
+          <div className="yahoo-status">
+            <span className={`status-dot${yahooConnected ? '' : ' status-dot--off'}`} />
+            {yahooConnected ? 'Yahoo connected' : 'Yahoo disconnected'}
+          </div>
+          <div className="poll-chip mono">poll {pollInterval}s</div>
           <label className="mock-toggle" title="Mock Draft mode — switching either way starts a fresh draft">
             <input type="checkbox" checked={mockDraftMode} onChange={() => setPending('toggle')} />
             <span className="mock-toggle__track">
@@ -189,20 +215,10 @@ export default function WarRoom() {
             Mock Draft
           </label>
           {mockDraftMode && (
-            <button type="button" className="btn btn-sm btn-danger" onClick={() => setPending('reset')}>
+            <button type="button" className="btn btn-sm btn-danger war-room__reset-btn" onClick={() => setPending('reset')}>
               Reset Draft
             </button>
           )}
-          {/* One indicator for both ways picks arrive: the Yahoo tracker
-              pushing to the server, or this browser watching a file. The
-              server-side push wins, since it's true no matter which tab or
-              machine you're looking from. */}
-          <FeedChip feed={feed} push={data.feed} />
-          <div className="yahoo-status">
-            <span className={`status-dot${yahooConnected ? '' : ' status-dot--off'}`} />
-            {yahooConnected ? 'Yahoo connected' : 'Yahoo disconnected'}
-          </div>
-          <div className="poll-chip mono">poll {pollInterval}s</div>
         </div>
       </header>
 
@@ -227,7 +243,10 @@ export default function WarRoom() {
       />
 
       <div className="war-room__board-section">
-        <div className="section-eyebrow">Best Available — next per position</div>
+        <div className="war-room__board-heading">
+          <div className="section-eyebrow">Best Available — next per position</div>
+          <div className="war-room__board-hint">Red card = falling past his ADP. Line under a card = talent cliff.</div>
+        </div>
         <DraftBoard board={board} trackedFor={trackedFor} onToggleTrack={handleToggleTrack} />
       </div>
 
