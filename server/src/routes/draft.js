@@ -183,6 +183,7 @@ function buildState() {
     nextPick: nextPickForSlot(currentPick + 1, teamCount, myDraftSlot),
     myPickNumbers,
     teamCount,
+    isMyTurn: isMyTurnNow,
     depth: BOARD_DEPTH,
   });
 

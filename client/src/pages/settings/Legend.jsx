@@ -60,13 +60,14 @@ export default function Legend() {
             A <strong>positive</strong> number means the room takes him earlier than you’d ever want him. Printed
             faint on purpose — this is the direction that costs you picks, so it recedes rather than competes.
           </Row>
-          <Row sample={<span className="bcard__wait bcard__wait--takeat">TAKE AT 21</span>}>
-            He’s worth more to you than to the room, <strong>and</strong> you have a pick before he goes. 21 is the
-            last of your own picks landing before his ADP — later than your rank for him, so you aren’t burning a
-            better pick on him, and earlier than the room, so you don’t lose him.
+          <Row sample={<span className="bcard__wait bcard__wait--lastcall">TAKE HIM</span>}>
+            The board’s answer for the pick you are making <strong>right now</strong>: your best-ranked player who
+            wouldn’t survive until your next turn. Only ever one player carries it.
           </Row>
-          <Row sample={<span className="bcard__wait bcard__wait--lastcall">LAST CHANCE</span>}>
-            That window closes on the pick you are making right now.
+          <Row sample={<span className="bcard__wait bcard__wait--takeat">TAKE AT 41</span>}>
+            The plan spends that later pick of yours on him. Each of your upcoming picks is handed to exactly one
+            player, best-ranked first and most endangered first — so at a back-to-back 40 and 41 the man who’d be
+            gone goes at 40 and the one who keeps goes at 41. Two players can never both claim 41.
           </Row>
           <Row sample={<span className="bcard__wait bcard__wait--letgo">LET HIM GO</span>}>
             There is <strong>no pick of yours</strong> at which he is both available and worth his price — the room
@@ -79,13 +80,15 @@ export default function Legend() {
       <div className="card legend-card">
         <div className="card-title">Best Available — will he last?</div>
         <div className="card-subtitle">
-          With no window to name, a row falls back to plain availability: his ADP against the gap between this pick
-          and your next one. It makes no claim about whether he’s worth taking — that’s the price gutter’s job.
+          A player the plan didn’t choose falls back to a plain statement of fact rather than an instruction — either
+          somebody better is already taking that pick, or he isn’t reachable. It makes no claim about whether he’s
+          worth taking; that’s the price gutter’s job.
         </div>
         <div className="draft-board draft-board--legend">
           <Row sample={<span className="bcard__wait bcard__wait--gone">LIKELY GONE</span>}>
-            His ADP falls <strong>at or before your next pick</strong>. If you want him this is the pick — but read
-            the gutter before you pay for him.
+            His ADP falls <strong>at or before your next pick</strong>, so he probably won’t reach you — worth knowing
+            for anyone you were counting on. It never lands on the player you should actually be taking: if he’s still
+            on the board when your pick arrives, he reads TAKE HIM instead.
           </Row>
           <Row sample={<span className="bcard__wait bcard__wait--risky">WAIT = RISKY</span>}>
             His ADP is up to half a round past your next pick. Often survives, sometimes doesn’t. Half a round, not

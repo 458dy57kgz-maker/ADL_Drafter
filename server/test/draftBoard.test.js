@@ -11,6 +11,9 @@ import {
   priceBand,
   pickWindow,
   cardVerdict,
+  survivalPickFor,
+  planPicks,
+  assignColumns,
   buildBoard,
 } from '../src/lib/draftBoard.js';
 
@@ -236,7 +239,6 @@ test('fixture: a full position still prices a bargain', () => {
   // value are still value.
   assert.equal(hughes.band, 'steal');
   assert.equal(hughes.diff, -4);
-  assert.equal(hughes.suggested, false, 'the position is already full');
 });
 
 test('fixture: the cliff divider lands between the two tiers it separates', () => {
@@ -288,7 +290,7 @@ test('buildBoard: a cliff deeper than the visible cards is not drawn', () => {
   assert.equal(board.columns[0].sub.text, 'No cliff before pick 104');
 });
 
-test('buildBoard: the top card at a position with a need is suggested', () => {
+test('buildBoard: a player nobody is competing for still reads plainly', () => {
   const players = [player({ id: 1, posList: ['C'], overallRank: 1, adp: 200 })];
   const board = buildBoard({
     players,
@@ -298,8 +300,9 @@ test('buildBoard: the top card at a position with a need is suggested', () => {
     currentPick: 89,
     nextPick: 104,
   });
-  assert.equal(board.columns[0].cards[0].suggested, true);
+  // No schedule passed, so there is no plan and no pick to name.
   assert.equal(board.columns[0].cards[0].status, 'safe');
+  assert.equal(board.columns[0].cards[0].takeAt, null);
 });
 
 // --- price, window and verdict -------------------------------------------
@@ -353,37 +356,137 @@ test('pickWindow: no claim without a rank, an ADP and a schedule', () => {
   assert.equal(pickWindow({ overallRank: 12, adp: 30 }, []), null);
 });
 
-test('cardVerdict: a window closing on this very pick is the last call', () => {
-  const win = { floor: 1, ceiling: 1, open: true };
-  assert.equal(cardVerdict({ status: 'gone', band: 'fair', window: win, currentPick: 1, horizon: 21 }), 'lastcall');
+test('cardVerdict: the pick I am making right now is TAKE HIM', () => {
+  assert.equal(
+    cardVerdict({ status: 'gone', band: 'steal', plannedPick: 40, currentPick: 40, isMyTurn: true }),
+    'takehim'
+  );
 });
 
-test('cardVerdict: a window closing later names that pick', () => {
-  const win = { floor: 20, ceiling: 21, open: true };
-  assert.equal(cardVerdict({ status: 'safe', band: 'steal', window: win, currentPick: 1, horizon: 21 }), 'takeat');
+test('cardVerdict: any later pick of mine is named', () => {
+  assert.equal(
+    cardVerdict({ status: 'safe', band: 'steal', plannedPick: 41, currentPick: 40, isMyTurn: true }),
+    'takeat'
+  );
+  // Off the clock, even my very next pick is a future one.
+  assert.equal(
+    cardVerdict({ status: 'safe', band: 'steal', plannedPick: 40, currentPick: 22, isMyTurn: false }),
+    'takeat'
+  );
 });
 
 test('cardVerdict: a shut window on an overpriced player says let him go', () => {
   const win = { floor: 40, ceiling: 21, open: false };
-  assert.equal(cardVerdict({ status: 'gone', band: 'overpay', window: win, currentPick: 1, horizon: 21 }), 'letgo');
-  assert.equal(cardVerdict({ status: 'gone', band: 'rich', window: win, currentPick: 1, horizon: 21 }), 'letgo');
+  assert.equal(cardVerdict({ status: 'gone', band: 'overpay', window: win, currentPick: 1 }), 'letgo');
+  assert.equal(cardVerdict({ status: 'gone', band: 'rich', window: win, currentPick: 1 }), 'letgo');
 });
 
 test('cardVerdict: a shut window on a bargain keeps the plain reading', () => {
   // You'd have to reach, but he really is worth more to you than to the room.
   // The board states the fact and leaves the call where it belongs.
   const win = { floor: 20, ceiling: 1, open: false };
-  assert.equal(cardVerdict({ status: 'gone', band: 'steal', window: win, currentPick: 1, horizon: 21 }), 'gone');
+  assert.equal(cardVerdict({ status: 'gone', band: 'steal', window: win, currentPick: 1 }), 'gone');
 });
 
-test('cardVerdict: a window closing beyond the horizon is not announced', () => {
+test('cardVerdict: a player the plan passed over just states the fact', () => {
+  // The window may well be open — but somebody better is already taking that
+  // pick, so this card must not also claim it.
   const win = { floor: 40, ceiling: 41, open: true };
-  assert.equal(cardVerdict({ status: 'safe', band: 'steal', window: win, currentPick: 1, horizon: 21 }), 'safe');
+  assert.equal(cardVerdict({ status: 'safe', band: 'steal', window: win, currentPick: 22 }), 'safe');
 });
 
-test('buildBoard: the reported case, end to end', () => {
-  // Slot 1 of ten, on the clock at pick 1 — exactly the board that prompted
-  // this. Hellebuyck was shouting LIKELY GONE at a player ranked 37th.
+// --- the turn-block, the plan, and one column per player -----------------
+
+test('survivalPickFor skips past a back-to-back turn', () => {
+  // Slot 1 picks 40 and 41 together, so "what if I wait?" means pick 60.
+  assert.equal(survivalPickFor([40, 41, 60, 61]), 60);
+  // Already on the second half of the double: the next turn is still 60.
+  assert.equal(survivalPickFor([41, 60, 61]), 60);
+  // Mid-round seats have no double at all.
+  assert.equal(survivalPickFor([45, 55, 65]), 55);
+  assert.equal(survivalPickFor([40]), null);
+  assert.equal(survivalPickFor([]), null);
+});
+
+// The board that prompted this: slot 1 of ten, my picks 40, 41, 60, 61.
+const REPORTED = [
+  player({ id: 1, name: 'Adam Fox', posList: ['D'], overallRank: 16, adp: 56, diff: -4, tier: 2 }),
+  player({ id: 2, name: 'Moritz Seider', posList: ['D'], overallRank: 20, adp: 54, diff: -3.4, tier: 2 }),
+  player({ id: 3, name: 'Matthew Schaefer', posList: ['D'], overallRank: 22, adp: 38, diff: -1.6, tier: 1 }),
+  player({ id: 4, name: 'Aleksander Barkov', posList: ['C'], overallRank: 39, adp: 56, diff: -1.7, tier: 2 }),
+];
+const MY_PICKS = [40, 41, 60, 61];
+
+test('planPicks: off the clock, each of my picks gets one man', () => {
+  // Pick 22. The complaint was three players all reading TAKE AT 41.
+  const plan = planPicks({
+    players: REPORTED,
+    myPickNumbers: MY_PICKS,
+    currentPick: 22,
+    isMyTurn: false,
+    survivalPick: survivalPickFor(MY_PICKS),
+    horizon: 42,
+  });
+  assert.equal(plan.get(1), 40, 'Fox is my best man and goes at 40');
+  assert.equal(plan.get(2), 41, 'Seider takes the other half of the double');
+  assert.equal(plan.get(4), undefined, 'Barkov lasts and is outranked — no claim on a pick');
+  assert.equal(plan.get(3), undefined, 'Schaefer ADP 38 will not reach pick 40');
+});
+
+test('planPicks: on the clock, the endangered man goes first', () => {
+  // Pick 40, and Schaefer is somehow still on the board. Taking him now and
+  // Fox at 41 collects both; taking Fox first would lose Schaefer.
+  const plan = planPicks({
+    players: REPORTED,
+    myPickNumbers: MY_PICKS,
+    currentPick: 40,
+    isMyTurn: true,
+    survivalPick: survivalPickFor(MY_PICKS),
+    horizon: 60,
+  });
+  assert.equal(plan.get(3), 40, 'Schaefer will not survive to 41 — take him now');
+  assert.equal(plan.get(1), 41, 'Fox keeps until 41, and is the best who does');
+  assert.equal(plan.get(2), undefined);
+  assert.equal(plan.get(4), undefined);
+});
+
+test('planPicks: what I can see beats what ADP predicts, but only for this pick', () => {
+  // At the pick I'm actually making, a passed ADP can't argue a player off a
+  // board he is demonstrably still on.
+  const late = [player({ id: 9, posList: ['C'], overallRank: 5, adp: 12 })];
+  const onClock = planPicks({ players: late, myPickNumbers: [40], currentPick: 40, isMyTurn: true, horizon: 60 });
+  assert.equal(onClock.get(9), 40);
+  const offClock = planPicks({ players: late, myPickNumbers: [40], currentPick: 22, isMyTurn: false, horizon: 42 });
+  assert.equal(offClock.get(9), undefined, 'ADP 12 will not reach pick 40');
+});
+
+test('assignColumns: a dual-eligible player is drawn where he stands highest', () => {
+  const players = [
+    player({ id: 1, posList: ['C'], overallRank: 1 }),
+    player({ id: 2, posList: ['C', 'LW'], overallRank: 5 }),
+    player({ id: 3, posList: ['LW'], overallRank: 9 }),
+  ];
+  const owner = assignColumns(players, ['C', 'LW', 'RW', 'D', 'G']);
+  // Second at C, but top of what's left at LW — so LW is where he shows.
+  assert.equal(owner.get(2), 'LW');
+  assert.equal(owner.get(1), 'C');
+  assert.equal(owner.get(3), 'LW');
+});
+
+test('assignColumns: a tie goes RW, LW, C, D, G', () => {
+  const players = [player({ id: 1, posList: ['C', 'RW', 'D'], overallRank: 1 })];
+  const owner = assignColumns(players, ['C', 'LW', 'RW', 'D', 'G']);
+  assert.equal(owner.get(1), 'RW', 'top of all three lists — RW wins the tie');
+});
+
+test('assignColumns: a drafted player owns no column', () => {
+  const players = [player({ id: 1, posList: ['C'], overallRank: 1, drafted: true })];
+  assert.equal(assignColumns(players, ['C']).get(1), undefined);
+});
+
+test('buildBoard: an overpriced player is still told to walk away', () => {
+  // Slot 1 of ten, on the clock at pick 1. Hellebuyck was the original
+  // complaint: LIKELY GONE shouted at a player ranked 37th, ADP 24.
   const players = [
     player({ id: 1, name: 'Hellebuyck', posList: ['G'], overallRank: 37, adp: 24, diff: 1.3, tier: 2 }),
     player({ id: 2, name: 'Bouchard', posList: ['D'], overallRank: 12, adp: 30, diff: -1.8, tier: 2 }),
@@ -397,18 +500,94 @@ test('buildBoard: the reported case, end to end', () => {
     nextPick: 20,
     myPickNumbers: SLOT_1,
     teamCount: 10,
+    isMyTurn: true,
   });
 
   const hellebuyck = board.columns[0].cards[0];
   assert.equal(hellebuyck.band, 'overpay');
   assert.equal(hellebuyck.status, 'letgo', 'the room bids past my price');
   assert.equal(hellebuyck.takeAt, null);
-  assert.equal(hellebuyck.suggested, false, 'never suggest a player you must overpay for');
 
+  // Bouchard is the best man available, so the plan spends pick 1 on him.
   const bouchard = board.columns[1].cards[0];
   assert.equal(bouchard.band, 'steal');
-  assert.equal(bouchard.status, 'takeat');
-  assert.equal(bouchard.takeAt, 21, 'my last pick before his ADP');
+  assert.equal(bouchard.status, 'takehim');
+});
+
+test('buildBoard: the reported board, end to end', () => {
+  // Pick 22, slot 1, off the clock. Three players all read TAKE AT 41 and
+  // Schaefer was stuck on LIKELY GONE.
+  const board = buildBoard({
+    players: REPORTED,
+    positions: ['C', 'LW', 'RW', 'D', 'G'],
+    rosterSlots: { C: 2, LW: 2, RW: 2, D: 4, G: 2 },
+    myPlayers: [],
+    currentPick: 22,
+    nextPick: 40,
+    myPickNumbers: MY_PICKS,
+    teamCount: 10,
+    isMyTurn: false,
+    depth: 10,
+  });
+  const card = (name) => board.columns.flatMap((c) => c.cards).find((c) => c.name === name);
+
+  assert.equal(card('Adam Fox').status, 'takeat');
+  assert.equal(card('Adam Fox').takeAt, 40);
+  assert.equal(card('Moritz Seider').status, 'takeat');
+  assert.equal(card('Moritz Seider').takeAt, 41, 'the other half of the double, not a second claim on 41');
+  // Lasts, but outranked for both picks — so it states the fact and shuts up.
+  assert.equal(card('Aleksander Barkov').status, 'safe');
+  assert.equal(card('Aleksander Barkov').takeAt, null);
+  // ADP 38 against a next pick of 40: he really probably won't reach me.
+  assert.equal(card('Matthew Schaefer').status, 'gone');
+
+  // Exactly one player carries any given pick number.
+  const claimed = board.columns.flatMap((c) => c.cards).map((c) => c.takeAt).filter((p) => p != null);
+  assert.deepEqual([...claimed].sort((a, b) => a - b), [40, 41]);
+});
+
+test('buildBoard: on the clock, the endangered man is the one to take', () => {
+  // Same board at pick 40, Schaefer still there — the case that used to read
+  // LIKELY GONE on the very player I should be taking.
+  const board = buildBoard({
+    players: REPORTED,
+    positions: ['C', 'LW', 'RW', 'D', 'G'],
+    rosterSlots: { C: 2, LW: 2, RW: 2, D: 4, G: 2 },
+    myPlayers: [],
+    currentPick: 40,
+    nextPick: 41,
+    myPickNumbers: MY_PICKS,
+    teamCount: 10,
+    isMyTurn: true,
+    depth: 10,
+  });
+  const card = (name) => board.columns.flatMap((c) => c.cards).find((c) => c.name === name);
+
+  assert.equal(card('Matthew Schaefer').status, 'takehim');
+  assert.equal(card('Adam Fox').status, 'takeat');
+  assert.equal(card('Adam Fox').takeAt, 41);
+  assert.equal(card('Aleksander Barkov').status, 'safe');
+});
+
+test('buildBoard: a dual-eligible player is drawn once, but counted everywhere', () => {
+  const players = [
+    player({ id: 1, name: 'Pure C', posList: ['C'], overallRank: 1, adp: 200 }),
+    player({ id: 2, name: 'Dual', posList: ['C', 'LW'], overallRank: 5, adp: 200 }),
+  ];
+  const board = buildBoard({
+    players,
+    positions: ['C', 'LW', 'RW', 'D', 'G'],
+    rosterSlots: { C: 2, LW: 2 },
+    myPlayers: [],
+    currentPick: 1,
+    nextPick: 20,
+    teamCount: 10,
+  });
+  const names = (pos) => board.columns.find((c) => c.pos === pos).cards.map((c) => c.name);
+  assert.deepEqual(names('C'), ['Pure C']);
+  assert.deepEqual(names('LW'), ['Dual'], 'drawn where he stands highest');
+  // Scarcity still knows he could fill a C seat.
+  assert.equal(board.columns.find((c) => c.pos === 'C').counts.total, 2);
 });
 
 // --- header tiers --------------------------------------------------------

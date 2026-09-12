@@ -14,14 +14,16 @@ import './DraftBoard.css';
 // opportunity, so a named pick carries it, plain availability is ink, and
 // anything to leave alone recedes to grey.
 const WAIT = {
-  lastcall: { cls: 'lastcall', label: 'LAST CHANCE' },
+  takehim: { cls: 'lastcall', label: 'TAKE HIM' },
   gone: { cls: 'gone', label: 'LIKELY GONE' },
   risky: { cls: 'risky', label: 'WAIT = RISKY' },
   safe: { cls: 'safe', label: 'SAFE TO WAIT' },
   letgo: { cls: 'letgo', label: 'LET HIM GO' },
 };
 
-// 'takeat' names one of your own picks, so its label is built per card.
+// 'takeat' names one of your own picks, so its label is built per card. Only
+// one player on the whole board ever carries a given pick number — the plan
+// hands each pick to exactly one man.
 function waitFor(card) {
   if (card.status === 'takeat' && card.takeAt != null) {
     return { cls: 'takeat', label: `TAKE AT ${card.takeAt}` };

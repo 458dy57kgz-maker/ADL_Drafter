@@ -148,33 +148,149 @@ export function pickWindow(player, myPickNumbers = []) {
   return { floor, ceiling, open: floor != null && ceiling != null && ceiling >= floor };
 }
 
+// --- The plan: who to take with each of my upcoming picks ----------------
+//
+// A per-card window can say "he lasts until 41" about three players at once,
+// which reads as an instruction the board can't keep — only one man can be
+// taken at 41. So the recommendation is computed for the BOARD, not the card:
+// walk my upcoming picks in order and hand each one a single player.
+
+const byRank = (a, b) => (a.overallRank ?? Infinity) - (b.overallRank ?? Infinity);
+
 /**
- * One verdict per card, from availability and price together.
+ * The first of my picks after my current turn-block.
  *
- * The two readings are independent, and their crossing is the point: before
- * this existed the board shouted LIKELY GONE at a player ranked thirteen picks
- * below his market price, which is the board arguing you *into* an overpay
- * rather than out of one.
+ * At the turn of a snake two of my picks are back to back (40 and 41), so
+ * "what if I wait?" asked at 40 is nearly meaningless against 41 — one pick
+ * later almost nobody has moved. The honest reference is the next time I'm up
+ * after the whole block, which is what "wait one more round" means.
+ */
+export function survivalPickFor(myPickNumbers = []) {
+  let i = 0;
+  while (i + 1 < myPickNumbers.length && myPickNumbers[i + 1] === myPickNumbers[i] + 1) i++;
+  return myPickNumbers[i + 1] ?? null;
+}
+
+// Is he plausibly still there when that pick arrives? At the pick I'm actually
+// making the question is settled — he's on the board, I can see him — so ADP
+// doesn't get to overrule the fact. For a future pick, ADP is all there is.
+function stillOnBoard(player, pick, currentPick, isMyTurn) {
+  if (isMyTurn && pick === currentPick) return true;
+  return player.adp == null || player.adp >= pick;
+}
+
+/**
+ * One player per upcoming pick, best-ranked first, most endangered first.
  *
- *   'lastcall'  the window is open and closes on this very pick
- *   'takeat'    the window is open and closes at a named pick of yours
- *   'letgo'     the window is shut and he costs more than you'd pay
+ * For each pick, the candidates are players likely to still be there. Among
+ * them it prefers someone who would NOT survive to my next turn after this one
+ * — taking the man I'd otherwise lose, and leaving the one who'll keep. That
+ * ordering is what lets a back-to-back 40/41 collect both: the endangered
+ * player goes at 40, the one who lasts goes at 41.
+ *
+ * Returns Map(playerId -> pick number).
+ */
+export function planPicks({
+  players,
+  myPickNumbers = [],
+  currentPick,
+  isMyTurn = false,
+  survivalPick = null,
+  horizon = Infinity,
+}) {
+  // A player the board tells me to walk away from must never turn up in the
+  // plan: "let him go" and "take him at 20" can't both be true of one man.
+  const available = players
+    .filter((p) => {
+      if (p.drafted) return false;
+      const band = priceBand(p.diff);
+      return band !== 'rich' && band !== 'overpay';
+    })
+    .sort(byRank);
+  const picks = myPickNumbers.filter((pk) => pk <= horizon);
+  const plan = new Map();
+  const used = new Set();
+
+  for (let i = 0; i < picks.length; i++) {
+    const pick = picks[i];
+    // My next chance after this pick: the following pick of mine inside the
+    // block, or once the block is done, the turn after it.
+    const nextOwn = picks[i + 1] ?? survivalPick;
+    const pool = available.filter(
+      (p) => !used.has(p.id) && stillOnBoard(p, pick, currentPick, isMyTurn)
+    );
+    if (!pool.length) continue;
+
+    const endangered = nextOwn == null ? [] : pool.filter((p) => p.adp != null && p.adp <= nextOwn);
+    // Both lists are already rank-sorted, so [0] is my best man either way.
+    const choice = endangered[0] ?? pool[0];
+    plan.set(choice.id, pick);
+    used.add(choice.id);
+  }
+
+  return plan;
+}
+
+// Which column owns a dual-eligible player. Ties go left to right here — a
+// player who tops two lists shows under the scarcer, more specific position
+// rather than being duplicated across both.
+export const COLUMN_PRIORITY = ['RW', 'LW', 'C', 'D', 'G'];
+
+/**
+ * Every available player belongs to exactly one column: the one where he sits
+ * highest among what's left. Showing the same man in three columns at once
+ * makes the board look three players deeper than it is.
+ *
+ * Returns Map(playerId -> position).
+ */
+export function assignColumns(players, positions, priority = COLUMN_PRIORITY) {
+  const placeIn = new Map();
+  for (const pos of positions) {
+    const pool = players.filter((p) => !p.drafted && eligibleAt(p, pos)).sort(byRank);
+    placeIn.set(pos, new Map(pool.map((p, i) => [p.id, i])));
+  }
+
+  const rankOf = (pos) => {
+    const i = priority.indexOf(pos);
+    return i === -1 ? priority.length : i;
+  };
+
+  const owner = new Map();
+  for (const p of players) {
+    if (p.drafted) continue;
+    let best = null;
+    for (const pos of positions) {
+      const place = placeIn.get(pos)?.get(p.id);
+      if (place == null) continue;
+      if (best == null || place < best.place || (place === best.place && rankOf(pos) < rankOf(best.pos))) {
+        best = { pos, place };
+      }
+    }
+    if (best) owner.set(p.id, best.pos);
+  }
+  return owner;
+}
+
+/**
+ * One verdict per card, from the plan, availability and price together.
+ *
+ *   'takehim'   the plan spends the pick I'm making right now on him
+ *   'takeat'    the plan spends a named later pick of mine on him
+ *   'letgo'     no pick of mine has him both available and worth his price
  *   otherwise   plain availability
  *
- * A window is only announced while it closes within the next couple of rounds.
- * Further out it isn't a decision yet, and "TAKE AT 141" on every card would
- * drown the handful that are.
+ * Everything the plan didn't choose falls back to a plain statement rather
+ * than an instruction, which is what keeps LIKELY GONE off the one player I
+ * should actually be taking and off the two who are merely outranked.
  */
-export function cardVerdict({ status, band, window: win, currentPick, horizon = Infinity }) {
-  if (win?.open && win.ceiling <= horizon) {
-    return win.ceiling === currentPick ? 'lastcall' : 'takeat';
+export function cardVerdict({ status, band, window: win, plannedPick = null, currentPick, isMyTurn = false }) {
+  if (plannedPick != null) {
+    return isMyTurn && plannedPick === currentPick ? 'takehim' : 'takeat';
   }
-  // Shut window and the room is bidding past your price: the one case where
-  // the honest advice is to stop looking at him.
+  // The room is bidding past my price and no pick of mine lands in time: the
+  // one case where the honest advice is to stop looking at him.
   if (win && !win.open && (band === 'rich' || band === 'overpay')) return 'letgo';
-  // Shut window but he's a bargain — you'd have to reach, yet he really is
-  // worth more to you than to the room. That's a genuine decision, so it keeps
-  // the plain availability reading instead of being editorialised either way.
+  // Not chosen, but still a fact worth stating — he'll be gone, or he'll keep.
   return status;
 }
 
@@ -308,25 +424,38 @@ export function buildBoard({
   nextPick,
   myPickNumbers = [],
   teamCount = null,
+  isMyTurn = false,
   depth = 3,
 }) {
   // Properties of your schedule, not of any player, so they're computed once
   // for the whole board rather than per card.
   const riskMargin = defaultRiskMargin(currentPick, nextPick, teamCount);
-  // Measured in rounds rather than "my next two turns": at the turn of a snake
-  // two of your picks are back to back, so counting turns would suppress a
-  // window closing on the second half of your own double.
   const horizon = teamCount ? currentPick + teamCount * 2 : Infinity;
+  // One player per upcoming pick, so the board can never tell me to take
+  // three different men at 41.
+  const plan = planPicks({
+    players,
+    myPickNumbers,
+    currentPick,
+    isMyTurn,
+    survivalPick: survivalPickFor(myPickNumbers),
+    horizon,
+  });
+  // Every available player is drawn in exactly one column.
+  const columnOf = assignColumns(players, positions);
 
   const columns = positions.map((pos) => {
     const counts = classifyRemaining(players, pos, currentPick);
+    // The full eligible pool, deliberately still inclusive: scarcity and the
+    // category z-scores are measured against it, and a dual-eligible player
+    // really is draftable here even when he's drawn in another column.
     const pool = players
       .filter((p) => !p.drafted && eligibleAt(p, pos))
       .sort((a, b) => (a.overallRank ?? Infinity) - (b.overallRank ?? Infinity));
 
-    // Scoped to the visible cards: the divider is drawn between two of them,
-    // and a cliff twenty players down isn't news at this pick.
-    const shown = pool.slice(0, depth);
+    // ...but only the players this column owns are drawn, and the cliff is
+    // scoped to those: a drop twenty players down isn't news at this pick.
+    const shown = pool.filter((p) => columnOf.get(p.id) === pos).slice(0, depth);
     const cliffAfter = detectCliff(shown, counts);
 
     const slots = rosterSlots?.[pos] ?? 0;
@@ -349,19 +478,22 @@ export function buildBoard({
         // in: the gutter prints the number, the band decides how loud.
         diff: p.diff ?? null,
         band,
-        // The pick this card is really about, when there is one.
-        takeAt: win?.open ? win.ceiling : null,
+        // The pick the plan actually spends on him, when it spends one.
+        takeAt: plan.get(p.id) ?? null,
         // Kept alongside the verdict so the card can still say what the market
         // alone thinks — the verdict is the two readings crossed.
         available,
-        status: cardVerdict({ status: available, band, window: win, currentPick, horizon }),
+        status: cardVerdict({
+          status: available,
+          band,
+          window: win,
+          plannedPick: plan.get(p.id) ?? null,
+          currentPick,
+          isMyTurn,
+        }),
         tracked: !!p.tracked,
         cats: topCategories(p, pool),
         ongPct: share == null ? null : Math.round(share * 100),
-        // The top card at a position you still have a starting slot for, and
-        // never one you'd have to overpay for: "suggested" and "costs more
-        // than he's worth to you" can't both be true of the same player.
-        suggested: i === 0 && !positionFull && band !== 'overpay' && band !== 'rich',
       };
     });
 
