@@ -103,18 +103,36 @@
   align-items: flex-start;
 }
 
-.draft-board .bcard__value {
+/* The price gutter: your rank minus his ADP, in rounds. Red is the board's
+   "look here" colour, and the thing worth looking at is a bargain — so the
+   bargain direction carries the accent and an overpay recedes. That is the
+   opposite of the Players grid, which is a neutral data table rather than a
+   decision surface. */
+.draft-board .bcard__price {
   font: 800 19px/1 var(--font-ui);
   letter-spacing: -0.02em;
   font-variant-numeric: tabular-nums;
-  color: var(--accent-strong);
+  color: var(--text-muted);
   min-height: 19px;
 }
 
-.draft-board .bcard__value-label {
+.draft-board .bcard__price--good {
+  color: var(--accent-strong);
+}
+
+.draft-board .bcard__price--bad {
+  color: var(--text-faint);
+}
+
+/* Past 0.8 of a round the disagreement is worth acting on, not just noting. */
+.draft-board .bcard__price--strong {
+  font-weight: 900;
+}
+
+.draft-board .bcard__price-label {
   font: 700 7.5px var(--font-ui);
   letter-spacing: 0.1em;
-  color: var(--accent-strong);
+  color: var(--text-muted);
   margin-top: 1px;
   min-height: 9px;
 }
@@ -218,7 +236,16 @@
   letter-spacing: 0.06em;
 }
 
-.draft-board .bcard__wait--value,
+/* A named pick is the board's one piece of advice, so it carries the accent. */
+.draft-board .bcard__wait--takeat,
+.draft-board .bcard__wait--lastcall {
+  color: var(--accent-strong);
+}
+
+.draft-board .bcard__wait--lastcall {
+  font-weight: 900;
+}
+
 .draft-board .bcard__wait--gone {
   color: var(--accent-strong);
 }
@@ -227,7 +254,8 @@
   color: var(--text-primary);
 }
 
-.draft-board .bcard__wait--safe {
+.draft-board .bcard__wait--safe,
+.draft-board .bcard__wait--letgo {
   color: var(--text-muted);
 }
 

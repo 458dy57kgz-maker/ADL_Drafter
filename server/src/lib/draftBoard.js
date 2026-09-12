@@ -53,23 +53,38 @@ export function classifyRemaining(players, position, currentPick) {
   return { t1: byTier.get(1) ?? 0, t2: byTier.get(2) ?? 0, total: pool.length, byTier };
 }
 
-/** Half the gap to your next turn, which is the default tolerance for "risky". */
-export function defaultRiskMargin(currentPick, nextPick) {
-  return Math.max(0, (nextPick - currentPick) / 2);
+/**
+ * How far past your next turn an ADP can sit and still count as "risky".
+ *
+ * Half the gap to that turn, but never more than half a round. The gap alone
+ * is wrong at the turn of a snake: at slot 1 the gap from pick 1 to pick 20 is
+ * 19, which stretched "risky" out to ADP 29 — anxiety manufactured from the
+ * shape of your schedule rather than from anything about the player. A
+ * player's ADP does not get less certain because your next pick is far away.
+ *
+ * `teamCount` is optional so the older two-argument call still means what it
+ * always did; the board passes it.
+ */
+export function defaultRiskMargin(currentPick, nextPick, teamCount = null) {
+  const halfGap = Math.max(0, (nextPick - currentPick) / 2);
+  return teamCount ? Math.min(halfGap, teamCount / 2) : halfGap;
 }
 
 /**
- * Can this player survive until your next turn?
+ * Can this player survive until your next turn? Availability only — this says
+ * nothing about whether he is worth taking, which is `priceBand`'s job.
  *
- *   adp <= currentPick                     -> 'overdue'  he has already fallen
- *                                                        past where the market
- *                                                        expected him gone —
- *                                                        a value signal, not a
- *                                                        warning
- *   currentPick < adp <= nextPick          -> 'gone'     his ADP lands inside
- *                                                        your gap
- *   nextPick < adp <= nextPick + margin    -> 'risky'    close to the edge
+ *   adp <= nextPick                        -> 'gone'   his ADP lands at or
+ *                                                      before your next turn
+ *   nextPick < adp <= nextPick + margin    -> 'risky'  close to the edge
  *   adp > nextPick + margin                -> 'safe'
+ *
+ * There used to be a fourth branch, 'overdue', for a player whose ADP had
+ * already passed the current pick, styled as the board's loudest value signal.
+ * It is gone: that was the *market* calling him a value, and the market's
+ * opinion of a player is not the drafter's. Value is now measured against your
+ * own rankings (see `priceBand`), and an ADP in the past says only what it
+ * ever said about availability — he'll be gone.
  *
  * Returns null when ADP is unknown — the card omits the chip rather than
  * guessing, since every branch here is a claim about the market and there is
@@ -77,10 +92,90 @@ export function defaultRiskMargin(currentPick, nextPick) {
  */
 export function waitStatus(adp, currentPick, nextPick, riskMargin = defaultRiskMargin(currentPick, nextPick)) {
   if (adp == null) return null;
-  if (adp <= currentPick) return 'overdue';
   if (adp <= nextPick) return 'gone';
   if (adp <= nextPick + riskMargin) return 'risky';
   return 'safe';
+}
+
+// --- Price: what he is worth to YOU --------------------------------------
+//
+// `diff` (computed in lib/mapPlayer.js) is your disagreement with the market,
+// in rounds: (yourRank - adp) / teamCount. Negative means you rate him above
+// where the room takes him, so you can have him later than he's worth to you —
+// a bargain. Positive means the room takes him earlier than you'd ever want
+// him, so getting him at all means paying more than your own price.
+
+// Inside half a round you and the market agree closely enough that the
+// difference is noise, so it earns no mark at all. Past 0.8 of a round the
+// disagreement is big enough to act on rather than merely notice.
+export const FAIR_ROUNDS = 0.5;
+export const STRONG_ROUNDS = 0.8;
+
+export function priceBand(diff, fair = FAIR_ROUNDS, strong = STRONG_ROUNDS) {
+  if (diff == null) return null;
+  if (diff <= -strong) return 'steal';
+  if (diff < -fair) return 'value';
+  if (diff <= fair) return 'fair';
+  if (diff < strong) return 'rich';
+  return 'overpay';
+}
+
+/**
+ * The window of your own picks in which a player is both worth taking and
+ * still likely to be there.
+ *
+ *   floor    the first of your picks at or after your rank for him. Earlier
+ *            than that and you're spending a pick worth more than he is.
+ *   ceiling  the last of your picks before his ADP. Later and the room has him.
+ *
+ * `open` is the whole point. When the ceiling has fallen below the floor there
+ * is no pick at which he is both available and worth his price — which is
+ * exactly the overpay this is meant to keep you out of.
+ *
+ * The ceiling is strict (`pick < adp`) rather than padded. ADP is an average,
+ * so a pick right at the edge is a coin flip — that residual risk is what the
+ * wait status is for, and padding here would bury the same caution twice.
+ */
+export function pickWindow(player, myPickNumbers = []) {
+  const rank = player?.overallRank;
+  const adp = player?.adp;
+  if (rank == null || adp == null || !myPickNumbers.length) return null;
+
+  const floor = myPickNumbers.find((pk) => pk >= rank) ?? null;
+  let ceiling = null;
+  for (const pk of myPickNumbers) if (pk < adp) ceiling = pk;
+
+  return { floor, ceiling, open: floor != null && ceiling != null && ceiling >= floor };
+}
+
+/**
+ * One verdict per card, from availability and price together.
+ *
+ * The two readings are independent, and their crossing is the point: before
+ * this existed the board shouted LIKELY GONE at a player ranked thirteen picks
+ * below his market price, which is the board arguing you *into* an overpay
+ * rather than out of one.
+ *
+ *   'lastcall'  the window is open and closes on this very pick
+ *   'takeat'    the window is open and closes at a named pick of yours
+ *   'letgo'     the window is shut and he costs more than you'd pay
+ *   otherwise   plain availability
+ *
+ * A window is only announced while it closes within the next couple of rounds.
+ * Further out it isn't a decision yet, and "TAKE AT 141" on every card would
+ * drown the handful that are.
+ */
+export function cardVerdict({ status, band, window: win, currentPick, horizon = Infinity }) {
+  if (win?.open && win.ceiling <= horizon) {
+    return win.ceiling === currentPick ? 'lastcall' : 'takeat';
+  }
+  // Shut window and the room is bidding past your price: the one case where
+  // the honest advice is to stop looking at him.
+  if (win && !win.open && (band === 'rich' || band === 'overpay')) return 'letgo';
+  // Shut window but he's a bargain — you'd have to reach, yet he really is
+  // worth more to you than to the room. That's a genuine decision, so it keeps
+  // the plain availability reading instead of being editorialised either way.
+  return status;
 }
 
 function remainingInTier(remainingCounts, tier) {
@@ -211,8 +306,18 @@ export function buildBoard({
   myPlayers = [],
   currentPick,
   nextPick,
+  myPickNumbers = [],
+  teamCount = null,
   depth = 3,
 }) {
+  // Properties of your schedule, not of any player, so they're computed once
+  // for the whole board rather than per card.
+  const riskMargin = defaultRiskMargin(currentPick, nextPick, teamCount);
+  // Measured in rounds rather than "my next two turns": at the turn of a snake
+  // two of your picks are back to back, so counting turns would suppress a
+  // window closing on the second half of your own double.
+  const horizon = teamCount ? currentPick + teamCount * 2 : Infinity;
+
   const columns = positions.map((pos) => {
     const counts = classifyRemaining(players, pos, currentPick);
     const pool = players
@@ -229,7 +334,9 @@ export function buildBoard({
     const positionFull = slots > 0 && filled >= slots;
 
     const cards = shown.map((p, i) => {
-      const status = waitStatus(p.adp, currentPick, nextPick);
+      const available = waitStatus(p.adp, currentPick, nextPick, riskMargin);
+      const band = priceBand(p.diff);
+      const win = pickWindow(p, myPickNumbers);
       const share = offNightShare(p);
       return {
         id: p.id,
@@ -238,17 +345,23 @@ export function buildBoard({
         overallRank: p.overallRank,
         tier: p.tier,
         adp: p.adp,
-        // How far past his ADP he has fallen — the number that makes "already
-        // overdue" concrete.
-        picksAgo: status === 'overdue' && p.adp != null ? currentPick - p.adp : null,
-        status,
+        // Your disagreement with the market, in rounds, and the band it falls
+        // in: the gutter prints the number, the band decides how loud.
+        diff: p.diff ?? null,
+        band,
+        // The pick this card is really about, when there is one.
+        takeAt: win?.open ? win.ceiling : null,
+        // Kept alongside the verdict so the card can still say what the market
+        // alone thinks — the verdict is the two readings crossed.
+        available,
+        status: cardVerdict({ status: available, band, window: win, currentPick, horizon }),
         tracked: !!p.tracked,
         cats: topCategories(p, pool),
         ongPct: share == null ? null : Math.round(share * 100),
-        // The top card at a position you still have a starting slot for. Never
-        // on an overdue card — that one already carries the louder gold
-        // treatment, and two badges on one card compete.
-        suggested: i === 0 && !positionFull && status !== 'overdue',
+        // The top card at a position you still have a starting slot for, and
+        // never one you'd have to overpay for: "suggested" and "costs more
+        // than he's worth to you" can't both be true of the same player.
+        suggested: i === 0 && !positionFull && band !== 'overpay' && band !== 'rich',
       };
     });
 

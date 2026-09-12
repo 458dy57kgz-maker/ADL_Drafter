@@ -2,19 +2,38 @@ import { useEffect, useRef, useState } from 'react';
 import './DraftBoard.css';
 
 // Best Available, drawn as the wireframe's option 2a: five flat columns of
-// ruled rows rather than boxed cards, with a left "value gutter" that prints
-// how far past his ADP an overdue player has fallen. That figure is the only
-// thing that ranks several overdue players against each other, so it gets the
-// biggest type on the card; everything that says "take someone else" recedes.
+// ruled rows rather than boxed cards, with a left "price gutter" that prints
+// how far your own rank for a player sits from where the room takes him, in
+// rounds. That figure is what separates a player worth chasing from one the
+// room is simply bidding past you on, so it gets the biggest type on the card;
+// everything that says "take someone else" recedes.
 
-// Status by weight, not hue — Modernist is mono red on a light ground, so
-// "likely gone" and overdue carry the red, risky is ink, safe is quiet grey.
+// Two independent readings per card — will he last (availability) and is he
+// worth it (price) — crossed into one verdict on the server. Weight, not hue:
+// Modernist is mono red on a light ground, and here red is spent on
+// opportunity, so a named pick carries it, plain availability is ink, and
+// anything to leave alone recedes to grey.
 const WAIT = {
-  overdue: { cls: 'value', label: 'OVERDUE — VALUE' },
+  lastcall: { cls: 'lastcall', label: 'LAST CHANCE' },
   gone: { cls: 'gone', label: 'LIKELY GONE' },
   risky: { cls: 'risky', label: 'WAIT = RISKY' },
   safe: { cls: 'safe', label: 'SAFE TO WAIT' },
+  letgo: { cls: 'letgo', label: 'LET HIM GO' },
 };
+
+// 'takeat' names one of your own picks, so its label is built per card.
+function waitFor(card) {
+  if (card.status === 'takeat' && card.takeAt != null) {
+    return { cls: 'takeat', label: `TAKE AT ${card.takeAt}` };
+  }
+  return card.status ? WAIT[card.status] ?? null : null;
+}
+
+// Signed, one decimal, in rounds. Only ever printed outside the fair band —
+// inside half a round you and the room agree, and a mark there is noise.
+function priceText(diff) {
+  return diff > 0 ? `+${diff.toFixed(1)}` : diff.toFixed(1);
+}
 
 // A position this thin is printed in red. Same threshold as the wireframe.
 const LOW_LEFT = 7;
@@ -114,15 +133,24 @@ function CopyName({ name }) {
 }
 
 function Card({ card }) {
-  const wait = card.status ? WAIT[card.status] : null;
-  const past = card.status === 'overdue' && card.picksAgo != null;
+  const wait = waitFor(card);
   const showOng = card.ongPct != null && card.ongPct >= ONG_FLOOR;
+  // Inside the fair band the card carries no price mark at all.
+  const showPrice = card.diff != null && card.band && card.band !== 'fair';
+  const bargain = card.band === 'steal' || card.band === 'value';
+  const strong = card.band === 'steal' || card.band === 'overpay';
+  const priceCls = showPrice
+    ? ` bcard__price--${bargain ? 'good' : 'bad'}${strong ? ' bcard__price--strong' : ''}`
+    : '';
+  // "Safe to wait" and "let him go" are the same instruction: spend this pick
+  // on someone else.
+  const quiet = card.status === 'safe' || card.status === 'letgo';
 
   return (
-    <div className={`bcard${card.status === 'safe' ? ' bcard--quiet' : ''}`}>
+    <div className={`bcard${quiet ? ' bcard--quiet' : ''}`}>
       <div className="bcard__gutter">
-        <span className="bcard__value">{past ? `+${card.picksAgo}` : ''}</span>
-        <span className="bcard__value-label">{past ? 'PAST' : ''}</span>
+        <span className={`bcard__price${priceCls}`}>{showPrice ? priceText(card.diff) : ''}</span>
+        <span className="bcard__price-label">{showPrice ? 'RD' : ''}</span>
         <span className="bcard__rank">{card.overallRank != null ? `#${card.overallRank}` : ''}</span>
       </div>
       <div className="bcard__body">

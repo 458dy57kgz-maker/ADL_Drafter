@@ -95,6 +95,10 @@
   color: var(--success-text);
 }
 
+.legend-diff--bad {
+  color: var(--danger-text);
+}
+
 .legend-blank {
   font: 500 11.5px var(--font-ui);
   color: var(--text-faint);

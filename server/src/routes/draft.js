@@ -163,6 +163,17 @@ function buildState() {
   // The Best Available board. `nextPick` is always my next turn strictly
   // AFTER the current pick — including while I'm on the clock, since the
   // question every card answers is "if I don't take him now, will he last?"
+  // Every remaining turn of mine, which is what the board's pick windows are
+  // measured against. Capped so a half-configured roster can't spin it.
+  const myPickNumbers = [];
+  for (
+    let pk = isMyTurnNow ? currentPick : myNextPick;
+    (!totalPicks || pk <= totalPicks) && myPickNumbers.length < 40;
+    pk = nextPickForSlot(pk + 1, teamCount, myDraftSlot)
+  ) {
+    myPickNumbers.push(pk);
+  }
+
   const board = buildBoard({
     players,
     positions: POS_ORDER,
@@ -170,6 +181,8 @@ function buildState() {
     myPlayers: mine,
     currentPick,
     nextPick: nextPickForSlot(currentPick + 1, teamCount, myDraftSlot),
+    myPickNumbers,
+    teamCount,
     depth: BOARD_DEPTH,
   });
 

@@ -8,6 +8,9 @@ import {
   detectCliff,
   topCategories,
   offNightShare,
+  priceBand,
+  pickWindow,
+  cardVerdict,
   buildBoard,
 } from '../src/lib/draftBoard.js';
 
@@ -31,12 +34,12 @@ function player(overrides = {}) {
 // Implemented backwards once before, so every branch and both boundaries are
 // pinned here. Reading: pick 89 on the clock, next turn at 104, margin 7.5.
 
-test('waitStatus: adp already passed is overdue, not a warning', () => {
-  assert.equal(waitStatus(28, 89, 104), 'overdue');
-});
-
-test('waitStatus: boundary adp === currentPick is overdue', () => {
-  assert.equal(waitStatus(89, 89, 104), 'overdue');
+test('waitStatus: an ADP already in the past is simply gone', () => {
+  // This used to be 'overdue' and carried the board's loudest value styling.
+  // Whether a player is a value is the drafter's call now, not the market's —
+  // see priceBand. Availability is all this function claims.
+  assert.equal(waitStatus(28, 89, 104), 'gone');
+  assert.equal(waitStatus(89, 89, 104), 'gone');
 });
 
 test('waitStatus: adp inside my gap is gone', () => {
@@ -75,6 +78,14 @@ test('waitStatus: unknown ADP yields no claim at all', () => {
 test('defaultRiskMargin is half the gap, and never negative', () => {
   assert.equal(defaultRiskMargin(89, 104), 7.5);
   assert.equal(defaultRiskMargin(104, 89), 0);
+});
+
+test('defaultRiskMargin never exceeds half a round', () => {
+  // Slot 1 on the clock at pick 1, next turn at 20: half the gap is 9.5, which
+  // stretched "risky" out to ADP 29 purely because of where the seat sits.
+  assert.equal(defaultRiskMargin(1, 20, 10), 5);
+  // Mid-round the gap is already the smaller of the two, so nothing moves.
+  assert.equal(defaultRiskMargin(89, 95, 10), 3);
 });
 
 // --- classifyRemaining ---------------------------------------------------
@@ -193,15 +204,15 @@ test('offNightShare returns null rather than a fabricated share', () => {
 
 // --- buildBoard: the two fixtures the brief calls for --------------------
 
-test('fixture: a full position still flags an overdue player as VALUE', () => {
+test('fixture: a full position still prices a bargain', () => {
   const players = [
     // Four D on my roster in a four-D league: the position is full.
     ...Array.from({ length: 4 }, (_, i) =>
       player({ id: 100 + i, posList: ['D'], drafted: true, mine: true, overallRank: i + 1 })
     ),
-    // ...and a T1 D who has fallen 61 picks past his ADP.
-    player({ id: 200, name: 'Quinn Hughes', posList: ['D'], overallRank: 20, adp: 28, tier: 1 }),
-    player({ id: 201, name: 'Filler D', posList: ['D'], overallRank: 90, adp: 150, tier: 3 }),
+    // ...and a T1 D I rate four rounds above where the room takes him.
+    player({ id: 200, name: 'Quinn Hughes', posList: ['D'], overallRank: 20, adp: 60, tier: 1, diff: -4 }),
+    player({ id: 201, name: 'Filler D', posList: ['D'], overallRank: 90, adp: 150, tier: 3, diff: -6 }),
   ];
   const myPlayers = players.filter((p) => p.mine);
 
@@ -212,6 +223,7 @@ test('fixture: a full position still flags an overdue player as VALUE', () => {
     myPlayers,
     currentPick: 89,
     nextPick: 104,
+    teamCount: 10,
   });
 
   const col = board.columns[0];
@@ -220,10 +232,11 @@ test('fixture: a full position still flags an overdue player as VALUE', () => {
 
   const hughes = col.cards[0];
   assert.equal(hughes.name, 'Quinn Hughes');
-  // The whole point: a full position does not suppress the value signal.
-  assert.equal(hughes.status, 'overdue');
-  assert.equal(hughes.picksAgo, 61);
-  assert.equal(hughes.suggested, false, 'gold beats green — no double badge');
+  // A full position does not suppress the price reading — bench and trade
+  // value are still value.
+  assert.equal(hughes.band, 'steal');
+  assert.equal(hughes.diff, -4);
+  assert.equal(hughes.suggested, false, 'the position is already full');
 });
 
 test('fixture: the cliff divider lands between the two tiers it separates', () => {
@@ -287,6 +300,115 @@ test('buildBoard: the top card at a position with a need is suggested', () => {
   });
   assert.equal(board.columns[0].cards[0].suggested, true);
   assert.equal(board.columns[0].cards[0].status, 'safe');
+});
+
+// --- price, window and verdict -------------------------------------------
+// `diff` is (myRank - adp) / teamCount, in rounds: negative means I rate him
+// above where the room takes him.
+
+test('priceBand: inside half a round you and the room agree', () => {
+  assert.equal(priceBand(0), 'fair');
+  assert.equal(priceBand(-0.5), 'fair');
+  assert.equal(priceBand(0.5), 'fair');
+});
+
+test('priceBand: past half a round it counts, past 0.8 it counts loudly', () => {
+  assert.equal(priceBand(-0.6), 'value');
+  assert.equal(priceBand(-0.8), 'steal');
+  assert.equal(priceBand(-1.8), 'steal');
+  assert.equal(priceBand(0.6), 'rich');
+  assert.equal(priceBand(0.8), 'overpay');
+  assert.equal(priceBand(1.3), 'overpay');
+});
+
+test('priceBand: no diff, no opinion', () => {
+  assert.equal(priceBand(null), null);
+  assert.equal(priceBand(undefined), null);
+});
+
+// Slot 1 of ten: picks 1, 20, 21, 40, 41 — the seat that produced the report.
+const SLOT_1 = [1, 20, 21, 40, 41];
+
+test('pickWindow: a bargain names the last pick before the room takes him', () => {
+  // Ranked 12th, taken by the room around 30. Don't burn pick 1 on him, and
+  // don't still be waiting at 40.
+  const win = pickWindow({ overallRank: 12, adp: 30 }, SLOT_1);
+  assert.equal(win.floor, 20);
+  assert.equal(win.ceiling, 21);
+  assert.equal(win.open, true);
+});
+
+test('pickWindow: the reported case — the window is shut', () => {
+  // Hellebuyck: my rank 37, ADP 24. My last pick before 24 is 21, but the
+  // first at which he's worth his rank is 40. No pick of mine is both.
+  const win = pickWindow({ overallRank: 37, adp: 24 }, SLOT_1);
+  assert.equal(win.ceiling, 21);
+  assert.equal(win.floor, 40);
+  assert.equal(win.open, false);
+});
+
+test('pickWindow: no claim without a rank, an ADP and a schedule', () => {
+  assert.equal(pickWindow({ overallRank: 12, adp: null }, SLOT_1), null);
+  assert.equal(pickWindow({ overallRank: null, adp: 30 }, SLOT_1), null);
+  assert.equal(pickWindow({ overallRank: 12, adp: 30 }, []), null);
+});
+
+test('cardVerdict: a window closing on this very pick is the last call', () => {
+  const win = { floor: 1, ceiling: 1, open: true };
+  assert.equal(cardVerdict({ status: 'gone', band: 'fair', window: win, currentPick: 1, horizon: 21 }), 'lastcall');
+});
+
+test('cardVerdict: a window closing later names that pick', () => {
+  const win = { floor: 20, ceiling: 21, open: true };
+  assert.equal(cardVerdict({ status: 'safe', band: 'steal', window: win, currentPick: 1, horizon: 21 }), 'takeat');
+});
+
+test('cardVerdict: a shut window on an overpriced player says let him go', () => {
+  const win = { floor: 40, ceiling: 21, open: false };
+  assert.equal(cardVerdict({ status: 'gone', band: 'overpay', window: win, currentPick: 1, horizon: 21 }), 'letgo');
+  assert.equal(cardVerdict({ status: 'gone', band: 'rich', window: win, currentPick: 1, horizon: 21 }), 'letgo');
+});
+
+test('cardVerdict: a shut window on a bargain keeps the plain reading', () => {
+  // You'd have to reach, but he really is worth more to you than to the room.
+  // The board states the fact and leaves the call where it belongs.
+  const win = { floor: 20, ceiling: 1, open: false };
+  assert.equal(cardVerdict({ status: 'gone', band: 'steal', window: win, currentPick: 1, horizon: 21 }), 'gone');
+});
+
+test('cardVerdict: a window closing beyond the horizon is not announced', () => {
+  const win = { floor: 40, ceiling: 41, open: true };
+  assert.equal(cardVerdict({ status: 'safe', band: 'steal', window: win, currentPick: 1, horizon: 21 }), 'safe');
+});
+
+test('buildBoard: the reported case, end to end', () => {
+  // Slot 1 of ten, on the clock at pick 1 — exactly the board that prompted
+  // this. Hellebuyck was shouting LIKELY GONE at a player ranked 37th.
+  const players = [
+    player({ id: 1, name: 'Hellebuyck', posList: ['G'], overallRank: 37, adp: 24, diff: 1.3, tier: 2 }),
+    player({ id: 2, name: 'Bouchard', posList: ['D'], overallRank: 12, adp: 30, diff: -1.8, tier: 2 }),
+  ];
+  const board = buildBoard({
+    players,
+    positions: ['G', 'D'],
+    rosterSlots: { G: 2, D: 4 },
+    myPlayers: [],
+    currentPick: 1,
+    nextPick: 20,
+    myPickNumbers: SLOT_1,
+    teamCount: 10,
+  });
+
+  const hellebuyck = board.columns[0].cards[0];
+  assert.equal(hellebuyck.band, 'overpay');
+  assert.equal(hellebuyck.status, 'letgo', 'the room bids past my price');
+  assert.equal(hellebuyck.takeAt, null);
+  assert.equal(hellebuyck.suggested, false, 'never suggest a player you must overpay for');
+
+  const bouchard = board.columns[1].cards[0];
+  assert.equal(bouchard.band, 'steal');
+  assert.equal(bouchard.status, 'takeat');
+  assert.equal(bouchard.takeAt, 21, 'my last pick before his ADP');
 });
 
 // --- header tiers --------------------------------------------------------

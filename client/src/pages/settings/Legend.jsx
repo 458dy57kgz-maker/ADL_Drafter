@@ -24,37 +24,73 @@ export default function Legend() {
         Legend
       </div>
       <div className="card-subtitle" style={{ marginBottom: 16 }}>
-        What every mark on the War Room means. Red is spent on exactly three things — value, the talent cliff, and a
-        category you’re losing — so anything red is worth a look.
+        What every mark on the War Room means. Red is spent on exactly three things — a player worth taking, the
+        talent cliff, and a category you’re losing — so anything red is worth a look.
       </div>
 
       <div className="card legend-card">
-        <div className="card-title">Best Available — will he last?</div>
+        <div className="card-title">Best Available — is he worth it?</div>
         <div className="card-subtitle">
-          Every row answers one question: if you don’t take him now, will he still be there at your next pick? The
-          label compares his ADP against the gap between this pick and your next one.
+          Every row crosses two readings. <strong>Price</strong> is your own rank against his ADP: what he’d cost you
+          against what he’s worth to you. <strong>Availability</strong> is whether he lasts to your next pick. The
+          board only raises its voice where the two agree there’s something to do.
         </div>
         <div className="draft-board draft-board--legend">
           <Row
             sample={
               <span className="legend-gutter">
-                <span className="bcard__value">+11</span>
-                <span className="bcard__value-label">PAST</span>
+                <span className="bcard__price bcard__price--good bcard__price--strong">-1.8</span>
+                <span className="bcard__price-label">RD</span>
               </span>
             }
           >
-            The value gutter. How many picks the room has let him fall past his ADP — only on overdue players. It’s
-            the one figure that ranks two overdue players against each other, so it gets the biggest type on the board.
+            The price gutter, in rounds. A <strong>negative</strong> number is the bargain direction — you rate him
+            nearly two rounds above where the room takes him. It decides whether chasing a player is worth it at all,
+            so it gets the biggest type on the board. Nothing is printed inside half a round: that close, you and the
+            room agree, and a mark would be noise.
           </Row>
-          <Row sample={<span className="bcard__wait bcard__wait--value">OVERDUE — VALUE</span>}>
-            His ADP has <strong>already passed</strong>. A value signal, not a warning — and it stays even when that
-            position is full on your roster, because bench and trade value are still value.
+          <Row
+            sample={
+              <span className="legend-gutter">
+                <span className="bcard__price bcard__price--bad bcard__price--strong">+1.3</span>
+                <span className="bcard__price-label">RD</span>
+              </span>
+            }
+          >
+            A <strong>positive</strong> number means the room takes him earlier than you’d ever want him. Printed
+            faint on purpose — this is the direction that costs you picks, so it recedes rather than competes.
           </Row>
+          <Row sample={<span className="bcard__wait bcard__wait--takeat">TAKE AT 21</span>}>
+            He’s worth more to you than to the room, <strong>and</strong> you have a pick before he goes. 21 is the
+            last of your own picks landing before his ADP — later than your rank for him, so you aren’t burning a
+            better pick on him, and earlier than the room, so you don’t lose him.
+          </Row>
+          <Row sample={<span className="bcard__wait bcard__wait--lastcall">LAST CHANCE</span>}>
+            That window closes on the pick you are making right now.
+          </Row>
+          <Row sample={<span className="bcard__wait bcard__wait--letgo">LET HIM GO</span>}>
+            There is <strong>no pick of yours</strong> at which he is both available and worth his price — the room
+            bids past you before you’d want him, so the row fades back. This is the one the board used to get wrong,
+            shouting LIKELY GONE at a player you had ranked more than a round below his market price.
+          </Row>
+        </div>
+      </div>
+
+      <div className="card legend-card">
+        <div className="card-title">Best Available — will he last?</div>
+        <div className="card-subtitle">
+          With no window to name, a row falls back to plain availability: his ADP against the gap between this pick
+          and your next one. It makes no claim about whether he’s worth taking — that’s the price gutter’s job.
+        </div>
+        <div className="draft-board draft-board--legend">
           <Row sample={<span className="bcard__wait bcard__wait--gone">LIKELY GONE</span>}>
-            His ADP falls <strong>between now and your next pick</strong>. If you want him, this is the pick.
+            His ADP falls <strong>at or before your next pick</strong>. If you want him this is the pick — but read
+            the gutter before you pay for him.
           </Row>
           <Row sample={<span className="bcard__wait bcard__wait--risky">WAIT = RISKY</span>}>
-            His ADP is just past your next pick. Often survives, sometimes doesn’t.
+            His ADP is up to half a round past your next pick. Often survives, sometimes doesn’t. Half a round, not
+            half the gap to your turn: a player’s ADP doesn’t get less certain because your seat is at the turn of the
+            snake.
           </Row>
           <Row sample={<span className="bcard__wait bcard__wait--safe">SAFE TO WAIT</span>}>
             Real room past your next pick. The whole row fades back, since these are the players not to spend this
@@ -177,9 +213,14 @@ export default function Legend() {
       <div className="card legend-card">
         <div className="card-title">Players grid</div>
         <Row sample={<span className="legend-diff legend-diff--good">-1.5</span>}>
-          <strong>Diff</strong>: how far your rank sits from the market’s, in rounds. A negative number is the
-          bargain direction — you can get your own #5 at pick 20. A positive one means he goes before you’d ever want
-          him.
+          <strong>Diff</strong>: how far your rank sits from the market’s, in rounds — the same number the board’s
+          price gutter prints. A negative number is the bargain direction — you can get your own #5 at pick 20. A
+          positive one means he goes before you’d ever want him.
+        </Row>
+        <Row sample={<span className="legend-diff legend-diff--bad">+1.3</span>}>
+          The grid colours Diff the way a data table should, red for the costly direction. The board colours it the
+          other way round on purpose: red there means “look at this”, and on draft night the thing worth looking at
+          is a bargain.
         </Row>
       </div>
     </div>
