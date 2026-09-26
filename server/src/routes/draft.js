@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { db, getSetting, logDebug } from '../db/index.js';
+import { db, getSetting, setSetting, logDebug } from '../db/index.js';
 import { mapPlayerRow, normalizePosList } from '../lib/mapPlayer.js';
 import { round, nextPickForSlot, slotForPick } from '../lib/draftMath.js';
 import { poolCoverage } from './players.js';
@@ -9,6 +9,8 @@ import { mySlot, myTeamName } from '../lib/league.js';
 import { selectUrgencyCards, buildSlate, URGENCY_CARDS } from '../lib/urgencyRow.js';
 import {
   POS_ORDER,
+  BENCH,
+  canSit,
   BENCH_WEIGHT,
   TARGET_CATEGORIES,
   assignRoster,
@@ -24,6 +26,36 @@ export const draftRouter = Router();
 // rather than a boxed card, so a tall monitor fits ten; the column scrolls
 // if the window can't show them all.
 const BOARD_DEPTH = 10;
+
+// Players an opponent drafted who aren't in my list at all. I only import
+// the players I'd consider taking, so most of the room's picks are people
+// I've never rated — and a roster with holes in it where those picks went
+// is worse than useless. They come through as pick rows with no player_id,
+// so they're rebuilt here as stat-less roster entries: the real name, the
+// position the draft room reported, and dashes for everything else.
+function unknownPickRows(myName) {
+  return db
+    .prepare('SELECT * FROM draft_picks WHERE player_id IS NULL')
+    .all()
+    .filter((r) => r.player_name !== PLACEHOLDER_NAME)
+    .map((r) => ({
+      id: `pick-${r.pick_num}`,
+      name: r.player_name,
+      pos: r.pos,
+      posList: normalizePosList(r.pos),
+      drafted: true,
+      draftedBy: r.team,
+      mine: !!myName && r.team === myName,
+      // What makes the UI show a name and dashes rather than a name and zeros.
+      unknown: true,
+      overallRank: null,
+      tier: null,
+      adp: null,
+      flag: null,
+      // Can't be seated by hand: there's no players row to remember it on.
+      rosterSlot: null,
+    }));
+}
 
 function buildState() {
   const league = getSetting('league');
@@ -62,32 +94,8 @@ function buildState() {
     upcoming.push({ pickNum: pk, team: teamAtPick(pk), isMine: slotForPick(pk, teamCount) === myDraftSlot });
   }
 
-  // Players an opponent drafted who aren't in my list at all. I only import
-  // the players I'd consider taking, so most of the room's picks are people
-  // I've never rated — and a roster with holes in it where those picks went
-  // is worse than useless. They come through as pick rows with no player_id,
-  // so they're rebuilt here as stat-less roster entries: the real name, the
-  // position the draft room reported, and dashes for everything else.
   const myName = myTeamName(league);
-  const unknownPicks = db
-    .prepare('SELECT * FROM draft_picks WHERE player_id IS NULL')
-    .all()
-    .filter((r) => r.player_name !== PLACEHOLDER_NAME)
-    .map((r) => ({
-      id: `pick-${r.pick_num}`,
-      name: r.player_name,
-      pos: r.pos,
-      posList: normalizePosList(r.pos),
-      drafted: true,
-      draftedBy: r.team,
-      mine: !!myName && r.team === myName,
-      // What makes the UI show a name and dashes rather than a name and zeros.
-      unknown: true,
-      overallRank: null,
-      tier: null,
-      adp: null,
-      flag: null,
-    }));
+  const unknownPicks = unknownPickRows(myName);
 
   // Rosters count them; the board and its scarcity counts don't, since they
   // were never on my board to begin with.
@@ -176,6 +184,17 @@ function buildState() {
     myPickNumbers.push(pk);
   }
 
+  // The pick each drafted player went at: the board and the urgency row both
+  // keep a taken player up, locked, for a few picks after it.
+  const pickByPlayerId = new Map();
+  for (const r of db.prepare('SELECT pick_num, player_id FROM draft_picks WHERE player_id IS NOT NULL').all()) {
+    pickByPlayerId.set(r.player_id, r.pick_num);
+  }
+
+  // Positions toggled off at the top of their board column. They stay on the
+  // board itself; they only leave the urgency row and the TAKE AT plan.
+  const hiddenPositions = (draftDay.hiddenPositions ?? []).filter((pos) => POS_ORDER.includes(pos));
+
   const board = buildBoard({
     players,
     positions: POS_ORDER,
@@ -187,6 +206,8 @@ function buildState() {
     teamCount,
     isMyTurn: isMyTurnNow,
     depth: BOARD_DEPTH,
+    hiddenPositions,
+    pickByPlayerId,
   });
 
   // Enough history to fill the two-column Live Picks panel on a tall screen;
@@ -214,10 +235,6 @@ function buildState() {
   // The urgency row's carousel runs from the pick before the clock through
   // nine ahead: eleven cells, so the track can start one cell back and slide
   // left into place when a pick lands.
-  const pickByPlayerId = new Map();
-  for (const r of db.prepare('SELECT pick_num, player_id FROM draft_picks WHERE player_id IS NOT NULL').all()) {
-    pickByPlayerId.set(r.player_id, r.pick_num);
-  }
   const urgencySlate = buildSlate({ currentPick, teamCount, myDraftSlot, totalPicks, teamAtPick });
 
   const onTheClockSlot = slotForPick(currentPick, teamCount);
@@ -246,7 +263,7 @@ function buildState() {
     mockDraftMode: !!draftDay.mockDraftMode,
     board,
     urgency: {
-      cards: selectUrgencyCards({ players, currentPick, teamCount, pickByPlayerId }),
+      cards: selectUrgencyCards({ players, currentPick, teamCount, pickByPlayerId, hiddenPositions }),
       slate: urgencySlate,
       shown: URGENCY_CARDS,
     },
@@ -393,7 +410,7 @@ draftRouter.post('/undo', (req, res) => {
   db.transaction(() => {
     db.prepare('DELETE FROM draft_picks WHERE pick_num = ?').run(last.pick_num);
     if (last.player_id != null) {
-      db.prepare('UPDATE players SET drafted = 0, drafted_by = NULL, mine = 0 WHERE id = ?').run(last.player_id);
+      db.prepare('UPDATE players SET drafted = 0, drafted_by = NULL, mine = 0, roster_slot = NULL WHERE id = ?').run(last.player_id);
     }
   })();
 
@@ -404,6 +421,58 @@ draftRouter.post('/undo', (req, res) => {
     playerName: last.player_name,
     team: last.team,
   });
+});
+
+// Moves one of my players to an empty seat he's eligible for, or to the bench
+// (dragged there in My Roster). The whole current arrangement is written down
+// at the same time, so moving one man never reshuffles the others: from the
+// first move on, my roster only changes where I change it, and new picks just
+// fill whatever seats are still empty.
+draftRouter.post('/roster/move', (req, res) => {
+  const { playerId, slot } = req.body ?? {};
+  if (slot !== BENCH && !POS_ORDER.includes(slot)) {
+    return res.status(400).json({ error: `slot must be one of ${[...POS_ORDER, BENCH].join(', ')}` });
+  }
+
+  const league = getSetting('league');
+  const rosterSlots = getSetting('rosterSlots');
+  // The same roster the War Room draws — my players plus my picks that
+  // aren't in my list — or the seat counts here wouldn't match the screen.
+  const mine = [
+    ...db
+      .prepare('SELECT * FROM players WHERE mine = 1 ORDER BY overall_rank ASC')
+      .all()
+      .map((row) => mapPlayerRow(row, league.teamCount)),
+    ...unknownPickRows(myTeamName(league)).filter((p) => p.mine),
+  ];
+  const player = mine.find((p) => p.id === Number(playerId));
+  if (!player) return res.status(404).json({ error: 'that player is not on your roster' });
+  if (!canSit(player, slot)) {
+    return res.status(400).json({ error: `${player.name} can't play ${slot}` });
+  }
+
+  const { rows } = assignRoster(mine, rosterSlots);
+  const current = rows.find((r) => r.player?.id === player.id);
+  if (current?.pos === slot) return res.json({ moved: false });
+
+  // Only into an empty seat. The bench can stretch past its size for overflow,
+  // but a move onto it still needs a genuinely free seat.
+  const taken = rows.filter((r) => r.pos === slot && r.player).length;
+  const capacity = slot === BENCH ? rosterSlots.BENCH ?? 0 : rosterSlots[slot] ?? 0;
+  if (taken >= capacity) return res.status(409).json({ error: `no empty ${slot} seat` });
+
+  const setSlot = db.prepare('UPDATE players SET roster_slot = ? WHERE id = ?');
+  db.transaction(() => {
+    for (const r of rows) {
+      // Players not in my list (id "pick-12") have no row to write to; the
+      // fill still places them around the seats pinned here.
+      if (r.player && typeof r.player.id === 'number') setSlot.run(r.pos, r.player.id);
+    }
+    setSlot.run(slot, player.id);
+  })();
+
+  logDebug(`Roster: ${player.name} ${current?.pos ?? '?'} -> ${slot}`, 'OK', 'app');
+  res.json({ moved: true, from: current?.pos ?? null, to: slot });
 });
 
 // --- Live pick feed --------------------------------------------------------
@@ -500,6 +569,9 @@ draftRouter.post('/feed/sync', (req, res) => {
       if (row.playerId == null) continue;
       claim.run({ id: row.playerId, team: row.team, mine: row.mine ? 1 : 0 });
     }
+    // Seats chosen in My Roster survive the rebuild — it runs on every push —
+    // but only for players still on my team.
+    db.exec('UPDATE players SET roster_slot = NULL WHERE mine = 0 AND roster_slot IS NOT NULL');
   })();
 
   const after = plan.rows.length;
@@ -526,8 +598,11 @@ draftRouter.post('/reset', (req, res) => {
 
   db.transaction(() => {
     db.exec('DELETE FROM draft_picks');
-    db.exec('UPDATE players SET drafted = 0, drafted_by = NULL, mine = 0');
+    db.exec('UPDATE players SET drafted = 0, drafted_by = NULL, mine = 0, roster_slot = NULL');
   })();
+  // A position is hidden because this draft filled it, so a fresh draft
+  // starts with every position back in play.
+  setSetting('draftDay', { hiddenPositions: [] });
 
   logDebug(`Draft reset — ${clearedPicks} picks cleared, player list kept`, 'OK', 'app');
   res.json({ clearedPicks });

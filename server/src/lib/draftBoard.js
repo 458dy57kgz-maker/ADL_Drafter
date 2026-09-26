@@ -408,6 +408,43 @@ export function visibleTiers(byTier, n = 2) {
     .map(([tier, count]) => ({ tier, count }));
 }
 
+// Positions I've hidden from the War Room's urgency row and TAKE AT picks —
+// usually because I've filled them. A player drops out only when every
+// position he plays is hidden: hiding RW leaves an RW/LW winger in, hiding
+// both takes him out.
+export function hiddenByPositions(player, hiddenPositions = []) {
+  if (!hiddenPositions.length) return false;
+  const posList = player.posList ?? [];
+  return posList.length > 0 && posList.every((pos) => hiddenPositions.includes(pos));
+}
+
+// A player someone else just took stays up this many picks — in his board
+// column and in the urgency row — long enough to read where he went against
+// his ADP and my rank, then clears himself off.
+export const DRAFTED_LINGER = 5;
+
+// Where a just-drafted player would be drawn: the column where he'd have sat
+// highest among what's still available, ties broken the same way as
+// assignColumns. Worked out against the available pool alone, so his
+// lingering card never nudges a live player into a different column.
+// Returns { pos, place } or null.
+export function columnForDrafted(player, players, positions, priority = COLUMN_PRIORITY) {
+  const rankOf = (pos) => {
+    const i = priority.indexOf(pos);
+    return i === -1 ? priority.length : i;
+  };
+  const mine = player.overallRank ?? Infinity;
+  let best = null;
+  for (const pos of positions) {
+    if (!eligibleAt(player, pos)) continue;
+    const place = players.filter((p) => !p.drafted && eligibleAt(p, pos) && (p.overallRank ?? Infinity) < mine).length;
+    if (best == null || place < best.place || (place === best.place && rankOf(pos) < rankOf(best.pos))) {
+      best = { pos, place };
+    }
+  }
+  return best;
+}
+
 /**
  * Assembles one column per position: the counts for the header pills, the top
  * `depth` cards, and where the cliff divider goes.
@@ -426,6 +463,8 @@ export function buildBoard({
   teamCount = null,
   isMyTurn = false,
   depth = 3,
+  hiddenPositions = [],
+  pickByPlayerId = new Map(),
 }) {
   // Properties of your schedule, not of any player, so they're computed once
   // for the whole board rather than per card.
@@ -433,8 +472,10 @@ export function buildBoard({
   const horizon = teamCount ? currentPick + teamCount * 2 : Infinity;
   // One player per upcoming pick, so the board can never tell me to take
   // three different men at 41.
+  // Hidden positions sit out of the plan entirely, so a pick they'd have
+  // claimed goes to the best player I still want.
   const plan = planPicks({
-    players,
+    players: players.filter((p) => !hiddenByPositions(p, hiddenPositions)),
     myPickNumbers,
     currentPick,
     isMyTurn,
@@ -443,6 +484,30 @@ export function buildBoard({
   });
   // Every available player is drawn in exactly one column.
   const columnOf = assignColumns(players, positions);
+
+  // Players taken in the last few picks who were on my board when they went:
+  // each is drawn, locked, in the column he'd have held — but only if he'd
+  // have been within the cards that column shows, since a man I couldn't see
+  // going isn't news.
+  const lingering = new Map(positions.map((pos) => [pos, []]));
+  for (const p of players) {
+    if (!p.drafted) continue;
+    const draftedAt = pickByPlayerId.get(p.id);
+    if (draftedAt == null || currentPick >= draftedAt + DRAFTED_LINGER) continue;
+    const home = columnForDrafted(p, players, positions);
+    if (!home || home.place >= depth) continue;
+    lingering.get(home.pos).push({
+      id: p.id,
+      drafted: true,
+      name: p.name,
+      overallRank: p.overallRank,
+      tier: p.tier,
+      adp: p.adp,
+      flag: p.flag ?? null,
+      draftedAt,
+      draftedBy: p.draftedBy ?? null,
+    });
+  }
 
   const columns = positions.map((pos) => {
     const counts = classifyRemaining(players, pos, currentPick);
@@ -499,8 +564,16 @@ export function buildBoard({
       };
     });
 
+    // Locked cards slot in by rank among the live ones. The cliff was found
+    // on the live cards alone, so its index is carried over to wherever that
+    // card lands in the merged list.
+    const merged = [...cards, ...lingering.get(pos)].sort(byRank);
+    const cliffCard = cliffAfter != null ? cards[cliffAfter] : null;
+
     return {
       pos,
+      // Whether I've hidden this position from the urgency row and the plan.
+      hidden: hiddenPositions.includes(pos),
       counts: {
         total: counts.total,
         // Everyone at this position already off the board — the denominator
@@ -508,8 +581,8 @@ export function buildBoard({
         taken: players.filter((p) => p.drafted && eligibleAt(p, pos)).length,
         tiers: visibleTiers(counts.byTier),
       },
-      cards,
-      cliffAfter,
+      cards: merged,
+      cliffAfter: cliffCard ? merged.indexOf(cliffCard) : null,
       sub: positionFull
         ? {
             kind: 'roster',

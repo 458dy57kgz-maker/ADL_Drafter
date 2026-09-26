@@ -29,34 +29,70 @@ export const TARGET_CATEGORIES = [
   { label: 'Saves', key: 'saves', goalKey: 'saves', side: 'goalie' },
 ];
 
-// One pass over a team's picks, so a dual-eligible player (e.g. C/LW) only
-// ever fills one physical slot — POS_ORDER decides which of their eligible
-// positions gets first claim. Anyone left over once the starting slots are
+// Every player fills exactly one physical slot, so a dual-eligible player
+// (e.g. C/LW) never counts twice. Seats I've chosen by hand come first; the
+// rest fill in POS_ORDER, which decides which eligible position gets first
+// claim. Anyone left over once the starting slots are
 // full sits on the bench: a third centre in a two-C league doesn't vanish,
 // he just shows up there. The bench stretches past its configured size if
 // more players are assigned than there are seats, so a drafted player is
 // never invisible.
+export const BENCH = 'BN';
+
+// Whether `player` may sit in `slot` at all: any seat his eligibility covers,
+// or the bench, which takes anyone.
+export function canSit(player, slot) {
+  return slot === BENCH || (player.posList ?? []).includes(slot);
+}
+
 export function assignRoster(teamPlayers, rosterSlots) {
-  const rows = [];
+  const seated = new Map(POS_ORDER.map((pos) => [pos, []]));
+  const pinnedBench = [];
   const assignedIds = new Set();
 
+  // A seat I chose by hand (dragged there in My Roster) is honoured first,
+  // as long as he's still eligible for it and it still has room — a roster
+  // setting shrunk since then drops the extras back into the normal fill.
+  for (const p of teamPlayers) {
+    const slot = p.rosterSlot;
+    if (!slot || !canSit(p, slot)) continue;
+    if (slot === BENCH) {
+      pinnedBench.push(p);
+      assignedIds.add(p.id);
+    } else if (seated.has(slot) && seated.get(slot).length < (rosterSlots[slot] ?? 0)) {
+      seated.get(slot).push(p);
+      assignedIds.add(p.id);
+    }
+  }
+
+  // Everyone else fills what's left, in POS_ORDER, best-ranked first.
   POS_ORDER.forEach((pos) => {
     const count = rosterSlots[pos] ?? 0;
-    const eligible = teamPlayers.filter((p) => p.posList.includes(pos) && !assignedIds.has(p.id));
-    for (let i = 0; i < count; i++) {
-      const player = eligible[i] ?? null;
-      if (player) assignedIds.add(player.id);
-      rows.push({ pos, player });
+    const seats = seated.get(pos);
+    for (const p of teamPlayers) {
+      if (seats.length >= count) break;
+      if (!assignedIds.has(p.id) && p.posList.includes(pos)) {
+        seats.push(p);
+        assignedIds.add(p.id);
+      }
     }
   });
 
-  const bench = teamPlayers.filter((p) => !assignedIds.has(p.id));
-  const benchRows = Math.max(rosterSlots.BENCH ?? 0, bench.length);
-  for (let i = 0; i < benchRows; i++) {
-    rows.push({ pos: 'BN', player: bench[i] ?? null });
+  const rows = [];
+  for (const pos of POS_ORDER) {
+    const count = rosterSlots[pos] ?? 0;
+    const seats = seated.get(pos);
+    for (let i = 0; i < count; i++) rows.push({ pos, player: seats[i] ?? null });
   }
 
-  return { rows, starters: teamPlayers.filter((p) => assignedIds.has(p.id)), bench };
+  const starterIds = new Set([...seated.values()].flat().map((p) => p.id));
+  const bench = [...pinnedBench, ...teamPlayers.filter((p) => !assignedIds.has(p.id))];
+  const benchRows = Math.max(rosterSlots.BENCH ?? 0, bench.length);
+  for (let i = 0; i < benchRows; i++) {
+    rows.push({ pos: BENCH, player: bench[i] ?? null });
+  }
+
+  return { rows, starters: teamPlayers.filter((p) => starterIds.has(p.id)), bench };
 }
 
 // Skater categories ignore goalies and vice versa. That's belt-and-braces —

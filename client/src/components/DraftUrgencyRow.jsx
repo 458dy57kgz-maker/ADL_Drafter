@@ -180,8 +180,10 @@ function Card({ card, currentPick, copied, onCopy, onRemove }) {
   );
 }
 
-export default function DraftUrgencyRow({ urgency, currentPick }) {
-  const [removed, setRemoved] = useState(() => new Set());
+// `removedIds` / `onRemove` are owned by the War Room so clearing a drafted
+// player here clears him from his board column too.
+export default function DraftUrgencyRow({ urgency, currentPick, removedIds, onRemove }) {
+  const removed = removedIds ?? new Set();
   const [copiedId, setCopiedId] = useState(null);
   // 'rest' and 'run' both sit one cell left; 'reset' is the single frame
   // rendered from the previous pick, before the slide.
@@ -249,7 +251,7 @@ export default function DraftUrgencyRow({ urgency, currentPick }) {
             currentPick={currentPick}
             copied={copiedId === card.id}
             onCopy={handleCopy}
-            onRemove={(id) => setRemoved((prev) => new Set(prev).add(id))}
+            onRemove={onRemove}
           />
         ))}
         {Array.from({ length: fillers }, (_, i) => (

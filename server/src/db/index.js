@@ -52,7 +52,9 @@ const DEFAULT_SETTINGS = {
   },
   rosterSlots: { C: 2, LW: 2, RW: 2, D: 4, G: 2, BENCH: 4, IR: 2 },
   targets: { goals: 200, assists: 220, ppp: 90, plusMinus: 120, shots: 1400, blocks: 120, wins: 30, saves: 900 },
-  draftDay: { pollInterval: 8, draftMode: 'auto', notifSound: true, notifDesktop: true, mockDraftMode: false },
+  // hiddenPositions: board columns toggled off for the urgency row and the
+  // TAKE AT plan. Cleared whenever the draft resets.
+  draftDay: { pollInterval: 8, draftMode: 'auto', notifSound: true, notifDesktop: true, mockDraftMode: false, hiddenPositions: [] },
   hosting: {
     leagues: [{ id: 'default', name: 'My League 2026' }],
     activeLeagueId: 'default',

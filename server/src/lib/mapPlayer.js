@@ -59,5 +59,8 @@ export function mapPlayerRow(row, teamCount = null) {
     mine: !!row.mine,
     tracked: !!row.tracked,
     flag: row.flag ?? null,
+    // A seat in My Roster I picked by hand (a position or 'BN'); NULL = let
+    // the roster fill place him. See assignRoster in roster.js.
+    rosterSlot: row.roster_slot ?? null,
   };
 }

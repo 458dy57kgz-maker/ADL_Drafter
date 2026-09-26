@@ -114,3 +114,18 @@ test('picks outside the draft render as empty cells', () => {
   assert.equal(slate[6].team, 'Some Team', 'the last real pick still has a team');
   assert.equal(slate[7].team, null, 'past the end of the draft');
 });
+
+test('a hidden position leaves the row, and the next target takes its card', () => {
+  const players = pool({
+    1: { posList: ['D'] },
+    2: { posList: ['LW', 'RW'] },
+    3: { posList: ['C'] },
+  });
+  const ids = (hiddenPositions) =>
+    selectUrgencyCards({ players, currentPick: 1, teamCount: TEAMS, hiddenPositions, limit: 3 }).map((c) => c.id);
+
+  assert.deepEqual(ids([]), [1, 2, 3]);
+  assert.deepEqual(ids(['D']), [2, 3, 4], 'the D drops and the row refills from the right');
+  assert.deepEqual(ids(['D', 'RW']), [2, 3, 4], 'still an LW, so he stays');
+  assert.deepEqual(ids(['D', 'RW', 'LW']), [3, 4, 5]);
+});

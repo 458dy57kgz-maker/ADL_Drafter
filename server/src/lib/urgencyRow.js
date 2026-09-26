@@ -3,15 +3,15 @@
 // state so they can be reasoned about (and tested) without a database.
 
 import { slotForPick } from './draftMath.js';
+import { hiddenByPositions, DRAFTED_LINGER } from './draftBoard.js';
 
 // Cards the row draws. The server sends more than this so the client can drop
 // the ones dismissed by hand and refill from the right without waiting for
 // the next poll.
 export const URGENCY_CARDS = 10;
 export const URGENCY_CANDIDATES = 24;
-// A player taken by someone else stays up this many picks, long enough to
-// read where he went against his ADP and my rank, then clears himself off.
-export const URGENCY_LINGER = 5;
+// Same linger as the board columns, so a taken player leaves both at once.
+export const URGENCY_LINGER = DRAFTED_LINGER;
 // Eleven cells: the track starts one cell back so a new pick can be rendered
 // from the previous one and slid into place.
 export const SLATE_BEFORE = 1;
@@ -20,13 +20,23 @@ export const SLATE_AFTER = 9;
 // The next targets by my own ranking, each one counting down to the two pick
 // numbers that matter: where I rate him (ME) and where the field takes him
 // (AV). `players` must already be in my rank order.
-export function selectUrgencyCards({ players, currentPick, teamCount, pickByPlayerId = new Map(), limit = URGENCY_CANDIDATES }) {
+export function selectUrgencyCards({
+  players,
+  currentPick,
+  teamCount,
+  pickByPlayerId = new Map(),
+  hiddenPositions = [],
+  limit = URGENCY_CANDIDATES,
+}) {
   const cards = [];
   for (const p of players) {
     if (cards.length >= limit) break;
     // The row is my target list in my own order, so a player I never ranked
     // has no place on it — there's no ME number to count down to.
     if (p.overallRank == null) continue;
+    // A position I've hidden (usually one I've filled) — skipped before the
+    // count, so the next target I do want takes the card.
+    if (hiddenByPositions(p, hiddenPositions)) continue;
 
     const draftedAt = pickByPlayerId.get(p.id) ?? null;
     if (p.drafted) {

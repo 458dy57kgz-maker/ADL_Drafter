@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { api } from '../lib/api.js';
 import { usePolling } from '../lib/usePolling.js';
 import ConfirmDialog from '../components/ConfirmDialog.jsx';
@@ -26,6 +26,15 @@ const LOSING_PCT = 65;
 const MAX_UPCOMING = 4;
 
 const SLOT_ORDER = ['C', 'LW', 'RW', 'D', 'G', 'BN'];
+
+// My Roster reads as two lists, not a row of pairs: forwards and goalies on
+// the left, defence and bench on the right.
+const ROSTER_LEFT = ['C', 'RW', 'LW', 'G'];
+const ROSTER_RIGHT = ['D', 'BN'];
+
+function rosterColumn(slots, order) {
+  return order.flatMap((pos) => slots.filter((s) => s.pos === pos));
+}
 
 function FeedStatus({ feed, push }) {
   const pushedRecently = push && Date.now() - push.at < FEED_LIVE_MS;
@@ -185,11 +194,58 @@ function stillToFill(slots) {
   return parts.length ? `Still to fill ${parts.join(' · ')}` : 'Every seat filled';
 }
 
-function RosterRow({ slot }) {
+// A filled row can be picked up and dropped on an empty seat he's eligible
+// for, or on the bench. `drag` is whoever's in hand right now.
+function RosterRow({ slot, drag, onDragStart, onDragEnd, onDrop }) {
   const p = slot.player;
   const ongHigh = p?.ongPct != null && p.ongPct >= ONG_FLOOR;
+  const [over, setOver] = useState(false);
+  // Players not in my list have no record to remember a seat on.
+  const movable = !!p && !p.unknown;
+  const target =
+    !!drag && !p && slot.pos !== drag.pos && (slot.pos === 'BN' || (drag.player.posList ?? []).includes(slot.pos));
+
+  let cls = 'wr-roster__row';
+  if (movable) cls += ' wr-roster__row--movable';
+  if (drag?.player.id === p?.id && p) cls += ' wr-roster__row--lifted';
+  if (target) cls += ' wr-roster__row--target';
+  if (target && over) cls += ' wr-roster__row--over';
+
   return (
-    <div className="wr-roster__row">
+    <div
+      className={cls}
+      draggable={movable}
+      title={movable ? `Drag ${p.name} to an empty seat he can play, or to the bench` : undefined}
+      onDragStart={
+        movable
+          ? (e) => {
+              e.dataTransfer.effectAllowed = 'move';
+              e.dataTransfer.setData('text/plain', String(p.id));
+              onDragStart({ player: p, pos: slot.pos });
+            }
+          : undefined
+      }
+      onDragEnd={movable ? onDragEnd : undefined}
+      onDragOver={
+        target
+          ? (e) => {
+              e.preventDefault();
+              e.dataTransfer.dropEffect = 'move';
+              if (!over) setOver(true);
+            }
+          : undefined
+      }
+      onDragLeave={target ? () => setOver(false) : undefined}
+      onDrop={
+        target
+          ? (e) => {
+              e.preventDefault();
+              setOver(false);
+              onDrop(slot.pos);
+            }
+          : undefined
+      }
+    >
       <span className="wr-roster__pos">{slot.pos}</span>
       <span
         className={`wr-roster__name${p ? '' : ' wr-roster__name--empty'}`}
@@ -274,6 +330,24 @@ export default function WarRoom() {
   const [resetError, setResetError] = useState(null);
   const mockDraftMode = !!data?.mockDraftMode;
   const feed = useLivePickFeed();
+  // Drafted players I've cleared by hand with ×, shared by the board columns
+  // and the urgency row. Kept in memory: each one clears itself five picks
+  // after he went anyway.
+  const [removedIds, setRemovedIds] = useState(() => new Set());
+  const removePlayer = (id) => setRemovedIds((prev) => new Set(prev).add(id));
+  // A reset or an undo walks the draft backwards; anyone cleared before that
+  // could be taken again, and his locked card should show when he is.
+  const lastPick = useRef(null);
+  const pickNum = data?.pickInfo?.pickNum ?? null;
+  useEffect(() => {
+    if (pickNum != null && lastPick.current != null && pickNum < lastPick.current) setRemovedIds(new Set());
+    lastPick.current = pickNum;
+  }, [pickNum]);
+  // The roster player being dragged, and the seat he came from.
+  const [drag, setDrag] = useState(null);
+  // The hidden-position list as I've just clicked it, shown until the
+  // server's copy (and the urgency row and plan built from it) catches up.
+  const [pendingHidden, setPendingHidden] = useState(null);
 
   useEffect(() => {
     if (data?.pollInterval && data.pollInterval !== pollInterval) {
@@ -298,6 +372,34 @@ export default function WarRoom() {
       setPending(null);
     } finally {
       setResetBusy(false);
+    }
+  }
+
+  const serverHidden = data?.board?.columns?.filter((c) => c.hidden).map((c) => c.pos) ?? [];
+  const hiddenPositions = pendingHidden ?? serverHidden;
+
+  async function handleToggleHidden(pos) {
+    const next = hiddenPositions.includes(pos) ? hiddenPositions.filter((p) => p !== pos) : [...hiddenPositions, pos];
+    setPendingHidden(next);
+    try {
+      await api.updateSettings('draftday', { hiddenPositions: next });
+      await refetch();
+    } catch (err) {
+      setResetError(err.message);
+    } finally {
+      setPendingHidden(null);
+    }
+  }
+
+  async function handleRosterDrop(slot) {
+    const moving = drag;
+    setDrag(null);
+    if (!moving) return;
+    try {
+      await api.moveRosterPlayer(moving.player.id, slot);
+      await refetch();
+    } catch (err) {
+      setResetError(err.message);
     }
   }
 
@@ -344,12 +446,18 @@ export default function WarRoom() {
       />
 
       <div className="wr-board">
-        <DraftBoard board={board} />
+        <DraftBoard
+          board={board}
+          hiddenPositions={hiddenPositions}
+          onToggleHidden={handleToggleHidden}
+          removedIds={removedIds}
+          onRemove={removePlayer}
+        />
       </div>
 
       {/* Draft Urgency. Ten targets counting down to my rank and to ADP,
           over the next ten picks in snake order. */}
-      <DraftUrgencyRow urgency={urgency} currentPick={pickInfo.pickNum} />
+      <DraftUrgencyRow urgency={urgency} currentPick={pickInfo.pickNum} removedIds={removedIds} onRemove={removePlayer} />
 
       {/* Season Totals. Arc = my total against my target; caption = my total
           against whoever leads the room, which is what turns a ring red.
@@ -394,8 +502,19 @@ export default function WarRoom() {
             <RosterHeader />
           </div>
           <div className="wr-roster__grid wr-roster__grid--body">
-            {roster.slots.map((slot, i) => (
-              <RosterRow slot={slot} key={i} />
+            {[ROSTER_LEFT, ROSTER_RIGHT].map((order) => (
+              <div className="wr-roster__col" key={order.join('')}>
+                {rosterColumn(roster.slots, order).map((slot, i) => (
+                  <RosterRow
+                    key={`${slot.pos}-${i}`}
+                    slot={slot}
+                    drag={drag}
+                    onDragStart={setDrag}
+                    onDragEnd={() => setDrag(null)}
+                    onDrop={handleRosterDrop}
+                  />
+                ))}
+              </div>
             ))}
           </div>
         </section>

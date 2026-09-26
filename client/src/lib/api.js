@@ -39,6 +39,9 @@ export const api = {
   pickPlayer: (playerId) => request('/draft/pick', { method: 'POST', body: JSON.stringify({ playerId }) }),
   undoPick: () => request('/draft/undo', { method: 'POST' }),
   resetDraft: () => request('/draft/reset', { method: 'POST' }),
+  // Drag in My Roster: seat one of my players in an empty slot or on the bench.
+  moveRosterPlayer: (playerId, slot) =>
+    request('/draft/roster/move', { method: 'POST', body: JSON.stringify({ playerId, slot }) }),
 
   // Live pick feed — the whole pick list is posted each time, not a delta.
   // Picks are filed by draft slot; the feed's own team names are ignored.

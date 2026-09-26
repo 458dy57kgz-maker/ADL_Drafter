@@ -149,13 +149,65 @@ function Card({ card }) {
   );
 }
 
-export default function DraftBoard({ board }) {
+// A player someone took in the last few picks, left in his column for a
+// moment with who took him and where, against ADP and my rank — the same
+// read the urgency row gives. Same shape as a live card so the column doesn't
+// jump when he's drawn or cleared.
+function LockedCard({ card, onRemove }) {
+  return (
+    <div className="bcard bcard--locked">
+      <div className="bcard__gutter">
+        <span className="bcard__rank">{card.overallRank != null ? `#${card.overallRank}` : ''}</span>
+      </div>
+      <div className="bcard__body">
+        <div className="bcard__row">
+          <span className="bcard__tag">DRAFTED</span>
+          <span className="bcard__name bcard__name--locked" title={card.name}>
+            {card.name}
+          </span>
+          <PlayerFlag flag={card.flag} />
+          {onRemove && (
+            <button
+              type="button"
+              className="bcard__remove"
+              title="Clear him from the board now"
+              aria-label={`Clear ${card.name} from the board`}
+              onClick={() => onRemove(card.id)}
+            >
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M18 6 6 18" />
+                <path d="m6 6 12 12" />
+              </svg>
+            </button>
+          )}
+        </div>
+        <div className="bcard__row bcard__row--sub">
+          <span className="bcard__locked-team">→ {card.draftedBy ?? '—'}</span>
+        </div>
+        <div className="bcard__row bcard__row--sub">
+          <span className="bcard__locked-line">
+            <strong>Pick {card.draftedAt}</strong> · AV {card.adp ?? '—'} · ME {card.overallRank ?? '—'}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// `hiddenPositions` is passed in rather than read off the board so the War
+// Room can flip a toggle the moment it's clicked, before the server's copy of
+// the board catches up.
+// `removedIds` is the set of taken players I've cleared by hand — shared with
+// the urgency row, so clearing a man in one place clears him in both.
+export default function DraftBoard({ board, hiddenPositions = [], onToggleHidden, removedIds, onRemove }) {
   if (!board) return null;
 
   return (
     <div className="draft-board">
-      {board.columns.map((col) => (
-        <div className="bcol" key={col.pos}>
+      {board.columns.map((col) => {
+        const hidden = hiddenPositions.includes(col.pos);
+        return (
+        <div className={`bcol${hidden ? ' bcol--hidden' : ''}`} key={col.pos}>
           <div className="bcol__head">
             <span className="bcol__pos">{col.pos}</span>
             <span
@@ -165,6 +217,23 @@ export default function DraftBoard({ board }) {
               {col.counts.total}
             </span>
             <span className="bcol__left-label">LEFT</span>
+            {/* Hides the position from the urgency row and the TAKE AT plan —
+                the column itself stays, since it's still the scarcity read. */}
+            {onToggleHidden && (
+              <button
+                type="button"
+                className={`bcol__toggle${hidden ? ' bcol__toggle--on' : ''}`}
+                aria-pressed={hidden}
+                title={
+                  hidden
+                    ? `Bring ${col.pos} back into the urgency row and TAKE AT picks`
+                    : `Hide ${col.pos} from the urgency row and TAKE AT picks`
+                }
+                onClick={() => onToggleHidden(col.pos)}
+              >
+                {hidden ? 'SHOW' : 'HIDE'}
+              </button>
+            )}
             <span className="bcol__spacer" />
             <span className="bcol__tiers" title={col.sub?.text}>
               {tierLine(col)}
@@ -173,7 +242,11 @@ export default function DraftBoard({ board }) {
           <div className="bcol__cards">
             {col.cards.map((card, i) => (
               <div key={card.id}>
-                <Card card={card} />
+                {card.drafted ? (
+                  removedIds?.has(card.id) ? null : <LockedCard card={card} onRemove={onRemove} />
+                ) : (
+                  <Card card={card} />
+                )}
                 {/* The talent cliff: a solid accent rule under the last card
                     before the tier drops. Red is spent on this and on value,
                     nothing else. */}
@@ -183,7 +256,8 @@ export default function DraftBoard({ board }) {
             {col.cards.length === 0 && <div className="bcol__empty">Nobody left at {col.pos}</div>}
           </div>
         </div>
-      ))}
+        );
+      })}
     </div>
   );
 }

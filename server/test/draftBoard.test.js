@@ -15,6 +15,9 @@ import {
   planPicks,
   assignColumns,
   buildBoard,
+  hiddenByPositions,
+  columnForDrafted,
+  DRAFTED_LINGER,
 } from '../src/lib/draftBoard.js';
 
 // A player as the board sees one: `posList` already parsed, `drafted` set.
@@ -618,4 +621,125 @@ test('a column header carries the live tiers and the ring denominator', () => {
   assert.equal(col.counts.total, 2, 'undrafted only');
   assert.equal(col.counts.taken, 2, 'drafted at this position — the ring drains against this');
   assert.deepEqual(col.counts.tiers, [{ tier: 4, count: 1 }, { tier: 5, count: 1 }]);
+});
+
+// --- hidden positions ----------------------------------------------------
+// Toggled off at the top of a column once I've filled a position. A player
+// leaves the urgency row and the plan only when every position he plays is
+// hidden.
+
+test('hiddenByPositions: a dual-eligible winger stays until both wings are hidden', () => {
+  const winger = player({ posList: ['LW', 'RW'] });
+  assert.equal(hiddenByPositions(winger, []), false);
+  assert.equal(hiddenByPositions(winger, ['RW']), false, 'still an LW');
+  assert.equal(hiddenByPositions(winger, ['RW', 'LW']), true);
+  assert.equal(hiddenByPositions(player({ posList: ['D'] }), ['D']), true);
+  assert.equal(hiddenByPositions(player({ posList: [] }), ['D']), false, 'no position, nothing to hide him by');
+});
+
+test('buildBoard: a hidden position gives up its TAKE AT pick to the next man', () => {
+  // The same pick-22 board: Fox and Seider (both D) held 40 and 41. With D
+  // hidden, Barkov is the best player I still want and takes a pick.
+  const args = {
+    players: REPORTED,
+    positions: ['C', 'LW', 'RW', 'D', 'G'],
+    rosterSlots: { C: 2, LW: 2, RW: 2, D: 4, G: 2 },
+    currentPick: 22,
+    nextPick: 40,
+    myPickNumbers: MY_PICKS,
+    teamCount: 10,
+    depth: 10,
+  };
+  const takeAt = (board, name) =>
+    board.columns.flatMap((c) => c.cards).find((c) => c.name === name)?.takeAt ?? null;
+
+  const open = buildBoard(args);
+  assert.equal(takeAt(open, 'Adam Fox'), 40);
+  assert.equal(takeAt(open, 'Aleksander Barkov'), null);
+
+  const hidden = buildBoard({ ...args, hiddenPositions: ['D'] });
+  assert.equal(takeAt(hidden, 'Adam Fox'), null, 'D sits out of the plan');
+  assert.equal(takeAt(hidden, 'Moritz Seider'), null);
+  assert.equal(takeAt(hidden, 'Aleksander Barkov'), 40, 'the pick goes to the best C instead');
+  // The column itself is still drawn — hiding is only for the row and the plan.
+  const d = hidden.columns.find((c) => c.pos === 'D');
+  assert.equal(d.hidden, true);
+  assert.ok(d.cards.length > 0);
+  assert.equal(hidden.columns.find((c) => c.pos === 'C').hidden, false);
+});
+
+// --- drafted players lingering in their column ---------------------------
+// Taken in the last few picks, drawn locked where he'd have been — the same
+// five-pick window the urgency row uses.
+
+test('columnForDrafted: he goes where he would have sat highest among what is left', () => {
+  const players = [
+    player({ id: 1, posList: ['C'], overallRank: 1 }),
+    player({ id: 2, posList: ['C'], overallRank: 2 }),
+    player({ id: 3, posList: ['RW'], overallRank: 8 }),
+    player({ id: 9, posList: ['C', 'RW'], overallRank: 5, drafted: true }),
+  ];
+  // Third at C, but top of the RW column.
+  assert.deepEqual(columnForDrafted(players[3], players, ['C', 'LW', 'RW']), { pos: 'RW', place: 0 });
+});
+
+test('buildBoard: a player taken in the last five picks stays in his column, locked', () => {
+  const players = [
+    player({ id: 1, name: 'Live One', posList: ['C'], overallRank: 1 }),
+    player({ id: 2, name: 'Taken', posList: ['C'], overallRank: 2, drafted: true, draftedBy: 'Blue Line', adp: 3 }),
+    player({ id: 3, name: 'Live Two', posList: ['C'], overallRank: 3 }),
+  ];
+  const at = (currentPick) =>
+    buildBoard({
+      players,
+      positions: ['C'],
+      rosterSlots: { C: 2 },
+      currentPick,
+      nextPick: currentPick + 10,
+      depth: 10,
+      pickByPlayerId: new Map([[2, 12]]),
+    }).columns[0].cards;
+
+  const cards = at(13);
+  assert.deepEqual(cards.map((c) => c.name), ['Live One', 'Taken', 'Live Two'], 'slotted in by rank');
+  const taken = cards[1];
+  assert.equal(taken.drafted, true);
+  assert.equal(taken.draftedAt, 12);
+  assert.equal(taken.draftedBy, 'Blue Line');
+
+  assert.ok(at(12 + DRAFTED_LINGER - 1).some((c) => c.drafted), 'still up one pick before he expires');
+  assert.ok(!at(12 + DRAFTED_LINGER).some((c) => c.drafted), 'gone five picks after');
+});
+
+test('buildBoard: a taken player outside the visible cards is not drawn', () => {
+  const players = [
+    ...Array.from({ length: 4 }, (_, i) => player({ id: i + 1, posList: ['C'], overallRank: i + 1 })),
+    player({ id: 99, posList: ['C'], overallRank: 50, drafted: true }),
+  ];
+  const cards = buildBoard({
+    players,
+    positions: ['C'],
+    rosterSlots: { C: 2 },
+    currentPick: 10,
+    nextPick: 20,
+    depth: 3,
+    pickByPlayerId: new Map([[99, 9]]),
+  }).columns[0].cards;
+  assert.equal(cards.length, 3);
+  assert.ok(!cards.some((c) => c.drafted));
+});
+
+test('buildBoard: the cliff stays under the same live card when a locked one slots in above it', () => {
+  const players = [
+    player({ id: 1, posList: ['C'], overallRank: 1, tier: 1, adp: 200 }),
+    player({ id: 5, posList: ['C'], overallRank: 2, tier: 1, drafted: true }),
+    player({ id: 2, posList: ['C'], overallRank: 3, tier: 1, adp: 200 }),
+    player({ id: 3, posList: ['C'], overallRank: 4, tier: 3, adp: 200 }),
+  ];
+  const args = { players, positions: ['C'], rosterSlots: { C: 2 }, currentPick: 10, nextPick: 20, depth: 10 };
+  const without = buildBoard(args).columns[0];
+  const withLocked = buildBoard({ ...args, pickByPlayerId: new Map([[5, 9]]) }).columns[0];
+  const cliffId = (col) => (col.cliffAfter == null ? null : col.cards[col.cliffAfter].id);
+  assert.equal(cliffId(withLocked), cliffId(without));
+  assert.equal(withLocked.sub.text, without.sub.text, 'the header counts live picks only');
 });

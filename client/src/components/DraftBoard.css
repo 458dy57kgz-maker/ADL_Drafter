@@ -59,6 +59,45 @@
   flex: 1;
 }
 
+/* HIDE / SHOW. Quiet while the position is in play; filled ink once it's
+   hidden, so a column that's sitting out reads that way from across the
+   room. Deliberately not red — hiding is housekeeping, not opportunity. */
+.draft-board .bcol__toggle {
+  flex: none;
+  align-self: center;
+  background: transparent;
+  border: 1px solid var(--border-hairline-strong);
+  color: var(--text-muted);
+  font: 700 9px var(--font-ui);
+  letter-spacing: 0.1em;
+  padding: 2px 6px;
+  line-height: 1.2;
+}
+
+.draft-board .bcol__toggle:hover {
+  border-color: var(--text-primary);
+  color: var(--text-primary);
+}
+
+.draft-board .bcol__toggle--on {
+  background: var(--text-primary);
+  border-color: var(--text-primary);
+  color: var(--accent-on-text);
+}
+
+.draft-board .bcol__toggle--on:hover {
+  color: var(--accent-on-text);
+}
+
+.draft-board .bcol__toggle:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.draft-board .bcol--hidden .bcol__pos {
+  color: var(--text-faint);
+}
+
 .draft-board .bcol__tiers {
   font: 600 10px var(--font-ui);
   color: var(--text-muted);
@@ -90,6 +129,81 @@
   gap: 8px;
   padding: 8px 12px 9px;
   border-bottom: 1px solid var(--border-hairline);
+}
+
+/* A player taken in the last few picks: the urgency row's drafted overlay,
+   flattened into a board row. Grey ground, ink tag, and nothing on it you
+   can act on except clearing it. */
+.draft-board .bcard--locked {
+  background: color-mix(in srgb, var(--bg-panel) 97%, transparent);
+  cursor: not-allowed;
+}
+
+.draft-board .bcard__tag {
+  flex: none;
+  background: var(--text-primary);
+  color: var(--accent-on-text);
+  font: 800 9px var(--font-ui);
+  letter-spacing: 0.08em;
+  padding: 1px 5px;
+  align-self: center;
+}
+
+.draft-board .bcard__name--locked {
+  font-size: 13px;
+}
+
+.draft-board .bcard__remove {
+  flex: none;
+  align-self: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  /* Hangs into the card's padding rather than heightening the row, so a
+     locked card is the same height as the live one it replaces. */
+  margin: -3px 0 -3px auto;
+  border: 1px solid var(--border-hairline-strong);
+  background: var(--bg-app);
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.draft-board .bcard__remove:hover {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-on-text);
+}
+
+.draft-board .bcard__remove:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.draft-board .bcard__locked-team {
+  font: 600 11px var(--font-ui);
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.draft-board .bcard__locked-line {
+  font: 400 10px var(--font-ui);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.draft-board .bcard__locked-line strong {
+  font-weight: 800;
+  color: var(--text-primary);
 }
 
 /* Safe-to-wait players are the ones not to draft, so they recede. */

@@ -412,6 +412,39 @@
   align-content: start;
 }
 
+.wr-roster__col {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/* Drag to reseat. A filled row shows a grab cursor; while one is in hand,
+   the empty seats he could take are outlined, and the one under the
+   pointer fills. Ink, not red — moving a player is housekeeping. */
+.wr-roster__row--movable {
+  cursor: grab;
+}
+
+.wr-roster__row--movable:active {
+  cursor: grabbing;
+}
+
+.wr-roster__row--lifted {
+  opacity: 0.4;
+}
+
+.wr-roster__row--target {
+  outline: 1px dashed var(--text-primary);
+  outline-offset: -1px;
+  background: var(--bg-shade);
+}
+
+.wr-roster__row--over {
+  outline-style: solid;
+  outline-width: 2px;
+  outline-offset: -2px;
+}
+
 .wr-roster__row {
   display: grid;
   grid-template-columns: 34px minmax(0, 1fr) 28px 34px 32px;
