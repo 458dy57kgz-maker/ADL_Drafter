@@ -6,6 +6,7 @@ import { poolCoverage } from './players.js';
 import { buildBoard, offNightShare } from '../lib/draftBoard.js';
 import { planSync, normalizeName, PLACEHOLDER_NAME } from '../lib/pickFeed.js';
 import { mySlot, myTeamName } from '../lib/league.js';
+import { selectUrgencyCards, buildSlate, URGENCY_CARDS } from '../lib/urgencyRow.js';
 import {
   POS_ORDER,
   BENCH_WEIGHT,
@@ -200,6 +201,15 @@ function buildState() {
       isMine: !!myName && r.team === myName,
     }));
 
+  // The urgency row's carousel runs from the pick before the clock through
+  // nine ahead: eleven cells, so the track can start one cell back and slide
+  // left into place when a pick lands.
+  const pickByPlayerId = new Map();
+  for (const r of db.prepare('SELECT pick_num, player_id FROM draft_picks WHERE player_id IS NOT NULL').all()) {
+    pickByPlayerId.set(r.player_id, r.pick_num);
+  }
+  const urgencySlate = buildSlate({ currentPick, teamCount, myDraftSlot, totalPicks, teamAtPick });
+
   const onTheClockSlot = slotForPick(currentPick, teamCount);
   const onTheClockTeam = league.teams?.[onTheClockSlot - 1] ?? null;
 
@@ -225,6 +235,11 @@ function buildState() {
     pollInterval: draftDay.pollInterval,
     mockDraftMode: !!draftDay.mockDraftMode,
     board,
+    urgency: {
+      cards: selectUrgencyCards({ players, currentPick, teamCount, pickByPlayerId }),
+      slate: urgencySlate,
+      shown: URGENCY_CARDS,
+    },
     roster: { slots: rosterSlotRows, benchCount: rosterSlots.BENCH, irCount: rosterSlots.IR },
     targets: targetRows,
     overall: overallRow,

@@ -43,6 +43,14 @@
   --gold: #ae1800;
   --gold-bg: #ffe0d9;
 
+  /* The rest of the system's accent ramp. Only the urgency row uses the
+     full ramp: it needs four steps of "how close is this pick" between the
+     faintest tint and past-due, which the two accents above can't carry. */
+  --accent-100: #fff2ef;
+  --accent-200: #ffe0d9;
+  --accent-400: #ff9783;
+  --accent-900: #4d170e;
+
   /* Success/danger/warning collapse onto the same red/ink/grey scale as
      the rest of the system — a status that means "good" is a confident
      near-black, "bad" is the accent red, nothing borrows an out-of-palette

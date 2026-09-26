@@ -1,0 +1,325 @@
+/* Draft Urgency Row. Ten cards in one ink-framed block, the 2px gaps between
+   them showing the frame's own ground as rules, with the pick carousel welded
+   to the bottom edge. Sizes and colours are the design handoff's. */
+
+.urg {
+  flex: none;
+  padding: 0 22px 10px;
+}
+
+.urg__grid {
+  display: grid;
+  grid-template-columns: repeat(10, minmax(0, 1fr));
+  gap: 2px;
+  background: var(--border-hairline-strong);
+  border: 2px solid var(--text-primary);
+}
+
+.urg__card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: var(--bg-app);
+  transition: background 0.4s;
+}
+
+.urg__card--warm {
+  background: var(--accent-100);
+}
+
+.urg__card--hot {
+  background: var(--accent-200);
+}
+
+/* --- Card head ------------------------------------------------------------ */
+
+.urg__head {
+  padding: 8px 6px 6px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.urg__name-row {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+}
+
+.urg__last {
+  flex: 1;
+  min-width: 0;
+  font: 700 13px/1.2 var(--font-ui);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.urg__copy {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.urg__copy:hover {
+  background: var(--bg-panel);
+  color: var(--text-primary);
+}
+
+.urg__sub {
+  display: flex;
+  gap: 4px;
+  min-width: 0;
+  font: 400 10px var(--font-ui);
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.urg__first {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.urg__pos {
+  flex: none;
+}
+
+/* --- Twin countdown cells ------------------------------------------------- */
+
+.urg__cells {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border-top: 2px solid var(--text-primary);
+}
+
+.urg__cell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 5px 7px;
+  min-width: 0;
+  transition: background 0.4s;
+}
+
+.urg__cell--me {
+  border-right: 2px solid var(--text-primary);
+}
+
+.urg__cell--past {
+  background: var(--accent);
+  color: var(--accent-on-text);
+}
+
+.urg__cell--now {
+  background: var(--accent-strong);
+  color: var(--accent-on-text);
+}
+
+.urg__cell-label {
+  font: 400 10px var(--font-ui);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.urg__cell-num {
+  font: 800 20px/1 var(--font-ui);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.urg__pips {
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  gap: 1px;
+}
+
+.urg__pip {
+  height: 5px;
+  background: var(--track-bg);
+  transition: background 0.3s;
+}
+
+/* --- Drafted overlay ------------------------------------------------------ */
+
+.urg__locked {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px;
+  background: color-mix(in srgb, var(--bg-panel) 97%, transparent);
+  cursor: not-allowed;
+}
+
+.urg__locked-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.urg__tag {
+  background: var(--text-primary);
+  color: var(--accent-on-text);
+  font: 800 10px var(--font-ui);
+  letter-spacing: 0.08em;
+  padding: 2px 5px;
+}
+
+.urg__remove {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid var(--border-hairline-strong);
+  background: var(--bg-app);
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.urg__remove:hover {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-on-text);
+}
+
+.urg__locked-name {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.2;
+}
+
+.urg__locked-last,
+.urg__locked-first,
+.urg__locked-team {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.urg__locked-last {
+  font: 700 12px var(--font-ui);
+  color: var(--text-primary);
+}
+
+.urg__locked-first {
+  font: 400 10px var(--font-ui);
+  color: var(--text-secondary);
+}
+
+.urg__locked-team {
+  font: 600 11px var(--font-ui);
+  color: var(--text-primary);
+}
+
+.urg__locked-foot {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  font: 400 10px/1.3 var(--font-ui);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.urg__locked-pick {
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+/* --- Team carousel -------------------------------------------------------- */
+
+.urg__carousel {
+  border: 2px solid var(--text-primary);
+  border-top: 0;
+  overflow: hidden;
+  background: var(--bg-app);
+}
+
+/* Eleven cells across 110% of the frame, so each one is exactly a tenth of
+   what's visible and lines up with the card column above it. */
+.urg__track {
+  display: flex;
+  width: 110%;
+}
+
+.urg__track--run {
+  transition: transform 0.45s cubic-bezier(0.3, 0.7, 0.3, 1);
+}
+
+.urg__seat {
+  flex: 0 0 calc(100% / 11);
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 5px 8px;
+  border-right: 2px solid var(--border-hairline-strong);
+  line-height: 1.25;
+  transition: background 0.3s;
+}
+
+.urg__seat-label {
+  font: 400 10px var(--font-ui);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--text-muted);
+  min-height: 12px;
+}
+
+.urg__seat-team {
+  font: 700 11px var(--font-ui);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-height: 14px;
+}
+
+.urg__seat--clock {
+  background: var(--text-primary);
+  color: var(--accent-on-text);
+}
+
+/* My own turn wins over the on-the-clock ink, whichever pick it is. */
+.urg__seat--mine {
+  background: var(--accent);
+  color: var(--accent-on-text);
+}
+
+.urg__seat--clock .urg__seat-label,
+.urg__seat--mine .urg__seat-label {
+  color: inherit;
+  opacity: 0.85;
+}
+
+.urg__copy:focus-visible,
+.urg__remove:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .urg__card,
+  .urg__cell,
+  .urg__pip,
+  .urg__seat,
+  .urg__track--run {
+    transition: none;
+  }
+}

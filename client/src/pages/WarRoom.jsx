@@ -3,6 +3,7 @@ import { api } from '../lib/api.js';
 import { usePolling } from '../lib/usePolling.js';
 import ConfirmDialog from '../components/ConfirmDialog.jsx';
 import DraftBoard, { ONG_FLOOR } from '../components/DraftBoard.jsx';
+import DraftUrgencyRow from '../components/DraftUrgencyRow.jsx';
 import { useLivePickFeed } from '../lib/useLivePickFeed.jsx';
 import './WarRoom.css';
 
@@ -309,7 +310,7 @@ export default function WarRoom() {
     return <div className="war-room war-room--empty">Loading draft state…</div>;
   }
 
-  const { pickInfo, board, roster, targets, overall, liveFeed } = data;
+  const { pickInfo, board, roster, targets, overall, liveFeed, urgency } = data;
 
   return (
     <div className="war-room">
@@ -342,6 +343,10 @@ export default function WarRoom() {
       <div className="wr-board">
         <DraftBoard board={board} />
       </div>
+
+      {/* Draft Urgency. Ten targets counting down to my rank and to ADP,
+          over the next ten picks in snake order. */}
+      <DraftUrgencyRow urgency={urgency} currentPick={pickInfo.pickNum} />
 
       {/* Season Totals. Arc = my total against my target; caption = my total
           against whoever leads the room, which is what turns a ring red.
