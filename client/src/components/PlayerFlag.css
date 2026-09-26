@@ -1,0 +1,22 @@
+/* Flag icons sit tight against the name they belong to, and never push the
+   name's own ellipsis around — they're the last thing to give up space. */
+
+.pflag {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  margin-left: 4px;
+  line-height: 0;
+  vertical-align: -1px;
+  color: var(--text-muted);
+}
+
+/* Favourite is the one that means "I want him", so it carries the ink
+   weight; the other two stay quieter than the name beside them. */
+.pflag--favourite {
+  color: var(--text-primary);
+}
+
+.pflag--avoid {
+  color: var(--text-secondary);
+}

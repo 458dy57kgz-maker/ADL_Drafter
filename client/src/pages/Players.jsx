@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { api } from '../lib/api.js';
+import PlayerFlag, { PLAYER_FLAGS } from '../components/PlayerFlag.jsx';
 import './Players.css';
 
 // Every column except the name is editable in place. `name` stays fixed
@@ -21,7 +22,6 @@ const COLUMNS = [
   { key: 'a', label: 'A', type: 'int', width: 48 },
   { key: 'p', label: 'P', type: 'int', width: 48 },
   { key: 'ppp', label: 'PPP', type: 'int', width: 48 },
-  { key: 'plusMinus', label: '+/-', type: 'int', width: 48 },
   { key: 'shots', label: 'Sh', type: 'int', width: 52 },
   { key: 'blocks', label: 'Blk', type: 'int', width: 52 },
   { key: 'ong', label: 'ONG', type: 'int', width: 52 },
@@ -30,6 +30,9 @@ const COLUMNS = [
   { key: 'w', label: 'W', type: 'int', width: 48 },
   { key: 'gaa', label: 'GAA', type: 'float', width: 54 },
   { key: 'saves', label: 'SV', type: 'int', width: 56 },
+  // My own note on a player rather than a stat: it drives the icon drawn
+  // beside his name all over the War Room.
+  { key: 'flag', label: 'Flag', type: 'select', width: 104 },
 ];
 
 const SORT_COLUMNS = [{ key: 'name', label: 'Name' }, ...COLUMNS, { key: 'status', label: 'Status' }];
@@ -100,6 +103,19 @@ export default function Players() {
       const updated = await api.updatePlayer(id, { [key]: value });
       // Take the server's copy back: it normalises things like "c/lw" into
       // the stored form, so the grid shows what's actually saved.
+      setPlayers((prev) => prev.map((p) => (p.id === id ? updated : p)));
+    } catch (err) {
+      setSaveError(err.message);
+    }
+  }
+
+  // A dropdown has no "left the cell" moment, so it saves on change.
+  async function handleFlagChange(id, raw) {
+    const value = raw || null;
+    setPlayers((prev) => prev.map((p) => (p.id === id ? { ...p, flag: value } : p)));
+    setSaveError(null);
+    try {
+      const updated = await api.updatePlayer(id, { flag: value });
       setPlayers((prev) => prev.map((p) => (p.id === id ? updated : p)));
     } catch (err) {
       setSaveError(err.message);
@@ -186,6 +202,23 @@ export default function Players() {
                     col.readOnly ? (
                       <td key={col.key} className="players-table__derived" style={{ color: diffColor(p.diff) }}>
                         {p[col.key] == null ? '–' : p[col.key].toFixed(1)}
+                      </td>
+                    ) : col.type === 'select' ? (
+                      <td key={col.key} className="players-table__flag">
+                        <PlayerFlag flag={p.flag} />
+                        <select
+                          className="cell-input cell-select"
+                          style={{ width: col.width }}
+                          value={p.flag ?? ''}
+                          onChange={(e) => handleFlagChange(p.id, e.target.value)}
+                        >
+                          <option value="">—</option>
+                          {PLAYER_FLAGS.map((f) => (
+                            <option key={f.key} value={f.key}>
+                              {f.label}
+                            </option>
+                          ))}
+                        </select>
                       </td>
                     ) : (
                       <td key={col.key}>

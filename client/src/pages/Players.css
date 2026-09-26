@@ -149,3 +149,19 @@
   text-align: center;
   white-space: nowrap;
 }
+
+/* The flag cell pairs the chosen icon with the dropdown that sets it, so the
+   grid shows the same mark the War Room draws beside the name. */
+.players-table__flag {
+  white-space: nowrap;
+}
+
+.players-table__flag .pflag {
+  margin: 0 2px 0 0;
+  color: var(--text-primary);
+}
+
+.cell-select {
+  font-family: var(--font-ui);
+  cursor: pointer;
+}

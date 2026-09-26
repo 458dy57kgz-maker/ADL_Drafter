@@ -42,6 +42,7 @@ export function selectUrgencyCards({ players, currentPick, teamCount, pickByPlay
       id: p.id,
       name: p.name,
       pos: p.pos,
+      flag: p.flag ?? null,
       myRank: p.overallRank,
       adp: p.adp,
       draftedAt,

@@ -86,6 +86,7 @@ function buildState() {
       overallRank: null,
       tier: null,
       adp: null,
+      flag: null,
     }));
 
   // Rosters count them; the board and its scarcity counts don't, since they
@@ -190,14 +191,23 @@ function buildState() {
 
   // Enough history to fill the two-column Live Picks panel on a tall screen;
   // it clips rather than scrolls, like the design.
+  // Joined to players so a pick I'd flagged still shows its icon here — a
+  // pick from the room that matched nobody in my list simply has none.
   const liveFeed = db
-    .prepare('SELECT * FROM draft_picks ORDER BY pick_num DESC LIMIT 40')
+    .prepare(
+      `SELECT dp.*, p.flag AS flag
+         FROM draft_picks dp
+         LEFT JOIN players p ON p.id = dp.player_id
+        ORDER BY dp.pick_num DESC
+        LIMIT 40`
+    )
     .all()
     .map((r) => ({
       pickNum: r.pick_num,
       team: r.team,
       playerName: r.player_name,
       pos: r.pos,
+      flag: r.flag ?? null,
       isMine: !!myName && r.team === myName,
     }));
 

@@ -24,6 +24,7 @@ const ADDED_COLUMNS = [
   { table: 'players', column: 'ong', type: 'INTEGER' },
   { table: 'players', column: 'gp', type: 'INTEGER' },
   { table: 'players', column: 'vorp', type: 'REAL' },
+  { table: 'players', column: 'flag', type: 'TEXT' },
 ];
 
 function migrate() {

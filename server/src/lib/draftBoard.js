@@ -492,6 +492,8 @@ export function buildBoard({
           isMyTurn,
         }),
         tracked: !!p.tracked,
+        // My own note on him, drawn beside the name — see mapPlayer.js.
+        flag: p.flag ?? null,
         cats: topCategories(p, pool),
         ongPct: share == null ? null : Math.round(share * 100),
       };

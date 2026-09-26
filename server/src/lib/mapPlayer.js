@@ -2,6 +2,11 @@
 // support multi-position-eligible players without a schema migration to a
 // junction table — this is the one place that parses it, so every consumer
 // works off `posList` instead of re-parsing `pos` themselves.
+// My own note on a player, set from the Players grid and drawn beside his
+// name everywhere in the War Room. Stored as a plain string so a fourth one
+// is a one-line change; NULL means no note.
+export const PLAYER_FLAGS = ['sleeper', 'avoid', 'favourite'];
+
 export function normalizePosList(raw) {
   return String(raw ?? '')
     .split(/[,/]/)
@@ -53,5 +58,6 @@ export function mapPlayerRow(row, teamCount = null) {
     draftedBy: row.drafted_by,
     mine: !!row.mine,
     tracked: !!row.tracked,
+    flag: row.flag ?? null,
   };
 }

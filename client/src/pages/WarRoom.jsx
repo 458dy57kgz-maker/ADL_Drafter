@@ -4,6 +4,7 @@ import { usePolling } from '../lib/usePolling.js';
 import ConfirmDialog from '../components/ConfirmDialog.jsx';
 import DraftBoard, { ONG_FLOOR } from '../components/DraftBoard.jsx';
 import DraftUrgencyRow from '../components/DraftUrgencyRow.jsx';
+import PlayerFlag from '../components/PlayerFlag.jsx';
 import { useLivePickFeed } from '../lib/useLivePickFeed.jsx';
 import './WarRoom.css';
 
@@ -195,6 +196,7 @@ function RosterRow({ slot }) {
         title={p?.unknown ? 'Drafted from the room but not in your player list — no projections for him' : p?.name}
       >
         {p ? p.name : 'empty'}
+        <PlayerFlag flag={p?.flag} />
         {p?.unknown && <span className="wr-roster__nostats">NO STATS</span>}
       </span>
       <span className={`wr-roster__num${p?.tier != null ? ' wr-roster__num--ink' : ''}`}>{p?.tier != null ? `T${p.tier}` : '—'}</span>
@@ -249,6 +251,7 @@ function LivePicks({ pickInfo, liveFeed }) {
             <span className="wr-feed__player">
               {f.playerName}
               {f.pos ? ` (${f.pos})` : ''}
+              <PlayerFlag flag={f.flag} />
             </span>
           </div>
         ))}

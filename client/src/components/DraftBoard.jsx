@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { copyText } from '../lib/copyText.js';
+import PlayerFlag from './PlayerFlag.jsx';
 import './DraftBoard.css';
 
 // Best Available, drawn as the wireframe's option 2a: five flat columns of
@@ -129,6 +130,7 @@ function Card({ card }) {
           <span className="bcard__name" title={card.name}>
             {card.name}
           </span>
+          <PlayerFlag flag={card.flag} />
           <CopyName name={card.name} />
           <span className="bcard__tier">{card.tier != null ? `T${card.tier}` : ''}</span>
         </div>

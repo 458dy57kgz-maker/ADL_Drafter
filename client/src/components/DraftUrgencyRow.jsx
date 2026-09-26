@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { copyText } from '../lib/copyText.js';
+import PlayerFlag from './PlayerFlag.jsx';
 import './DraftUrgencyRow.css';
 
 // Draft Urgency Row — ten cards, each counting the picks left until the clock
@@ -121,6 +122,7 @@ function Card({ card, currentPick, copied, onCopy, onRemove }) {
           <span className="urg__last" title={card.name}>
             {last}
           </span>
+          <PlayerFlag flag={card.flag} />
           <button
             type="button"
             className="urg__copy"
@@ -157,7 +159,10 @@ function Card({ card, currentPick, copied, onCopy, onRemove }) {
             </button>
           </div>
           <div className="urg__locked-name">
-            <span className="urg__locked-last">{last}</span>
+            <span className="urg__locked-last">
+              {last}
+              <PlayerFlag flag={card.flag} />
+            </span>
             <span className="urg__locked-first">{first}</span>
           </div>
           <div className="urg__locked-team">→ {card.draftedBy ?? '—'}</div>

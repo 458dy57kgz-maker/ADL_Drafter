@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { db, getSetting, logDebug } from '../db/index.js';
-import { mapPlayerRow, normalizePosList } from '../lib/mapPlayer.js';
+import { mapPlayerRow, normalizePosList, PLAYER_FLAGS } from '../lib/mapPlayer.js';
 import { suggestClosestName } from '../lib/textMatch.js';
 
 export const playersRouter = Router();
@@ -285,6 +285,7 @@ const PATCHABLE_FIELDS = {
   gaa: 'gaa',
   saves: 'saves',
   tracked: 'tracked',
+  flag: 'flag',
 };
 
 playersRouter.patch('/:id', (req, res) => {
@@ -300,6 +301,14 @@ playersRouter.patch('/:id', (req, res) => {
       if (typeof value === 'boolean') value = value ? 1 : 0;
       // Keep hand-typed positions in the same canonical shape the importer
       // writes, so "c/lw" still matches the C and LW lanes.
+      // The flag is a fixed vocabulary, not free text — a typo here would
+      // quietly draw no icon at all.
+      if (key === 'flag') {
+        if (value === '' ) value = null;
+        if (value != null && !PLAYER_FLAGS.includes(value)) {
+          return res.status(400).json({ error: `flag must be one of ${PLAYER_FLAGS.join(', ')}` });
+        }
+      }
       if (key === 'pos') {
         const posList = normalizePosList(value);
         if (posList.length === 0) return res.status(400).json({ error: 'position cannot be empty' });

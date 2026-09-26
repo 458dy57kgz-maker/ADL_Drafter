@@ -48,7 +48,7 @@ test('a drafted player stays up for five picks, then clears himself off', () => 
 });
 
 test('a drafted card carries where he went, against both numbers', () => {
-  const players = pool({ 3: { drafted: true, draftedBy: 'Blue Line', adp: 21 } });
+  const players = pool({ 3: { drafted: true, draftedBy: 'Blue Line', adp: 21, flag: 'favourite' } });
   const [card] = selectUrgencyCards({
     players,
     currentPick: 13,
@@ -56,7 +56,16 @@ test('a drafted card carries where he went, against both numbers', () => {
     pickByPlayerId: new Map([[3, 12]]),
     limit: 1,
   }).filter((c) => c.id === 3);
-  assert.deepEqual(card, { id: 3, name: 'Player 3', pos: 'C', myRank: 3, adp: 21, draftedAt: 12, draftedBy: 'Blue Line' });
+  assert.deepEqual(card, {
+    id: 3,
+    name: 'Player 3',
+    pos: 'C',
+    flag: 'favourite',
+    myRank: 3,
+    adp: 21,
+    draftedAt: 12,
+    draftedBy: 'Blue Line',
+  });
 });
 
 test('an undrafted player drops off once both numbers are a full round past', () => {

@@ -24,6 +24,8 @@ CREATE TABLE IF NOT EXISTS players (
   drafted_by TEXT,
   mine INTEGER NOT NULL DEFAULT 0,
   tracked INTEGER NOT NULL DEFAULT 0,
+  -- My own note on a player: 'sleeper', 'avoid' or 'favourite' (NULL = none).
+  flag TEXT,
   roster_slot TEXT,
   yahoo_player_key TEXT
 );
