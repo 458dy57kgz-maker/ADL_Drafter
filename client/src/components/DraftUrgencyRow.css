@@ -2,9 +2,10 @@
    them showing the frame's own ground as rules, with the pick carousel welded
    to the bottom edge. Sizes and colours are the design handoff's. */
 
+/* Sits directly under the command band, above the board columns. */
 .urg {
   flex: none;
-  padding: 0 22px 10px;
+  padding: 12px 22px 0;
 }
 
 .urg__grid {

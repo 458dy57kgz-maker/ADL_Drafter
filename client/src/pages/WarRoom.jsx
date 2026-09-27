@@ -86,46 +86,38 @@ function FeedStatus({ feed, push }) {
   );
 }
 
+// Four sections, left to right: the pick on the clock, the round, how long
+// until I'm up, and the feed/mock controls. Who's on the clock and who's next
+// live in the urgency row's carousel right underneath, so the band doesn't
+// repeat them.
 function CommandBand({ pickInfo, data, feed, pollInterval, mockDraftMode, onToggleMock, onReset }) {
-  const { pickNum, round, totalRounds, picksUntilMe, isMyTurnNow, myPicks = [], upcoming = [], onTheClock } = pickInfo;
-  const clockTeam = isMyTurnNow ? 'You' : onTheClock;
-  const then = upcoming.slice(1).map((u) => `${u.isMine ? 'YOU' : u.team ?? 'Pick'} ${u.pickNum}`);
+  const { pickNum, round, totalRounds, picksUntilMe, isMyTurnNow, myPicks = [] } = pickInfo;
 
   return (
     <header className="cmd">
-      <div className="cmd__left">
-        <div className="cmd__main">
-          <div className="cmd__meta">
-            <span>PICK {pickNum}</span>
-            <span className="cmd__dot">·</span>
-            <span>
-              ROUND {round}
-              {totalRounds ? ` OF ${totalRounds}` : ''}
-            </span>
-            {myPicks.length > 0 && (
-              <>
-                <span className="cmd__dot">·</span>
-                <span>YOU PICK AT {myPicks.join(' & ')}</span>
-              </>
-            )}
-          </div>
-          <div className="cmd__count">
-            {isMyTurnNow ? (
-              <span className="cmd__num cmd__num--now">YOUR PICK</span>
-            ) : (
-              <>
-                <span className="cmd__num">{picksUntilMe}</span>
-                <span className="cmd__count-label">{picksUntilMe === 1 ? 'PICK UNTIL YOU' : 'PICKS UNTIL YOU'}</span>
-              </>
-            )}
-          </div>
-        </div>
-        {clockTeam && (
-          <div className="cmd__clock">
-            <div className="cmd__clock-label">ON THE CLOCK</div>
-            <div className="cmd__clock-team">{clockTeam}</div>
-            {then.length > 0 && <div className="cmd__clock-then">Then {then.join(' · ')}</div>}
-          </div>
+      <div className="cmd__section">
+        <span className="cmd__word">PICK</span>
+        <span className="cmd__num">{pickNum}</span>
+      </div>
+
+      <div className="cmd__section">
+        <span className="cmd__word">ROUND</span>
+        <span className="cmd__num">{round}</span>
+        {totalRounds ? <span className="cmd__word">OF {totalRounds}</span> : null}
+      </div>
+
+      <div className="cmd__section cmd__section--grow">
+        {isMyTurnNow ? (
+          <span className="cmd__num cmd__num--now">YOUR PICK</span>
+        ) : (
+          <>
+            <span className="cmd__num">{picksUntilMe}</span>
+            <span className="cmd__word">{picksUntilMe === 1 ? 'PICK UNTIL YOU' : 'PICKS UNTIL YOU'}</span>
+          </>
+        )}
+        {/* Kept from the old meta line: which picks are mine, not just how far. */}
+        {myPicks.length > 0 && (
+          <span className="cmd__aside">{isMyTurnNow ? 'then' : 'at'} {(isMyTurnNow ? myPicks.slice(1) : myPicks).join(' & ')}</span>
         )}
       </div>
 
@@ -445,6 +437,11 @@ export default function WarRoom() {
         onCancel={() => setPending(null)}
       />
 
+      {/* Draft Urgency, pinned under the band: ten targets counting down to my
+          rank and to ADP, over the next ten picks in snake order. The board
+          columns take whatever height is left beneath it. */}
+      <DraftUrgencyRow urgency={urgency} currentPick={pickInfo.pickNum} removedIds={removedIds} onRemove={removePlayer} />
+
       <div className="wr-board">
         <DraftBoard
           board={board}
@@ -454,10 +451,6 @@ export default function WarRoom() {
           onRemove={removePlayer}
         />
       </div>
-
-      {/* Draft Urgency. Ten targets counting down to my rank and to ADP,
-          over the next ten picks in snake order. */}
-      <DraftUrgencyRow urgency={urgency} currentPick={pickInfo.pickNum} removedIds={removedIds} onRemove={removePlayer} />
 
       {/* Season Totals. Arc = my total against my target; caption = my total
           against whoever leads the room, which is what turns a ring red.
