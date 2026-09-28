@@ -65,3 +65,42 @@ CREATE TABLE IF NOT EXISTS debug_log (
   status TEXT NOT NULL,
   type TEXT NOT NULL DEFAULT 'app'
 );
+
+-- Season mode. Every team's current roster, one row per seat, as last
+-- imported from Yahoo's Starting Rosters page. Replaced wholesale on each
+-- import; the draft tables above are left alone as the record of the draft.
+CREATE TABLE IF NOT EXISTS season_rosters (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  team_num INTEGER NOT NULL,
+  team_name TEXT NOT NULL,
+  seat INTEGER NOT NULL,
+  slot TEXT NOT NULL,
+  -- players.id when the name matched my pool; NULL for anyone I never ranked.
+  player_id INTEGER,
+  yahoo_player_id TEXT,
+  player_name TEXT,
+  nhl_team TEXT,
+  pos TEXT,
+  status TEXT
+);
+
+-- Actual in-season stats, from whatever sheet I import. One row per player
+-- in that sheet, matched to my pool on import where the name allows.
+CREATE TABLE IF NOT EXISTS season_stats (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  player_id INTEGER,
+  name TEXT NOT NULL,
+  team TEXT,
+  pos TEXT,
+  gp INTEGER,
+  g INTEGER,
+  a INTEGER,
+  p INTEGER,
+  ppp INTEGER,
+  plus_minus INTEGER,
+  shots INTEGER,
+  blocks INTEGER,
+  w INTEGER,
+  gaa REAL,
+  saves INTEGER
+);

@@ -74,4 +74,11 @@ export const api = {
   yahooVerify: () => request('/yahoo/verify', { method: 'POST' }),
 
   pullLeagueTeams: () => request('/league/pull-teams', { method: 'POST' }),
+
+  // Season mode: every roster, my actual stats, and the pool, joined.
+  getSeason: () => request('/season'),
+  // The saved Yahoo "Starting Rosters" page, as text.
+  importRosters: (html) => request('/season/rosters', { method: 'POST', body: JSON.stringify({ html }) }),
+  importSeasonStats: (rows, fileName) =>
+    request('/season/stats', { method: 'POST', body: JSON.stringify({ rows, fileName }) }),
 };

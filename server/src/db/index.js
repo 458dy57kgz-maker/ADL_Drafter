@@ -55,6 +55,12 @@ const DEFAULT_SETTINGS = {
   // hiddenPositions: board columns toggled off for the urgency row and the
   // TAKE AT plan. Cleared whenever the draft resets.
   draftDay: { pollInterval: 8, draftMode: 'auto', notifSound: true, notifDesktop: true, mockDraftMode: false, hiddenPositions: [] },
+  // Which half of the year the app is set up for: 'draft' shows the draft
+  // tabs, 'season' the in-season ones. See NavRail.
+  app: { mode: 'draft' },
+  // Bookkeeping for the season imports. myTeamNum is my team's number on
+  // Yahoo's page (1-10), which needn't match my draft slot.
+  season: { myTeamNum: null, leagueId: null, rosterDate: null, rostersImportedAt: null, statsImportedAt: null, statsFile: null },
   hosting: {
     leagues: [{ id: 'default', name: 'My League 2026' }],
     activeLeagueId: 'default',

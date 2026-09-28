@@ -9,6 +9,7 @@ import { settingsRouter } from './routes/settings.js';
 import { yahooRouter } from './routes/yahoo.js';
 import { debugRouter } from './routes/debug.js';
 import { leagueRouter } from './routes/league.js';
+import { seasonRouter } from './routes/season.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = process.env.PORT || 4000;
@@ -26,6 +27,7 @@ app.use('/api/settings', settingsRouter);
 app.use('/api/yahoo', yahooRouter);
 app.use('/api/debug', debugRouter);
 app.use('/api/league', leagueRouter);
+app.use('/api/season', seasonRouter);
 
 app.get('/api/health', (req, res) => res.json({ ok: true }));
 

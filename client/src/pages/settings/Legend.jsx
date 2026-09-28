@@ -28,6 +28,16 @@ export default function Legend() {
         talent cliff, and a category you’re losing — so anything red is worth a look.
       </div>
 
+      <div className="card legend-card legend-card--note">
+        <div className="card-title">Before next year’s draft</div>
+        <div className="legend-note">
+          The live pick feed bookmarklet worked in every mock draft and read nothing in the real one: Yahoo’s live
+          draft room (September 2026) is laid out differently from its mock draft rooms. Manual Draft Mode (Shift+S)
+          carried the whole draft. <strong>Don’t rely on the bookmarklet again</strong> — find another way to read
+          picks before the next draft, and test it against a live room, not just a mock one.
+        </div>
+      </div>
+
       <div className="card legend-card">
         <div className="card-title">Best Available — is he worth it?</div>
         <div className="card-subtitle">
@@ -210,6 +220,29 @@ export default function Legend() {
           A pick that happened before the live feed was running. The slot is held open so pick numbering stays
           honest; the player taken in it is still in your pool. Fill it in with Manual Draft Mode (Shift+S) if you
           want it counted.
+        </Row>
+      </div>
+
+      <div className="card legend-card">
+        <div className="card-title">Season mode — Teams</div>
+        <Row sample={<span className="mono legend-slot">BN</span>}>
+          Bench. On the roster and counted in full in actual totals — those stats have already happened. Projected
+          totals count the bench at three quarters, as they did on draft night.
+        </Row>
+        <Row sample={<span className="mono legend-slot legend-slot--out">IR · IR+</span>}>
+          Injured reserve. IR+ is the looser of the two — it also takes players Yahoo lists as out (O). On the
+          roster, left out of every team total.
+        </Row>
+        <Row sample={<span className="mono legend-slot legend-slot--out">NA</span>}>
+          Not active — the seat for players Yahoo lists as NA, not on an active NHL roster right now. Left out of
+          totals the same way.
+        </Row>
+        <Row sample={<span className="legend-status">DTD</span>}>
+          Yahoo’s own injury tag beside a name: DTD day-to-day, O out, IR on injured reserve, IR-NR injured reserve
+          with no return date.
+        </Row>
+        <Row sample={<span className="legend-free">Available</span>}>
+          On nobody’s roster — a free agent. Filter Players to Available to see the waiver wire.
         </Row>
       </div>
 

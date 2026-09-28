@@ -23,7 +23,12 @@ const SECTIONS = [
   { key: 'hosting', label: 'App / Hosting', Component: AppHosting },
 ];
 
-export default function Settings() {
+const MODES = [
+  { key: 'draft', label: 'Draft', hint: 'War Room, Draft Results and Players for draft night.' },
+  { key: 'season', label: 'Season', hint: 'Season War Room, Teams and Players, fed by Yahoo rosters and your stats.' },
+];
+
+export default function Settings({ mode, onModeChange }) {
   const [section, setSection] = useState('yahoo');
   const active = SECTIONS.find((s) => s.key === section) ?? SECTIONS[0];
   const ActiveComponent = active.Component;
@@ -32,6 +37,24 @@ export default function Settings() {
     <div className="settings-page">
       <aside className="settings-sidebar">
         <div className="settings-sidebar__title">Settings</div>
+        <div className="settings-mode">
+          <div className="settings-mode__label">Mode</div>
+          <div className="settings-mode__switch" role="radiogroup" aria-label="App mode">
+            {MODES.map((m) => (
+              <button
+                key={m.key}
+                type="button"
+                role="radio"
+                aria-checked={mode === m.key}
+                className={`settings-mode__option${mode === m.key ? ' settings-mode__option--on' : ''}`}
+                onClick={() => mode !== m.key && onModeChange(m.key)}
+              >
+                {m.label}
+              </button>
+            ))}
+          </div>
+          <div className="settings-mode__hint">{MODES.find((m) => m.key === mode)?.hint}</div>
+        </div>
         {SECTIONS.map((s) => (
           <button
             key={s.key}

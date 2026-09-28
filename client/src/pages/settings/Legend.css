@@ -103,3 +103,47 @@
   font: 500 11.5px var(--font-ui);
   color: var(--text-faint);
 }
+
+/* The one card that isn't about reading the board: a note to next year's
+   self. Ink rule down the side so it isn't skimmed past as more legend. */
+.legend-card--note {
+  border-left: 4px solid var(--text-primary);
+}
+
+.legend-note {
+  font: 500 12.5px var(--font-ui);
+  color: var(--text-secondary);
+  line-height: 1.6;
+  max-width: 72ch;
+}
+
+.legend-note strong {
+  color: var(--text-primary);
+}
+
+.legend-slot {
+  font: 700 11px var(--font-mono);
+  color: var(--text-muted);
+  background: var(--bg-input);
+  padding: 2px 6px;
+}
+
+.legend-slot--out {
+  background: transparent;
+  border: 1px dashed var(--border-hairline-strong);
+  color: var(--text-faint);
+}
+
+.legend-status {
+  font: 700 8.5px var(--font-ui);
+  letter-spacing: 0.04em;
+  color: var(--text-primary);
+  border: 1px solid var(--text-primary);
+  padding: 0 3px;
+  line-height: 13px;
+}
+
+.legend-free {
+  font: 600 11.5px var(--font-ui);
+  color: var(--accent-strong);
+}

@@ -44,7 +44,7 @@ export function parseFeedName(raw) {
 // an export may say LAK/NJD/SJS/TBL. Compared loosely and used ONLY to break a
 // tie, never to reject a match: a stale team on a traded player would
 // otherwise throw away a name that is obviously right.
-function sameTeam(a, b) {
+export function sameTeam(a, b) {
   const x = normalizeName(a).replace(/[^a-z]/g, '');
   const y = normalizeName(b).replace(/[^a-z]/g, '');
   if (!x || !y) return false;

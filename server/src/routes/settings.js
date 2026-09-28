@@ -4,7 +4,7 @@ import { reconcileLeague } from '../lib/leagueSync.js';
 
 export const settingsRouter = Router();
 
-const SECTIONS = ['league', 'rosterSlots', 'targets', 'draftDay', 'hosting', 'yahoo'];
+const SECTIONS = ['league', 'rosterSlots', 'targets', 'draftDay', 'hosting', 'yahoo', 'app', 'season'];
 const SECTION_ALIASES = { roster: null, hosting: 'hosting', draftday: 'draftDay' }; // sidebar-key -> settings-key
 
 // The yahoo section holds the client secret and both OAuth tokens. The
@@ -46,7 +46,7 @@ settingsRouter.patch('/:section', (req, res) => {
 
   if (req.params.section === 'hosting' && req.body.reset) {
     db.exec(
-      'DELETE FROM players; DELETE FROM draft_picks; DELETE FROM name_aliases; DELETE FROM unmatched_players; DELETE FROM debug_log;'
+      'DELETE FROM players; DELETE FROM draft_picks; DELETE FROM name_aliases; DELETE FROM unmatched_players; DELETE FROM debug_log; DELETE FROM season_rosters; DELETE FROM season_stats;'
     );
     logDebug('App data reset', 'OK', 'app');
     return res.json({ reset: true });

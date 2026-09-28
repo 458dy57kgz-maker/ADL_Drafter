@@ -1,0 +1,118 @@
+.season-players__sub {
+  font: 500 11.5px var(--font-ui);
+  color: var(--text-faint);
+  margin-top: 3px;
+}
+
+/* Two header rows (group, then column), so the whole thead sticks rather
+   than each row pinning itself to top: 0 on top of the other. */
+.season-table thead {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.players-table.season-table thead tr {
+  position: static;
+}
+
+.season-table th {
+  background: var(--bg-card);
+}
+
+.season-table__groups th {
+  padding: 6px 10px 2px;
+  border-bottom: none;
+  cursor: default;
+  font: 800 10px var(--font-ui);
+  letter-spacing: 0.12em;
+}
+
+.season-table__group {
+  text-align: left;
+  border-left: 2px solid var(--text-primary);
+}
+
+.season-table__group--act {
+  color: var(--text-primary);
+}
+
+.season-table__edge {
+  border-left: 2px solid var(--text-primary);
+}
+
+/* Opaque rows, so the pinned name column never shows the numbers sliding
+   underneath it. */
+.season-table tbody td {
+  background: var(--bg-app);
+  border-bottom: 1px solid var(--rule-faint);
+}
+
+.season-table tbody tr:nth-child(even) td {
+  background: var(--bg-row-alt);
+}
+
+.season-table tbody tr.season-table__mine td {
+  background: var(--accent-100);
+}
+
+.season-table__sticky {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  box-shadow: inset -1px 0 0 var(--border-hairline);
+}
+
+.season-table thead .season-table__sticky {
+  z-index: 3;
+}
+
+.season-table__name {
+  display: inline-flex;
+  align-items: center;
+}
+
+.season-table__status {
+  font: 700 8.5px var(--font-ui);
+  letter-spacing: 0.04em;
+  color: var(--text-primary);
+  border: 1px solid var(--text-primary);
+  padding: 0 3px;
+  margin-left: 6px;
+  line-height: 13px;
+}
+
+.season-table__owner {
+  font: 600 11.5px var(--font-ui) !important;
+  color: var(--text-primary) !important;
+  white-space: nowrap;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* A free agent is the thing this page exists to find, so "Available" reads
+   in the accent — red here means opportunity, as it does on the board. */
+.season-table__owner--free {
+  color: var(--accent-strong) !important;
+}
+
+.season-table__proj {
+  color: var(--text-faint) !important;
+  text-align: right;
+}
+
+.season-table__act {
+  color: var(--text-primary) !important;
+  font-weight: 700 !important;
+  text-align: right;
+}
+
+.season-table__cols th {
+  font-variant-numeric: tabular-nums;
+}
+
+.season-table td {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}

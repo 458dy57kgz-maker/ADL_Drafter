@@ -1,0 +1,72 @@
+.season-import {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.season-import__msg {
+  font: 600 11.5px var(--font-ui);
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.season-import__msg--error {
+  color: var(--danger-text);
+  white-space: normal;
+}
+
+.stats-import {
+  flex: none;
+  margin-bottom: 12px;
+}
+
+.stats-import__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.stats-import__head .card-subtitle {
+  max-width: 68ch;
+}
+
+.stats-import__actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.stats-import__file {
+  font: 500 11.5px var(--font-ui);
+  color: var(--text-muted);
+}
+
+.stats-import__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 8px 14px;
+  margin-bottom: 12px;
+}
+
+.stats-import__field {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font: 700 10.5px var(--font-ui);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.stats-import__field .field-select {
+  width: 100%;
+  text-transform: none;
+  letter-spacing: 0;
+}
