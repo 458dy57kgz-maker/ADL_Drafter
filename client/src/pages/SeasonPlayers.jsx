@@ -21,6 +21,66 @@ const STATS = [
   { key: 'saves', label: 'SV' },
 ];
 
+// Per start, from the goalie three-year totals: the sheet has wins and
+// saves over three seasons, which only compare across goalies once divided
+// by the starts they came from.
+const perStart = (key) => (p) => {
+  const r = p.profile;
+  return r?.[key] != null && r.gs3y > 0 ? r[key] / r.gs3y : null;
+};
+const profile = (key) => (p) => p.profile?.[key] ?? null;
+
+// Column groups, each switchable. Projected and Actual are the everyday
+// pair; Reputation (what other managers see) and Luck (how much of last
+// season was the bounces) are for sizing up a trade.
+const GROUPS = [
+  { key: 'proj', label: 'Projected', cols: STATS.map((s) => ({ ...s, key: `proj.${s.key}`, get: (p) => p.proj?.[s.key] ?? null })) },
+  {
+    key: 'rep',
+    label: 'Reputation',
+    title: 'Yahoo ADP and ownership, and three-year rates per 82 games — what other managers see',
+    cols: [
+      { key: 'rep.adp', label: 'YADP', get: (p) => p.adp ?? null, smallIsBest: true },
+      { key: 'rep.yown', label: 'Own%', get: profile('yown') },
+      { key: 'rep.gp3y', label: 'GP', get: profile('gp3y') },
+      { key: 'rep.g3y', label: 'G/82', get: profile('g3y') },
+      { key: 'rep.a3y', label: 'A/82', get: profile('a3y') },
+      { key: 'rep.pts3y', label: 'P/82', get: profile('pts3y') },
+      { key: 'rep.bs3y', label: 'BLK/82', get: profile('bs3y') },
+      { key: 'rep.sogCareer', label: 'SOG/82', get: profile('sogCareer'), title: 'Career' },
+      { key: 'rep.wPerStart', label: 'W/GS', get: perStart('w3y'), decimals: 2 },
+      { key: 'rep.svPerStart', label: 'SV/GS', get: perStart('sv3y'), decimals: 1 },
+      { key: 'rep.gaa3y', label: 'GAA', get: profile('gaa3y'), decimals: 2, smallIsBest: true },
+    ],
+  },
+  {
+    key: 'luck',
+    label: 'Luck',
+    title: 'Last season against the career rate — a big gap usually comes back to earth',
+    cols: [
+      { key: 'luck.shsv', label: 'SHSV', get: profile('shsv'), title: 'On-ice shooting % + save %; 1000 is neutral' },
+      { key: 'luck.lyShPct', label: 'SH% LY', get: profile('lyShPct') },
+      { key: 'luck.cShPct', label: 'SH% car', get: profile('cShPct') },
+      { key: 'luck.lyIpp', label: 'IPP LY', get: profile('lyIpp') },
+      { key: 'luck.cIpp', label: 'IPP car', get: profile('cIpp') },
+    ],
+  },
+  { key: 'act', label: 'Actual', cols: STATS.map((s) => ({ ...s, key: `act.${s.key}`, get: (p) => p.act?.[s.key] ?? null })) },
+];
+const COLUMN = new Map(GROUPS.flatMap((g) => g.cols).map((c) => [c.key, c]));
+const DEFAULT_GROUPS = ['proj', 'act'];
+const GROUPS_STORAGE = 'adl.seasonPlayers.groups';
+
+function loadGroups() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(GROUPS_STORAGE));
+    if (Array.isArray(saved) && saved.length) return saved.filter((k) => GROUPS.some((g) => g.key === k));
+  } catch {
+    // Private window or blocked storage: the defaults will do.
+  }
+  return DEFAULT_GROUPS;
+}
+
 const INFO = [
   { key: 'name', label: 'Player' },
   { key: 'pos', label: 'Pos' },
@@ -31,14 +91,17 @@ const INFO = [
 ];
 
 function valueFor(p, col) {
-  if (col.startsWith('proj.')) return p.proj?.[col.slice(5)] ?? null;
-  if (col.startsWith('act.')) return p.act?.[col.slice(4)] ?? null;
-  return p[col] ?? null;
+  const column = COLUMN.get(col);
+  return column ? column.get(p) : p[col] ?? null;
 }
 
+// Sheet numbers arrive as whatever the sheet had — 31.4 goals per 82, 0.112
+// shooting — so anything without set decimals gets a sensible amount.
 function formatStat(stat, value) {
   if (value == null) return '–';
-  return stat.decimals ? value.toFixed(stat.decimals) : value;
+  if (stat.decimals != null) return value.toFixed(stat.decimals);
+  if (Number.isInteger(value)) return value;
+  return Math.abs(value) < 1 ? value.toFixed(3) : value.toFixed(1);
 }
 
 export default function SeasonPlayers() {
@@ -48,6 +111,21 @@ export default function SeasonPlayers() {
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState(null);
   const [importOpen, setImportOpen] = useState(false);
+  const [groupKeys, setGroupKeys] = useState(loadGroups);
+  const groups = GROUPS.filter((g) => groupKeys.includes(g.key));
+
+  function toggleGroup(key) {
+    setGroupKeys((prev) => {
+      const next = prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key];
+      if (!next.length) return prev;
+      try {
+        localStorage.setItem(GROUPS_STORAGE, JSON.stringify(next));
+      } catch {
+        // Not remembered next time; still switched now.
+      }
+      return next;
+    });
+  }
 
   const hasStats = (data?.meta.statsCount ?? 0) > 0;
   // Points so far once there are any, otherwise the projection — the list
@@ -83,17 +161,18 @@ export default function SeasonPlayers() {
       if (current.col === col) return { col, dir: current.dir === 'asc' ? 'desc' : 'asc' };
       // Numbers open best-first: biggest for counting stats, smallest for my
       // rank and GAA. Names and teams open A to Z.
-      const smallIsBest = col === 'overallRank' || col.endsWith('.gaa');
+      const smallIsBest = col === 'overallRank' || col.endsWith('.gaa') || COLUMN.get(col)?.smallIsBest;
       return { col, dir: numeric && !smallIsBest ? 'desc' : 'asc' };
     });
   }
 
-  function header(col, label, numeric, extraClass = '') {
+  function header(col, label, numeric, extraClass = '', title) {
     const on = activeSort.col === col;
     return (
       <th
         key={col}
         className={extraClass}
+        title={title}
         onClick={() => toggleSort(col, numeric)}
         aria-sort={on ? (activeSort.dir === 'asc' ? 'ascending' : 'descending') : 'none'}
       >
@@ -168,6 +247,20 @@ export default function SeasonPlayers() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
+        <div className="season-groups" role="group" aria-label="Column groups">
+          {GROUPS.map((g) => (
+            <button
+              key={g.key}
+              type="button"
+              aria-pressed={groupKeys.includes(g.key)}
+              className={`season-groups__chip${groupKeys.includes(g.key) ? ' season-groups__chip--on' : ''}`}
+              title={g.title}
+              onClick={() => toggleGroup(g.key)}
+            >
+              {g.label}
+            </button>
+          ))}
+        </div>
         <div className="players-page__count">{data ? `${rows.length} players shown` : ''}</div>
       </div>
 
@@ -176,17 +269,15 @@ export default function SeasonPlayers() {
           <thead>
             <tr className="season-table__groups">
               <th colSpan={INFO.length} className="season-table__group-blank" />
-              <th colSpan={STATS.length} className="season-table__group season-table__group--proj">
-                Projected
-              </th>
-              <th colSpan={STATS.length} className="season-table__group season-table__group--act">
-                Actual
-              </th>
+              {groups.map((g) => (
+                <th key={g.key} colSpan={g.cols.length} title={g.title} className={`season-table__group season-table__group--${g.key}`}>
+                  {g.label}
+                </th>
+              ))}
             </tr>
             <tr className="season-table__cols">
               {INFO.map((c) => header(c.key, c.label, c.key === 'overallRank', c.key === 'name' ? 'season-table__sticky' : ''))}
-              {STATS.map((s, i) => header(`proj.${s.key}`, s.label, true, i === 0 ? 'season-table__edge' : ''))}
-              {STATS.map((s, i) => header(`act.${s.key}`, s.label, true, i === 0 ? 'season-table__edge' : ''))}
+              {groups.flatMap((g) => g.cols.map((c, i) => header(c.key, c.label, true, i === 0 ? 'season-table__edge' : '', c.title)))}
             </tr>
           </thead>
           <tbody>
@@ -208,16 +299,16 @@ export default function SeasonPlayers() {
                   </td>
                   <td>{p.slot ?? ''}</td>
                   <td>{p.overallRank ?? '–'}</td>
-                  {STATS.map((s, i) => (
-                    <td key={`p${s.key}`} className={`season-table__proj${i === 0 ? ' season-table__edge' : ''}`}>
-                      {formatStat(s, p.proj?.[s.key])}
-                    </td>
-                  ))}
-                  {STATS.map((s, i) => (
-                    <td key={`a${s.key}`} className={`season-table__act${i === 0 ? ' season-table__edge' : ''}`}>
-                      {formatStat(s, p.act?.[s.key])}
-                    </td>
-                  ))}
+                  {groups.flatMap((g) =>
+                    g.cols.map((c, i) => (
+                      <td
+                        key={c.key}
+                        className={`${g.key === 'act' ? 'season-table__act' : 'season-table__proj'}${i === 0 ? ' season-table__edge' : ''}`}
+                      >
+                        {formatStat(c, c.get(p))}
+                      </td>
+                    ))
+                  )}
                 </tr>
               );
             })}

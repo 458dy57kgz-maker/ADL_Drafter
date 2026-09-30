@@ -2,6 +2,7 @@ import Database from 'better-sqlite3';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { PROFILE_FIELDS } from '../lib/mapPlayer.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DATA_DIR = process.env.DATA_DIR || path.resolve(__dirname, '../../data');
@@ -25,6 +26,7 @@ const ADDED_COLUMNS = [
   { table: 'players', column: 'gp', type: 'INTEGER' },
   { table: 'players', column: 'vorp', type: 'REAL' },
   { table: 'players', column: 'flag', type: 'TEXT' },
+  ...PROFILE_FIELDS.map((f) => ({ table: 'players', column: f.column, type: 'REAL' })),
 ];
 
 function migrate() {

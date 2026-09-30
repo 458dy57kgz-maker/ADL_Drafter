@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { db, getSetting, logDebug } from '../db/index.js';
-import { mapPlayerRow, normalizePosList, PLAYER_FLAGS } from '../lib/mapPlayer.js';
+import { mapPlayerRow, normalizePosList, PLAYER_FLAGS, PROFILE_FIELDS } from '../lib/mapPlayer.js';
 import { suggestClosestName } from '../lib/textMatch.js';
 
 export const playersRouter = Router();
@@ -67,8 +67,11 @@ playersRouter.get('/', (req, res) => {
 // importing a file with just names and ranks won't blank out the stats
 // already stored against those players.
 
-const STAT_FIELDS = ['adp', 'tier', 'g', 'a', 'p', 'ppp', 'plusMinus', 'shots', 'blocks', 'ong', 'gp', 'vorp', 'w', 'gaa', 'saves'];
-const COLUMN_FOR = { plusMinus: 'plus_minus' };
+const STAT_FIELDS = [
+  'adp', 'tier', 'g', 'a', 'p', 'ppp', 'plusMinus', 'shots', 'blocks', 'ong', 'gp', 'vorp', 'w', 'gaa', 'saves',
+  ...PROFILE_FIELDS.map((f) => f.key),
+];
+const COLUMN_FOR = { plusMinus: 'plus_minus', ...Object.fromEntries(PROFILE_FIELDS.map((f) => [f.key, f.column])) };
 
 function loadMatchIndex() {
   const existing = db.prepare('SELECT id, name, drafted FROM players').all();
@@ -155,11 +158,10 @@ playersRouter.post('/import', (req, res) => {
     return res.status(400).json({ error: 'no usable rows — new players need a name and a position' });
   }
 
+  const insertColumns = ['name', 'pos', 'team', 'overall_rank', ...STAT_FIELDS.map((f) => COLUMN_FOR[f] ?? f)];
   const insertPlayer = db.prepare(`
-    INSERT INTO players
-      (name, pos, team, rank, overall_rank, adp, tier, g, a, p, ppp, plus_minus, shots, blocks, ong, gp, vorp, w, gaa, saves, drafted, drafted_by, mine, tracked)
-    VALUES
-      (@name, @pos, @team, NULL, @overallRank, @adp, @tier, @g, @a, @p, @ppp, @plusMinus, @shots, @blocks, @ong, @gp, @vorp, @w, @gaa, @saves, 0, NULL, 0, 0)
+    INSERT INTO players (${insertColumns.join(', ')}, drafted, mine, tracked)
+    VALUES (@name, @pos, @team, @overallRank, ${STAT_FIELDS.map((f) => `@${f}`).join(', ')}, 0, 0, 0)
   `);
   const deletePlayer = db.prepare('DELETE FROM players WHERE id = ?');
   const deletePicksFor = db.prepare('DELETE FROM draft_picks WHERE player_id = ?');
@@ -200,21 +202,7 @@ playersRouter.post('/import', (req, res) => {
         pos: normalizePosList(row.pos).join(','),
         team: row.team || null,
         overallRank: row.rank ?? maxRank + i + 1,
-        adp: row.adp ?? null,
-        tier: row.tier ?? null,
-        g: row.g ?? null,
-        a: row.a ?? null,
-        p: row.p ?? null,
-        ppp: row.ppp ?? null,
-        plusMinus: row.plusMinus ?? null,
-        shots: row.shots ?? null,
-        blocks: row.blocks ?? null,
-        ong: row.ong ?? null,
-        gp: row.gp ?? null,
-        vorp: row.vorp ?? null,
-        w: row.w ?? null,
-        gaa: row.gaa ?? null,
-        saves: row.saves ?? null,
+        ...Object.fromEntries(STAT_FIELDS.map((f) => [f, row[f] ?? null])),
       });
     });
 

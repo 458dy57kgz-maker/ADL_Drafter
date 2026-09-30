@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { Fragment, useEffect, useRef, useState } from 'react';
 import { api } from '../../lib/api.js';
 import { parseCSV, guessColumn } from '../../lib/parseCsv.js';
 import ConfirmDialog from '../../components/ConfirmDialog.jsx';
@@ -38,11 +38,35 @@ const IMPORT_FIELDS = [
   { key: 'w', label: 'Wins (goalies)', synonyms: ['w', 'wins', 'p_w'], required: false, type: 'int' },
   { key: 'gaa', label: 'GAA (goalies)', synonyms: ['gaa', 'p_gaa'], required: false, type: 'float' },
   { key: 'saves', label: 'Saves (goalies)', synonyms: ['saves', 'sv', 'p_sv'], required: false, type: 'int' },
+  // Reputation: what the other managers remember about a player. Season
+  // mode's trade finder reads these, never the draft. Exact header matches
+  // only — 3YG is the start of 3YGP, 3YGS and 3YGAA.
+  ...[
+    { key: 'gp3y', label: 'Games played, 3-year average', synonyms: ['3ygp'] },
+    { key: 'g3y', label: 'Goals per 82, 3-year', synonyms: ['3yg'] },
+    { key: 'a3y', label: 'Assists per 82, 3-year', synonyms: ['3ya'] },
+    { key: 'pts3y', label: 'Points per 82, 3-year', synonyms: ['3ypts'] },
+    { key: 'bs3y', label: 'Blocked shots per 82, 3-year', synonyms: ['3ybs'] },
+    { key: 'sogCareer', label: 'Shots per 82, career', synonyms: ['csog'] },
+    { key: 'gs3y', label: 'Starts, 3-year (goalies)', synonyms: ['3ygs'] },
+    { key: 'w3y', label: 'Wins, 3-year (goalies)', synonyms: ['3yw'] },
+    { key: 'sv3y', label: 'Saves, 3-year (goalies)', synonyms: ['3ysv'] },
+    { key: 'gaa3y', label: 'GAA, 3-year (goalies)', synonyms: ['3ygaa'] },
+    { key: 'yown', label: 'Yahoo ownership %', synonyms: ['yown'] },
+  ].map((f) => ({ ...f, group: 'Reputation — for season trades', required: false, type: 'float', exact: true })),
+  // Luck: how much of last season's line was the bounces.
+  ...[
+    { key: 'shsv', label: 'SHSV — on-ice shooting % + save %, 1000 is neutral', synonyms: ['shsv'] },
+    { key: 'lyShPct', label: 'Shooting %, last season', synonyms: ['lysh%', 'lysh'] },
+    { key: 'cShPct', label: 'Shooting %, career', synonyms: ['csh%', 'csh'] },
+    { key: 'lyIpp', label: 'Individual point %, last season', synonyms: ['lyipp'] },
+    { key: 'cIpp', label: 'Individual point %, career', synonyms: ['cipp'] },
+  ].map((f) => ({ ...f, group: 'Luck — for season trades', required: false, type: 'float', exact: true })),
 ];
 
 function guessMapping(headers, fields) {
   const mapping = {};
-  for (const f of fields) mapping[f.key] = guessColumn(headers, f.synonyms);
+  for (const f of fields) mapping[f.key] = guessColumn(headers, f.synonyms, { exact: f.exact });
   return mapping;
 }
 
@@ -76,26 +100,33 @@ function buildRows(dataRows, mapping, fields) {
 function ColumnMapper({ headers, fields, mapping, onChange }) {
   return (
     <div className="stack-gap" style={{ marginBottom: 12 }}>
-      {fields.map((f) => (
-        <div key={f.key} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{ width: 300, font: '600 12.5px var(--font-ui)', color: 'var(--text-secondary)' }}>
-            {f.label}
-            {f.required ? ' *' : ''}
+      {fields.map((f, i) => (
+        <Fragment key={f.key}>
+          {f.group && f.group !== fields[i - 1]?.group && (
+            <div style={{ font: '800 10px var(--font-ui)', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-muted)', marginTop: 10 }}>
+              {f.group}
+            </div>
+          )}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ width: 300, font: '600 12.5px var(--font-ui)', color: 'var(--text-secondary)' }}>
+              {f.label}
+              {f.required ? ' *' : ''}
+            </div>
+            <select
+              className="field-select"
+              style={{ width: 'auto', flex: 1 }}
+              value={mapping[f.key]}
+              onChange={(e) => onChange(f.key, Number(e.target.value))}
+            >
+              <option value={-1}>— not in file —</option>
+              {headers.map((h, j) => (
+                <option key={j} value={j}>
+                  {h || `Column ${j + 1}`}
+                </option>
+              ))}
+            </select>
           </div>
-          <select
-            className="field-select"
-            style={{ width: 'auto', flex: 1 }}
-            value={mapping[f.key]}
-            onChange={(e) => onChange(f.key, Number(e.target.value))}
-          >
-            <option value={-1}>— not in file —</option>
-            {headers.map((h, i) => (
-              <option key={i} value={i}>
-                {h || `Column ${i + 1}`}
-              </option>
-            ))}
-          </select>
-        </div>
+        </Fragment>
       ))}
     </div>
   );

@@ -7,6 +7,32 @@
 // is a one-line change; NULL means no note.
 export const PLAYER_FLAGS = ['sleeper', 'avoid', 'favourite'];
 
+// What the other managers see when they size a player up, and how much luck
+// went into it — the preseason sheet's reputation columns. None of it is my
+// projection; season mode uses it to guess a player's trade value in their
+// eyes. Three-year skater rates are per 82 games; the goalie three-year
+// columns are totals, turned into per-start rates where they're used. SHSV
+// is on-ice shooting % plus save % (1000 = neutral); shooting % and IPP come
+// as last season beside the career rate, so a hot year shows as the gap.
+export const PROFILE_FIELDS = [
+  { key: 'gp3y', column: 'gp_3y' },
+  { key: 'g3y', column: 'g_3y' },
+  { key: 'a3y', column: 'a_3y' },
+  { key: 'pts3y', column: 'pts_3y' },
+  { key: 'bs3y', column: 'bs_3y' },
+  { key: 'sogCareer', column: 'sog_career' },
+  { key: 'gs3y', column: 'gs_3y' },
+  { key: 'w3y', column: 'w_3y' },
+  { key: 'sv3y', column: 'sv_3y' },
+  { key: 'gaa3y', column: 'gaa_3y' },
+  { key: 'yown', column: 'yown' },
+  { key: 'shsv', column: 'shsv' },
+  { key: 'lyShPct', column: 'ly_sh_pct' },
+  { key: 'cShPct', column: 'c_sh_pct' },
+  { key: 'lyIpp', column: 'ly_ipp' },
+  { key: 'cIpp', column: 'c_ipp' },
+];
+
 export function normalizePosList(raw) {
   return String(raw ?? '')
     .split(/[,/]/)
@@ -54,6 +80,7 @@ export function mapPlayerRow(row, teamCount = null) {
     w: row.w,
     gaa: row.gaa,
     saves: row.saves,
+    ...Object.fromEntries(PROFILE_FIELDS.map((f) => [f.key, row[f.column] ?? null])),
     drafted: !!row.drafted,
     draftedBy: row.drafted_by,
     mine: !!row.mine,

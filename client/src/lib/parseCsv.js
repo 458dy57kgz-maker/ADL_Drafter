@@ -51,12 +51,16 @@ export function parseCSV(text) {
 // where substring matching would just grab the first header containing that
 // letter anywhere (e.g. "Name" for 'a'). Substring matching is a fallback,
 // and only for synonyms long enough that a stray substring hit is unlikely.
-export function guessColumn(headers, synonyms) {
+// `exact` skips the substring pass — for codes like 3YG that are the start
+// of other codes (3YGP, 3YGS, 3YGAA) and would otherwise grab the wrong one
+// when their own column is missing.
+export function guessColumn(headers, synonyms, { exact = false } = {}) {
   const lower = headers.map((h) => h.toLowerCase().trim());
   for (const syn of synonyms) {
     const idx = lower.findIndex((h) => h === syn.toLowerCase());
     if (idx !== -1) return idx;
   }
+  if (exact) return -1;
   for (const syn of synonyms) {
     if (syn.length < 3) continue;
     const idx = lower.findIndex((h) => h.includes(syn.toLowerCase()));

@@ -223,6 +223,20 @@ test('buildSeason totals carry points and a rounded GAA', () => {
   assert.equal(teams[0].actual.p, 0, 'no skater stats imported');
 });
 
+test('players carry ADP and the reputation profile from the pool', () => {
+  const pool = [
+    poolPlayer(1, 'With Profile', 'C', 'EDM', { adp: 12, g3y: 38.5, yown: 99, shsv: 1042 }),
+    poolPlayer(2, 'Without', 'D', 'EDM'),
+  ];
+  const { players } = buildSeason({ pool, rosterRows: [], statsRows: [], teamNames: new Map() });
+  const [a, b] = players;
+  assert.equal(a.adp, 12);
+  assert.equal(a.profile.g3y, 38.5);
+  assert.equal(a.profile.shsv, 1042);
+  assert.equal(a.profile.cIpp, null);
+  assert.equal(b.profile, null, 'no sheet columns, no profile');
+});
+
 test('my team is the one holding most of the players I drafted', () => {
   const pool = [poolPlayer(1, 'A', 'C', 'X', { mine: true }), poolPlayer(2, 'B', 'C', 'X', { mine: true }), poolPlayer(3, 'C', 'C', 'X')];
   const teams = [

@@ -27,7 +27,24 @@ CREATE TABLE IF NOT EXISTS players (
   -- My own note on a player: 'sleeper', 'avoid' or 'favourite' (NULL = none).
   flag TEXT,
   roster_slot TEXT,
-  yahoo_player_key TEXT
+  yahoo_player_key TEXT,
+  -- Reputation and luck from the preseason sheet (PROFILE_FIELDS in mapPlayer.js).
+  gp_3y REAL,
+  g_3y REAL,
+  a_3y REAL,
+  pts_3y REAL,
+  bs_3y REAL,
+  sog_career REAL,
+  gs_3y REAL,
+  w_3y REAL,
+  sv_3y REAL,
+  gaa_3y REAL,
+  yown REAL,
+  shsv REAL,
+  ly_sh_pct REAL,
+  c_sh_pct REAL,
+  ly_ipp REAL,
+  c_ipp REAL
 );
 
 CREATE TABLE IF NOT EXISTS draft_picks (

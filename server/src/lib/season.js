@@ -6,7 +6,7 @@
 // so it's tested without a database.
 
 import { matchPlayer, parseFeedName } from './pickFeed.js';
-import { normalizePosList } from './mapPlayer.js';
+import { normalizePosList, PROFILE_FIELDS } from './mapPlayer.js';
 import { BENCH_WEIGHT } from './roster.js';
 import { SEASON_SLOTS, INACTIVE_SLOTS } from './yahooRosters.js';
 
@@ -66,6 +66,18 @@ export function seasonTotals(starters, bench, benchWeight = BENCH_WEIGHT) {
     }
   }
   return totals;
+}
+
+// Reputation and luck, as the preseason sheet had them; null when the sheet
+// carried none of it for this player.
+function profileLine(source) {
+  const line = {};
+  let any = false;
+  for (const { key } of PROFILE_FIELDS) {
+    line[key] = source[key] ?? null;
+    if (line[key] != null) any = true;
+  }
+  return any ? line : null;
 }
 
 function statLine(source) {
@@ -159,7 +171,9 @@ export function buildSeason({ pool, rosterRows, statsRows, teamNames, myTeamNum 
       team: p.team,
       flag: p.flag,
       overallRank: p.overallRank,
+      adp: p.adp ?? null,
       proj: statLine(p),
+      profile: profileLine(p),
       act: null,
       owner: null,
       slot: null,
@@ -183,7 +197,9 @@ export function buildSeason({ pool, rosterRows, statsRows, teamNames, myTeamNum 
         team: r.nhl_team,
         flag: null,
         overallRank: null,
+        adp: null,
         proj: null,
+        profile: null,
         act: null,
       });
     keyForRow.set(r.id, entity.key);
@@ -223,7 +239,9 @@ export function buildSeason({ pool, rosterRows, statsRows, teamNames, myTeamNum 
         team: s.team,
         flag: null,
         overallRank: null,
+        adp: null,
         proj: null,
+        profile: null,
         act: null,
         owner: null,
         slot: null,
