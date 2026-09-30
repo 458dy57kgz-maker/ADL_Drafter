@@ -14,6 +14,7 @@ export const NAV_ITEMS = {
   season: [
     { key: 'season-war', label: 'Season War Room', short: 'WAR', shape: 'square' },
     { key: 'teams', label: 'Teams', short: 'TEAMS', shape: 'triangle' },
+    { key: 'trades', label: 'Trade Finder', short: 'TRADE', shape: 'swap' },
     { key: 'season-players', label: 'Season Players', short: 'PLYR', shape: 'circle' },
     { key: 'settings', label: 'Settings', short: 'SET', shape: 'diamond' },
   ],

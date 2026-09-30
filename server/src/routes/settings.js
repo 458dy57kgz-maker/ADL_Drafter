@@ -4,7 +4,7 @@ import { reconcileLeague } from '../lib/leagueSync.js';
 
 export const settingsRouter = Router();
 
-const SECTIONS = ['league', 'rosterSlots', 'targets', 'draftDay', 'hosting', 'yahoo', 'app', 'season'];
+const SECTIONS = ['league', 'rosterSlots', 'targets', 'draftDay', 'hosting', 'yahoo', 'app', 'season', 'trade'];
 const SECTION_ALIASES = { roster: null, hosting: 'hosting', draftday: 'draftDay' }; // sidebar-key -> settings-key
 
 // The yahoo section holds the client secret and both OAuth tokens. The

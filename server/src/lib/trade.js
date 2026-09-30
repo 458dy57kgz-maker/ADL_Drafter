@@ -572,12 +572,14 @@ export function scanTrades(model, { limit = 20, targets = 40, pieces = 8, locked
     const top = packagesFor(model, key, myPieces).filter(viable).sort((a, b) => b.score - a.score)[0];
     if (top) best.push(top);
   }
-  // Two targets on one team can lead to the same 2-for-2; list it once.
+  // Two targets on one team often lead to the same offer from my side —
+  // the same players sent to the same owner. List the best of those once, so
+  // the scan shows different ideas rather than one idea twice.
   const seen = new Set();
   return best
     .sort((a, b) => b.score - a.score)
     .filter((t) => {
-      const id = `${[...t.give].sort()}>${[...t.get].sort()}`;
+      const id = `${t.team}:${[...t.give].sort()}`;
       if (seen.has(id)) return false;
       seen.add(id);
       return true;

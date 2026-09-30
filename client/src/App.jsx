@@ -6,6 +6,7 @@ import Players from './pages/Players.jsx';
 import SeasonWarRoom from './pages/SeasonWarRoom.jsx';
 import Teams from './pages/Teams.jsx';
 import SeasonPlayers from './pages/SeasonPlayers.jsx';
+import TradeFinder from './pages/TradeFinder.jsx';
 import Settings from './pages/Settings.jsx';
 import ManualDraftOverlay from './components/ManualDraftOverlay.jsx';
 import { LivePickFeedProvider } from './lib/useLivePickFeed.jsx';
@@ -70,6 +71,7 @@ export default function App() {
           {tab === 'players' && <Players />}
           {tab === 'season-war' && <SeasonWarRoom onNavigate={setTab} />}
           {tab === 'teams' && <Teams />}
+          {tab === 'trades' && <TradeFinder onNavigate={setTab} />}
           {tab === 'season-players' && <SeasonPlayers />}
           {tab === 'settings' && <Settings mode={mode} onModeChange={handleModeChange} />}
         </div>

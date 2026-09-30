@@ -63,6 +63,10 @@ const DEFAULT_SETTINGS = {
   // Bookkeeping for the season imports. myTeamNum is my team's number on
   // Yahoo's page (1-10), which needn't match my draft slot.
   season: { myTeamNum: null, leagueId: null, rosterDate: null, rostersImportedAt: null, statsImportedAt: null, statsFile: null },
+  // The trade finder's knobs. `weights` holds only what I've moved off the
+  // defaults (DEFAULT_WEIGHTS in lib/trade.js); `locked` are my players it
+  // must never offer.
+  trade: { weights: {}, locked: [] },
   hosting: {
     leagues: [{ id: 'default', name: 'My League 2026' }],
     activeLeagueId: 'default',

@@ -5,6 +5,7 @@ import { normalizeName } from '../lib/pickFeed.js';
 import { myTeamName } from '../lib/league.js';
 import { parseStartingRosters } from '../lib/yahooRosters.js';
 import { buildSeason, makeMatcher, guessMyTeam, STAT_KEYS, SEASON_CATEGORIES } from '../lib/season.js';
+import { buildTradeModel, scanTrades, sellList, mergeWeights } from '../lib/trade.js';
 
 // Season mode: Yahoo's rosters and my actual-stats sheet, joined to the
 // draft pool. One read endpoint feeds all three season pages (War Room,
@@ -41,14 +42,13 @@ function loadStats() {
     });
 }
 
-seasonRouter.get('/', (req, res) => {
+function loadSeason() {
   const season = getSetting('season');
   const rosterRows = db.prepare('SELECT * FROM season_rosters').all();
   const teamNames = new Map();
   for (const r of rosterRows) teamNames.set(r.team_num, r.team_name);
   const statsRows = loadStats();
-
-  const { teams, players, benchWeight } = buildSeason({
+  const built = buildSeason({
     pool: loadPool(),
     rosterRows,
     statsRows,
@@ -56,7 +56,13 @@ seasonRouter.get('/', (req, res) => {
     myTeamNum: season.myTeamNum,
     aliases: aliasMap(),
   });
+  return { season, statsCount: statsRows.length, ...built };
+}
 
+const CATEGORIES = SEASON_CATEGORIES.map(({ key, label, lowerIsBetter = false, decimals = 0 }) => ({ key, label, lowerIsBetter, decimals }));
+
+seasonRouter.get('/', (req, res) => {
+  const { season, statsCount, teams, players, benchWeight } = loadSeason();
   res.json({
     meta: {
       leagueId: season.leagueId,
@@ -64,13 +70,67 @@ seasonRouter.get('/', (req, res) => {
       rostersImportedAt: season.rostersImportedAt,
       statsImportedAt: season.statsImportedAt,
       statsFile: season.statsFile,
-      statsCount: statsRows.length,
+      statsCount,
       myTeamNum: season.myTeamNum,
     },
-    categories: SEASON_CATEGORIES.map(({ key, label, lowerIsBetter = false, decimals = 0 }) => ({ key, label, lowerIsBetter, decimals })),
+    categories: CATEGORIES,
     benchWeight,
     teams,
     players,
+  });
+});
+
+// The trade finder: my sell list and the open scan's proposals, weighed
+// with whatever I've set in the trade settings.
+seasonRouter.get('/trade', (req, res) => {
+  const loaded = loadSeason();
+  const { weights = {}, locked = [] } = getSetting('trade') ?? {};
+  const base = { categories: CATEGORIES, weights: mergeWeights(weights), locked };
+  if (!loaded.teams.length) return res.json({ ...base, ready: false, reason: 'rosters' });
+  if (!loaded.teams.some((t) => t.isMine)) return res.json({ ...base, ready: false, reason: 'myTeam' });
+
+  const model = buildTradeModel(loaded, weights);
+  const me = model.teams.find((t) => t.isMine);
+  const teamName = new Map(model.teams.map((t) => [t.num, t.name]));
+  // What the page needs to know about a player, and no more.
+  const summary = (key) => {
+    const p = model.players.get(key);
+    return {
+      key,
+      name: p.name,
+      pos: p.pos,
+      team: p.team,
+      slot: p.slot,
+      status: p.status,
+      adp: p.adp,
+      myValue: p.myValue,
+      marketValue: p.marketValue,
+      gap: p.gap,
+      luck: p.luck,
+    };
+  };
+  const side = (s) => ({ delta: s.delta, byCat: s.byCat, dropped: s.dropped.map(summary) });
+
+  res.json({
+    ...base,
+    ready: true,
+    meta: { rosterDate: loaded.season.rosterDate, statsImportedAt: loaded.season.statsImportedAt, statsCount: loaded.statsCount },
+    me: { num: me.num, name: me.name, need: me.need, surplus: me.surplus, slots: model.slots },
+    sell: sellList(model).map((s) => ({ ...summary(s.key), score: s.score, surplus: s.surplus, injured: s.injured, locked: locked.includes(s.key) })),
+    proposals: scanTrades(model, { locked }).map((t) => ({
+      shape: t.shape,
+      team: { num: t.team, name: teamName.get(t.team) },
+      give: t.give.map(summary),
+      get: t.get.map(summary),
+      me: side(t.me),
+      them: side(t.them),
+      accept: t.accept,
+      premium: model.weights.premium,
+      score: t.score,
+      edge: t.edge,
+      surplus: t.surplus,
+      bench: t.bench,
+    })),
   });
 });
 
