@@ -3,9 +3,8 @@ import { db, getSetting, setSetting, logDebug } from '../db/index.js';
 import { mapPlayerRow } from '../lib/mapPlayer.js';
 import { normalizeName } from '../lib/pickFeed.js';
 import { myTeamName } from '../lib/league.js';
-import { TARGET_CATEGORIES } from '../lib/roster.js';
 import { parseStartingRosters } from '../lib/yahooRosters.js';
-import { buildSeason, makeMatcher, guessMyTeam, STAT_KEYS } from '../lib/season.js';
+import { buildSeason, makeMatcher, guessMyTeam, STAT_KEYS, SEASON_CATEGORIES } from '../lib/season.js';
 
 // Season mode: Yahoo's rosters and my actual-stats sheet, joined to the
 // draft pool. One read endpoint feeds all three season pages (War Room,
@@ -68,7 +67,7 @@ seasonRouter.get('/', (req, res) => {
       statsCount: statsRows.length,
       myTeamNum: season.myTeamNum,
     },
-    categories: TARGET_CATEGORIES.map((c) => ({ key: c.key, label: c.label })),
+    categories: SEASON_CATEGORIES.map(({ key, label, lowerIsBetter = false, decimals = 0 }) => ({ key, label, lowerIsBetter, decimals })),
     benchWeight,
     teams,
     players,

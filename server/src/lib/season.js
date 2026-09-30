@@ -7,13 +7,66 @@
 
 import { matchPlayer, parseFeedName } from './pickFeed.js';
 import { normalizePosList } from './mapPlayer.js';
-import { TARGET_CATEGORIES, BENCH_WEIGHT, categoryTotals } from './roster.js';
+import { BENCH_WEIGHT } from './roster.js';
 import { SEASON_SLOTS, INACTIVE_SLOTS } from './yahooRosters.js';
 
 // The stat line both halves of a player carry, projected and actual.
 export const STAT_KEYS = ['gp', 'g', 'a', 'p', 'ppp', 'plusMinus', 'shots', 'blocks', 'w', 'gaa', 'saves'];
 
 const STARTING_SLOTS = ['C', 'LW', 'RW', 'D', 'G', 'Util'];
+
+// The league's head-to-head categories as season mode scores them — the
+// ones I find predictable. +/- is scored by the league but left out on
+// purpose: it says more about a player's linemates than about him. Points
+// sits beside goals and assists because the league counts it separately.
+// GAA is the odd one: an average, not a total, and lower wins.
+export const SEASON_CATEGORIES = [
+  { key: 'g', label: 'Goals', side: 'skater' },
+  { key: 'a', label: 'Assists', side: 'skater' },
+  { key: 'p', label: 'Points', side: 'skater' },
+  { key: 'ppp', label: 'PPP', side: 'skater' },
+  { key: 'shots', label: 'Shots', side: 'skater' },
+  { key: 'blocks', label: 'Blocks', side: 'skater' },
+  { key: 'w', label: 'Wins', side: 'goalie' },
+  { key: 'saves', label: 'Saves', side: 'goalie' },
+  { key: 'gaa', label: 'GAA', side: 'goalie', average: true, lowerIsBetter: true, decimals: 2 },
+];
+
+function isGoalie(line) {
+  return (line.posList ?? []).includes('G');
+}
+
+// A team's number in each category. Counting categories add up, the bench
+// at `benchWeight`. GAA is the team's goalies' GAA averaged by games played
+// — Yahoo divides goals against by minutes, which no sheet here carries, so
+// this is the close stand-in. A goalie with no games played yet is left out
+// of it rather than dragging the average to zero; with no goalie at all the
+// team has no GAA (null).
+export function seasonTotals(starters, bench, benchWeight = BENCH_WEIGHT) {
+  const lines = [
+    ...starters.map((line) => ({ line, weight: 1 })),
+    ...bench.map((line) => ({ line, weight: benchWeight })),
+  ];
+  const totals = {};
+  for (const cat of SEASON_CATEGORIES) {
+    const side = lines.filter(({ line }) => (cat.side === 'goalie') === isGoalie(line));
+    if (cat.average) {
+      let sum = 0;
+      let games = 0;
+      for (const { line, weight } of side) {
+        const value = line[cat.key];
+        const gp = (line.gp ?? 1) * weight;
+        if (value == null || !(gp > 0)) continue;
+        sum += value * gp;
+        games += gp;
+      }
+      totals[cat.key] = games > 0 ? sum / games : null;
+    } else {
+      totals[cat.key] = side.reduce((sum, { line, weight }) => sum + (line[cat.key] || 0) * weight, 0);
+    }
+  }
+  return totals;
+}
 
 function statLine(source) {
   const line = {};
@@ -61,14 +114,22 @@ export function seatOrder(a, b) {
 }
 
 // 1 = best. Tied totals share a rank, so two teams level on wins are both
-// 3rd and the next one is 5th.
+// 3rd and the next one is 5th. Lower wins for GAA; a team with no number at
+// all (no goalie, so no GAA) ranks behind every team that has one.
 export function rankTotals(teams, key) {
   const ranks = {};
-  for (const cat of TARGET_CATEGORIES) {
+  for (const cat of SEASON_CATEGORIES) {
+    const better = (a, b) => (cat.lowerIsBetter ? a < b : a > b);
     for (const t of teams) {
       const mine = t[key][cat.key];
       if (!ranks[t.num]) ranks[t.num] = {};
-      ranks[t.num][cat.key] = 1 + teams.filter((o) => o[key][cat.key] > mine).length;
+      ranks[t.num][cat.key] =
+        1 +
+        teams.filter((o) => {
+          const theirs = o[key][cat.key];
+          if (theirs == null) return false;
+          return mine == null || better(theirs, mine);
+        }).length;
     }
   }
   return ranks;
@@ -194,7 +255,7 @@ export function buildSeason({ pool, rosterRows, statsRows, teamNames, myTeamNum 
       rows
         .filter((row) => row.player?.proj && slotFilter(row.slot))
         .map((row) => ({ posList: row.player.posList, ...row.player.proj }));
-    const projected = categoryTotals(
+    const projected = seasonTotals(
       withProj((slot) => STARTING_SLOTS.includes(slot)),
       withProj((slot) => slot === 'BN')
     );
@@ -205,7 +266,7 @@ export function buildSeason({ pool, rosterRows, statsRows, teamNames, myTeamNum 
       isMine: num === myTeamNum,
       rows,
       playerCount: rows.filter((row) => row.player).length,
-      actual: roundTotals(categoryTotals(actualLines, [])),
+      actual: roundTotals(seasonTotals(actualLines, [])),
       projected: roundTotals(projected),
     };
   });
@@ -220,8 +281,16 @@ export function buildSeason({ pool, rosterRows, statsRows, teamNames, myTeamNum 
   return { teams, players, benchWeight: BENCH_WEIGHT };
 }
 
+// Whole numbers for the counting categories, two places for GAA.
 function roundTotals(totals) {
-  return Object.fromEntries(Object.entries(totals).map(([k, v]) => [k, Math.round(v)]));
+  return Object.fromEntries(
+    SEASON_CATEGORIES.map((cat) => {
+      const v = totals[cat.key];
+      if (v == null) return [cat.key, null];
+      const f = 10 ** (cat.decimals ?? 0);
+      return [cat.key, Math.round(v * f) / f];
+    })
+  );
 }
 
 // Which team is mine, guessed from the draft: the one holding the most of

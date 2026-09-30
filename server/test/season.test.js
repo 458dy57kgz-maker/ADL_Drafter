@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { parseStartingRosters, decodeEntities } from '../src/lib/yahooRosters.js';
-import { buildSeason, makeMatcher, seatOrder, guessMyTeam } from '../src/lib/season.js';
+import { buildSeason, makeMatcher, seatOrder, guessMyTeam, seasonTotals, rankTotals } from '../src/lib/season.js';
 import { normalizePosList } from '../src/lib/mapPlayer.js';
 
 // A cut-down Starting Rosters page with the same hooks Yahoo's has: the team
@@ -175,6 +175,52 @@ test('category ranks share a place on a tie', () => {
     teams.map((t) => t.projectedRanks.g),
     [1, 1, 3]
   );
+});
+
+test('season totals: points add up, GAA is the goalies’ average by games played', () => {
+  const skater = { posList: ['C'], g: 10, a: 20, p: 30 };
+  const starter = { posList: ['G'], gp: 30, gaa: 2.0, w: 18, saves: 800 };
+  const backup = { posList: ['G'], gp: 10, gaa: 3.0, w: 4, saves: 250 };
+  const idle = { posList: ['G'], gp: 0, gaa: 0, w: 0, saves: 0 };
+  const totals = seasonTotals([skater, starter, backup, idle], []);
+  assert.equal(totals.p, 30);
+  assert.equal(totals.w, 22);
+  assert.equal(totals.gaa, 2.25, '(2.0 × 30 + 3.0 × 10) / 40; the goalie with no games is left out');
+  assert.equal(totals.g, 10, 'goalies never add to skater categories');
+
+  const benched = seasonTotals([starter], [backup], 0.5);
+  assert.equal(benched.gaa, (2.0 * 30 + 3.0 * 5) / 35, 'the bench weighs in at its weight');
+  assert.equal(benched.saves, 925);
+
+  assert.equal(seasonTotals([skater], []).gaa, null, 'no goalie, no GAA');
+});
+
+test('GAA ranks lowest first, and a team without one ranks last', () => {
+  const teams = [
+    { num: 1, actual: { gaa: 2.8 } },
+    { num: 2, actual: { gaa: 2.1 } },
+    { num: 3, actual: { gaa: null } },
+    { num: 4, actual: { gaa: 2.1 } },
+  ].map((t) => ({ ...t, actual: { g: 0, a: 0, p: 0, ppp: 0, shots: 0, blocks: 0, w: 0, saves: 0, ...t.actual } }));
+  const ranks = rankTotals(teams, 'actual');
+  assert.deepEqual(
+    teams.map((t) => ranks[t.num].gaa),
+    [3, 1, 4, 1]
+  );
+});
+
+test('buildSeason totals carry points and a rounded GAA', () => {
+  const pool = [
+    poolPlayer(1, 'Skater One', 'C', 'EDM', { p: 70 }),
+    poolPlayer(2, 'Goalie Two', 'G', 'EDM', { g: null, a: null, p: null, gp: 50, gaa: 2.456, w: 30 }),
+  ];
+  const rosterRows = [rosterRow(1, 1, 0, 'C', 1, 'Skater One', 'C'), rosterRow(2, 1, 1, 'G', 2, 'Goalie Two', 'G')];
+  const statsRows = [{ id: 1, player_id: 2, name: 'Goalie Two', gp: 4, gaa: 3.14159, w: 2 }];
+  const { teams } = buildSeason({ pool, rosterRows, statsRows, teamNames: new Map([[1, 'Mine']]) });
+  assert.equal(teams[0].projected.p, 70);
+  assert.equal(teams[0].projected.gaa, 2.46);
+  assert.equal(teams[0].actual.gaa, 3.14);
+  assert.equal(teams[0].actual.p, 0, 'no skater stats imported');
 });
 
 test('my team is the one holding most of the players I drafted', () => {

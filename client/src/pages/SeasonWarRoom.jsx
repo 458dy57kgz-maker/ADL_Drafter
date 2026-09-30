@@ -8,6 +8,11 @@ import './SeasonWarRoom.css';
 // category down to one for last — which is a quick way to see who is strong
 // across the board and who is winning on one or two categories.
 
+function formatTotal(cat, value) {
+  if (value == null) return '–';
+  return cat.decimals ? value.toFixed(cat.decimals) : value.toLocaleString();
+}
+
 const VIEWS = [
   { key: 'actual', label: 'Actual' },
   { key: 'projected', label: 'Projected' },
@@ -105,7 +110,9 @@ export default function SeasonWarRoom({ onNavigate }) {
               <tr>
                 <th className="swr__team-col">Team</th>
                 {categories.map((c) => (
-                  <th key={c.key}>{c.label}</th>
+                  <th key={c.key} title={c.lowerIsBetter ? 'Lower is better' : undefined}>
+                    {c.label}
+                  </th>
                 ))}
                 <th className="swr__pts-col" title={`${n} points for first in a category, down to 1 for last`}>
                   Cat pts
@@ -126,7 +133,7 @@ export default function SeasonWarRoom({ onNavigate }) {
                     const rank = t.ranks[c.key];
                     return (
                       <td key={c.key} className={rank === 1 ? 'swr__cell--lead' : undefined}>
-                        <span className="swr__value">{t.totals[c.key].toLocaleString()}</span>
+                        <span className="swr__value">{formatTotal(c, t.totals[c.key])}</span>
                         <span className="swr__rank">{rank}</span>
                       </td>
                     );
@@ -146,7 +153,9 @@ export default function SeasonWarRoom({ onNavigate }) {
             : `Projected: each roster’s full-season projections from your draft sheet — starters in full, bench at ${Math.round(
                 benchWeight * 100
               )}%, injured lists left out. Players you never ranked add nothing.`}{' '}
-          The small number is the team’s rank in that category.
+          GAA is the team’s goalies’ GAA averaged by games played, the closest this app can get to Yahoo’s
+          goals-against-per-60 without minutes; lower ranks higher. +/- is left out on purpose. The small number is the
+          team’s rank in that category.
         </p>
       )}
     </div>
