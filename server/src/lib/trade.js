@@ -58,6 +58,9 @@ const isGoalie = (p) => (p.posList ?? []).includes('G');
 // position's starters my values fall off a cliff (the 20th goalie is a
 // starter, the 25th a backup), and a small disagreement about rank there
 // shouldn't swamp everything else.
+const posWeightOf = (w, p) => w.pos[isGoalie(p) ? 'G' : primaryPos(p)] ?? 1;
+// A position weighted to zero is one I don't want offered at all.
+const wanted = (w, p) => posWeightOf(w, p) > 0;
 const gapUnits = (model, p) => clamp((p.gap ?? 0) / model.spread, -2, 2);
 const primaryPos = (p) => p.posList?.[0] ?? null;
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
@@ -496,7 +499,9 @@ function scoreProposal(model, trade, me, them) {
   const mine = (p) => (depthPieces(me, primaryPos(p), model.slots).has(p.key) ? Math.min(3, me.surplus[primaryPos(p)] ?? 0) : 0);
   const surplus = avg(gets.map((p) => Math.min(3, them.surplus[primaryPos(p)] ?? 0))) + avg(gives.map(mine));
   const bench = avg(gets.map((p) => (benchedStarter(model, them, p) ? 1 : 0)));
-  const posWeight = avg(gets.map((p) => w.pos[primaryPos(p)] ?? 1));
+  // Multiplied, not averaged: a position turned down weighs on any package
+  // that brings one in, however many others come with him.
+  const posWeight = gets.reduce((m, p) => m * posWeightOf(w, p), 1);
   const score = posWeight * (trade.me.weighted + w.gap * 0.5 * edge + w.surplus * 0.25 * surplus + w.bench * 0.5 * bench);
   return { score, edge, surplus, bench: bench > 0 };
 }
@@ -523,8 +528,9 @@ function packagesFor(model, targetKey, pieces, { companions = 5 } = {}) {
   const target = model.players.get(targetKey);
   const them = model.teams.find((t) => t.num === target?.owner);
   if (!me || !them || them.isMine) return [];
+  if (!wanted(model.weights, target)) return [];
   const extras = [...them.active, ...them.inactive]
-    .filter((p) => p.key !== targetKey && p.myValue != null)
+    .filter((p) => p.key !== targetKey && p.myValue != null && wanted(model.weights, p))
     .sort((a, b) => b.myValue - (b.gap ?? 0) - (a.myValue - (a.gap ?? 0)))
     .slice(0, companions)
     .map((p) => p.key);
@@ -557,11 +563,11 @@ export function scanTrades(model, { limit = 20, targets = 40, pieces = 8, locked
   const candidates = model.teams
     .filter((t) => !t.isMine)
     .flatMap((t) => t.active.map((p) => ({ p, t })))
-    .filter(({ p }) => p.line && p.myValue != null)
+    .filter(({ p }) => p.line && p.myValue != null && wanted(w, p))
     .map(({ p, t }) => {
       // Category fit: his strength in each category, weighted by how badly I need it.
       const fit = catsFor(p).reduce((s, c) => s + (me.need[c.key] ?? 0) * (p.z?.[c.key] ?? 0), 0);
-      const score = (w.pos[primaryPos(p)] ?? 1) * (p.myValue + w.need * fit - w.gap * gapUnits(model, p) + w.surplus * 0.25 * Math.min(3, t.surplus[primaryPos(p)] ?? 0));
+      const score = posWeightOf(w, p) * (p.myValue + w.need * fit - w.gap * gapUnits(model, p) + w.surplus * 0.25 * Math.min(3, t.surplus[primaryPos(p)] ?? 0));
       return { key: p.key, score };
     })
     .sort((a, b) => b.score - a.score)

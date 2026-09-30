@@ -173,3 +173,10 @@ test('targeted mode lists packages for one player, viable first, and the near mi
   for (const t of viable) assert.deepEqual(t.get.includes(keyOf(model, 'Buy Low D')), true);
   for (let i = 1; i < viable.length; i++) assert.ok(viable[i - 1].score >= viable[i].score);
 });
+
+test('a position weighted to zero is never proposed, alone or as the second piece', () => {
+  const model = buildTradeModel(league(), { pos: { G: 0 } });
+  const isG = (k) => model.players.get(k).posList.includes('G');
+  for (const t of scanTrades(model)) assert.ok(!t.get.some(isG), t.get.map((k) => model.players.get(k).name).join(' + '));
+  assert.deepEqual(targetTrades(model, keyOf(model, 'Their Goalie')), { viable: [], closest: [] });
+});

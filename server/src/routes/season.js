@@ -5,7 +5,7 @@ import { normalizeName } from '../lib/pickFeed.js';
 import { myTeamName } from '../lib/league.js';
 import { parseStartingRosters } from '../lib/yahooRosters.js';
 import { buildSeason, makeMatcher, guessMyTeam, STAT_KEYS, SEASON_CATEGORIES } from '../lib/season.js';
-import { buildTradeModel, scanTrades, sellList, mergeWeights } from '../lib/trade.js';
+import { buildTradeModel, scanTrades, sellList, mergeWeights, DEFAULT_WEIGHTS } from '../lib/trade.js';
 
 // Season mode: Yahoo's rosters and my actual-stats sheet, joined to the
 // draft pool. One read endpoint feeds all three season pages (War Room,
@@ -85,7 +85,7 @@ seasonRouter.get('/', (req, res) => {
 seasonRouter.get('/trade', (req, res) => {
   const loaded = loadSeason();
   const { weights = {}, locked = [] } = getSetting('trade') ?? {};
-  const base = { categories: CATEGORIES, weights: mergeWeights(weights), locked };
+  const base = { categories: CATEGORIES, weights: mergeWeights(weights), defaults: DEFAULT_WEIGHTS, locked };
   if (!loaded.teams.length) return res.json({ ...base, ready: false, reason: 'rosters' });
   if (!loaded.teams.some((t) => t.isMine)) return res.json({ ...base, ready: false, reason: 'myTeam' });
 

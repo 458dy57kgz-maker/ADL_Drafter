@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { api } from '../lib/api.js';
+import TradeTuning from '../components/TradeTuning.jsx';
 import { formatRosterDate, formatImportedAt } from '../lib/useSeason.js';
 import './TradeFinder.css';
 
@@ -7,6 +8,18 @@ import './TradeFinder.css';
 // categories beside them. Every number here is on one scale — "value", the
 // sum of a player's category z-scores — so my value, the market's and the
 // gap between them can be read against each other directly.
+
+const TUNE_STORAGE = 'adl.trades.tuneOpen';
+// Long enough that dragging a slider doesn't fire a request per pixel.
+const RETUNE_DELAY = 300;
+
+function readTuneOpen() {
+  try {
+    return localStorage.getItem(TUNE_STORAGE) === '1';
+  } catch {
+    return false;
+  }
+}
 
 function signed(n, digits = 1) {
   if (n == null) return '–';
@@ -182,15 +195,57 @@ export default function TradeFinder({ onNavigate }) {
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
   const [busyKey, setBusyKey] = useState(null);
+  const [tuneOpen, setTuneOpen] = useState(readTuneOpen);
+  // The sliders' own copy of the weights: it moves the instant a slider does,
+  // while the saved weights (and the proposals) catch up a moment later.
+  const [draft, setDraft] = useState(null);
+  const [pending, setPending] = useState(false);
+  const timer = useRef(null);
+  // Only the latest request's answer is drawn, so a slow early one can't
+  // land on top of a later one.
+  const seq = useRef(0);
 
   const refetch = useCallback(async () => {
+    const id = ++seq.current;
     try {
-      setData(await api.getTrades());
+      const next = await api.getTrades();
+      if (id !== seq.current) return;
+      setData(next);
+      // A newer slider move still waiting to be saved wins over this answer.
+      if (!timer.current) setDraft(next.weights);
       setError(null);
     } catch (err) {
-      setError(err);
+      if (id === seq.current) setError(err);
     }
   }, []);
+
+  useEffect(() => () => clearTimeout(timer.current), []);
+
+  function toggleTune() {
+    setTuneOpen((open) => {
+      try {
+        localStorage.setItem(TUNE_STORAGE, open ? '0' : '1');
+      } catch {
+        // Not remembered; still toggled.
+      }
+      return !open;
+    });
+  }
+
+  function retune(weights) {
+    setDraft(weights);
+    setPending(true);
+    clearTimeout(timer.current);
+    timer.current = setTimeout(async () => {
+      timer.current = null;
+      try {
+        await api.updateSettings('trade', { weights });
+        await refetch();
+      } finally {
+        if (!timer.current) setPending(false);
+      }
+    }, RETUNE_DELAY);
+  }
 
   useEffect(() => {
     refetch();
@@ -237,10 +292,10 @@ export default function TradeFinder({ onNavigate }) {
     );
   }
 
-  const { meta, me, categories, proposals, sell } = data;
+  const { meta, me, categories, proposals, sell, defaults } = data;
   return (
     <div className="trade">
-      <header className="trade__head">
+      <header className="trade__head trade__head--split">
         <div>
           <div className="trade__title">Trades</div>
           <div className="trade__sub">
@@ -248,9 +303,16 @@ export default function TradeFinder({ onNavigate }) {
             {meta.statsCount ? `stats imported ${formatImportedAt(meta.statsImportedAt)}` : 'no actual stats yet, so this runs on projections and reputation'}
           </div>
         </div>
+        <button type="button" className={`btn btn-sm${tuneOpen ? ' btn-primary' : ''}`} aria-expanded={tuneOpen} onClick={toggleTune}>
+          {tuneOpen ? 'Hide tuning' : 'Tune'}
+        </button>
       </header>
 
-      <div className="trade__layout">
+      {tuneOpen && draft && (
+        <TradeTuning weights={draft} defaults={defaults} pending={pending} onChange={retune} onReset={() => retune(defaults)} />
+      )}
+
+      <div className={`trade__layout${pending ? ' trade__layout--pending' : ''}`}>
         <section className="trade__proposals" aria-label="Proposals">
           <div className="trade__section-title">
             Open scan <span className="trade__count">{proposals.length} proposals</span>
