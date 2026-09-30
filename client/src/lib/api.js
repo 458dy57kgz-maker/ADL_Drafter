@@ -78,7 +78,7 @@ export const api = {
   // Season mode: every roster, my actual stats, and the pool, joined.
   getSeason: () => request('/season'),
   // The trade finder's sell list and proposals, weighed by the trade settings.
-  getTrades: () => request('/season/trade'),
+  getTrades: (target = null) => request(`/season/trade${target ? `?target=${encodeURIComponent(target)}` : ''}`),
   // The saved Yahoo "Starting Rosters" page, as text.
   importRosters: (html) => request('/season/rosters', { method: 'POST', body: JSON.stringify({ html }) }),
   importSeasonStats: (rows, fileName) =>

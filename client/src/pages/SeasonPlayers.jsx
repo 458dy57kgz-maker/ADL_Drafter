@@ -104,7 +104,7 @@ function formatStat(stat, value) {
   return Math.abs(value) < 1 ? value.toFixed(3) : value.toFixed(1);
 }
 
-export default function SeasonPlayers() {
+export default function SeasonPlayers({ onEvaluateTrade }) {
   const { data, error, refetch } = useSeason();
   const [posFilter, setPosFilter] = useState('ALL');
   const [ownerFilter, setOwnerFilter] = useState('all');
@@ -268,7 +268,7 @@ export default function SeasonPlayers() {
         <table className="players-table season-table">
           <thead>
             <tr className="season-table__groups">
-              <th colSpan={INFO.length} className="season-table__group-blank" />
+              <th colSpan={INFO.length + 1} className="season-table__group-blank" />
               {groups.map((g) => (
                 <th key={g.key} colSpan={g.cols.length} title={g.title} className={`season-table__group season-table__group--${g.key}`}>
                   {g.label}
@@ -277,6 +277,7 @@ export default function SeasonPlayers() {
             </tr>
             <tr className="season-table__cols">
               {INFO.map((c) => header(c.key, c.label, c.key === 'overallRank', c.key === 'name' ? 'season-table__sticky' : ''))}
+              <th className="season-table__trade-col" aria-label="Trade" />
               {groups.flatMap((g) => g.cols.map((c, i) => header(c.key, c.label, true, i === 0 ? 'season-table__edge' : '', c.title)))}
             </tr>
           </thead>
@@ -299,6 +300,19 @@ export default function SeasonPlayers() {
                   </td>
                   <td>{p.slot ?? ''}</td>
                   <td>{p.overallRank ?? '–'}</td>
+                  <td className="season-table__trade-col">
+                    {p.owner != null && !mine && (
+                      <button
+                        type="button"
+                        className="season-table__trade"
+                        title={`Find a trade for ${p.name}`}
+                        aria-label={`Find a trade for ${p.name}`}
+                        onClick={() => onEvaluateTrade(p.key)}
+                      >
+                        Trade
+                      </button>
+                    )}
+                  </td>
                   {groups.flatMap((g) =>
                     g.cols.map((c, i) => (
                       <td

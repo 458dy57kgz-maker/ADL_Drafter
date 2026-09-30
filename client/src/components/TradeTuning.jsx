@@ -10,6 +10,7 @@ const GROUPS = [
       { key: 'need', label: 'Category need', hint: 'Extra weight on categories where you rank low', min: 0, max: 3, step: 0.1 },
       { key: 'gap', label: 'Market edge', hint: 'Sending players the market overrates, getting ones it underrates', min: 0, max: 3, step: 0.1 },
       { key: 'surplus', label: 'Positional depth', hint: 'Their depth at what you get, yours at what you send', min: 0, max: 3, step: 0.1 },
+      { key: 'simplicity', label: 'Prefer simpler trades', hint: 'Each extra player in a package costs a little — 3-for-3s have to earn it', min: 0, max: 3, step: 0.1 },
       { key: 'bench', label: 'Benched talent', hint: 'A good player they’re not starting — a weak signal', min: 0, max: 3, step: 0.1 },
       { key: 'premium', label: 'Owner premium', hint: 'How much more market value an owner needs back', min: 0, max: 0.6, step: 0.05, format: (v) => `+${Math.round(v * 100)}%` },
     ],

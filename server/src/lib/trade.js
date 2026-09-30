@@ -28,6 +28,7 @@ export const DEFAULT_WEIGHTS = {
   gap: 1, // sending players the market overrates, getting ones it underrates
   surplus: 1, // positional depth, theirs at what I get and mine at what I send
   bench: 0.2, // their good player sitting on the bench (a weak signal)
+  simplicity: 1, // bigger packages move more value but rarely get done; each extra player costs a little
   premium: 0.15, // how much more market value they need back
   trustGames: 40, // games before his actual pace counts as much as my projection
   marketGames: 10, // games before the market trusts this season over reputation
@@ -50,6 +51,8 @@ const GOALIE_SCALE = 2;
 const LUCK_SHADE = { g: 0.15, a: 0.08, p: 0.08, ppp: 0.08 };
 // Owners count a star for more than two decent players adding up to him.
 const CONSOLIDATION = 1.3;
+// Score each player beyond the first on either side costs, at simplicity 1.
+const SIZE_COST = 0.75;
 const DEFAULT_SLOTS = { C: 2, LW: 2, RW: 2, D: 4, G: 2 };
 const LINEUP_POSITIONS = ['C', 'LW', 'RW', 'D', 'G', 'Util'];
 
@@ -502,7 +505,12 @@ function scoreProposal(model, trade, me, them) {
   // Multiplied, not averaged: a position turned down weighs on any package
   // that brings one in, however many others come with him.
   const posWeight = gets.reduce((m, p) => m * posWeightOf(w, p), 1);
-  const score = posWeight * (trade.me.weighted + w.gap * 0.5 * edge + w.surplus * 0.25 * surplus + w.bench * 0.5 * bench);
+  // Every player past a 1-for-1 is another thing for the other owner to say
+  // no to, so a package has to earn its size.
+  const extraPlayers = gives.length + gets.length - 2;
+  const score =
+    posWeight * (trade.me.weighted + w.gap * 0.5 * edge + w.surplus * 0.25 * surplus + w.bench * 0.5 * bench) -
+    w.simplicity * SIZE_COST * extraPlayers;
   return { score, edge, surplus, bench: bench > 0 };
 }
 
@@ -515,15 +523,24 @@ function benchedStarter(model, team, p) {
   return (p.myValue ?? 0) >= values[Math.floor(values.length / 2)];
 }
 
+function triples(list) {
+  const out = [];
+  for (let i = 0; i < list.length; i++) for (let j = i + 1; j < list.length; j++) for (let k = j + 1; k < list.length; k++) out.push([list[i], list[j], list[k]]);
+  return out;
+}
+
 function pairs(list) {
   const out = [];
   for (let i = 0; i < list.length; i++) for (let j = i + 1; j < list.length; j++) out.push([list[i], list[j]]);
   return out;
 }
 
-// Every 1-for-1, 2-for-1 and 2-for-2 for one target, from my top pieces and,
-// for the 2-for-2s, the other players on his team I'd most like alongside.
-function packagesFor(model, targetKey, pieces, { companions = 5 } = {}) {
+// Every 1-for-1, 2-for-1, 2-for-2 and 3-for-3 for one target, from my top
+// pieces and, for the even swaps, the other players on his team I'd most
+// like alongside him. 3-for-3 draws on fewer of each — six of mine and four
+// of theirs — or the combinations run into the tens of thousands. There's no
+// 3-for-1: taking three players for one means dropping two.
+function packagesFor(model, targetKey, pieces, { companions = 5, triplePieces = 6, tripleCompanions = 4 } = {}) {
   const me = model.teams.find((t) => t.isMine);
   const target = model.players.get(targetKey);
   const them = model.teams.find((t) => t.num === target?.owner);
@@ -539,6 +556,9 @@ function packagesFor(model, targetKey, pieces, { companions = 5 } = {}) {
     ...pieces.map((k) => ({ give: [k], get: [targetKey], shape: '1-for-1' })),
     ...pairs(pieces).map((give) => ({ give, get: [targetKey], shape: '2-for-1' })),
     ...pairs(pieces).flatMap((give) => extras.map((x) => ({ give, get: [targetKey, x], shape: '2-for-2' }))),
+    ...triples(pieces.slice(0, triplePieces)).flatMap((give) =>
+      pairs(extras.slice(0, tripleCompanions)).map((xs) => ({ give, get: [targetKey, ...xs], shape: '3-for-3' }))
+    ),
   ];
   const out = [];
   for (const { give, get, shape } of shapes) {
@@ -597,14 +617,14 @@ export function scanTrades(model, { limit = 20, targets = 40, pieces = 8, locked
 // of the rest so a "no" still shows how close it came.
 export function targetTrades(model, targetKey, { pieces = 12, locked = [], limit = 30 } = {}) {
   const target = model.players.get(targetKey);
-  if (!target) return { viable: [], closest: [] };
+  if (!target) return { viable: [], closest: [], pieces: [] };
   const myPieces = sellList(model, { targetPos: primaryPos(target), locked }).slice(0, pieces).map((s) => s.key);
   const all = packagesFor(model, targetKey, myPieces).sort((a, b) => b.score - a.score);
-  return {
-    viable: all.filter(viable).slice(0, limit),
-    closest: all
-      .filter((t) => !viable(t))
-      .sort((a, b) => (b.accept.ratio ?? Infinity) - (a.accept.ratio ?? Infinity))
-      .slice(0, 5),
-  };
+  // Near misses: packages that would help me but fall short of what they'd
+  // accept, closest to the line first — the ones a sweetener might get over.
+  const closest = all
+    .filter((t) => !viable(t) && t.me.delta > 0)
+    .sort((a, b) => (b.accept.ratio ?? Infinity) - (a.accept.ratio ?? Infinity))
+    .slice(0, 5);
+  return { viable: all.filter(viable).slice(0, limit), closest, pieces: myPieces };
 }

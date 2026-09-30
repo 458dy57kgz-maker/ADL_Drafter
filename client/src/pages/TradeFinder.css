@@ -401,3 +401,132 @@
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
+
+.trade__controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Same switch as the War Room's Actual/Projected. */
+.trade__modes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border: 2px solid var(--text-primary);
+}
+
+.trade__mode {
+  padding: 6px 14px;
+  font: 800 11px var(--font-ui);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.trade__mode--on {
+  background: var(--text-primary);
+  color: var(--bg-card);
+}
+
+.trade__mode:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* A near miss: dashed, like an injured seat on Teams — shown, not offered. */
+.trade-card--miss {
+  border-style: dashed;
+  background: transparent;
+}
+
+.trade-card--miss .trade-card__gain {
+  color: var(--text-secondary);
+}
+
+.trade-card__miss {
+  font: 700 9.5px var(--font-ui);
+  letter-spacing: 0.04em;
+  color: var(--danger-text);
+  white-space: nowrap;
+}
+
+.target-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 520px;
+}
+
+.target-picker__input {
+  width: 100%;
+}
+
+.target-picker__results {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--border-hairline-strong);
+  background: var(--bg-card);
+}
+
+.target-picker__result {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  width: 100%;
+  padding: 8px 12px;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--rule-faint);
+  text-align: left;
+  cursor: pointer;
+}
+
+.target-picker__result:hover,
+.target-picker__result:focus-visible {
+  background: var(--accent-100);
+  outline: none;
+}
+
+.target-picker__name {
+  font: 700 13px var(--font-ui);
+  color: var(--text-primary);
+}
+
+.target-picker__meta,
+.target-picker__none {
+  font: 500 11.5px var(--font-ui);
+  color: var(--text-muted);
+}
+
+.target-picker__none {
+  padding: 8px 12px;
+}
+
+.target-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 14px;
+  background: var(--bg-card);
+  border: 2px solid var(--text-primary);
+}
+
+.target-head__who {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.target-head__name {
+  font: 900 20px var(--font-ui);
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+}

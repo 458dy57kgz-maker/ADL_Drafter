@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { api } from '../lib/api.js';
 import TradeTuning from '../components/TradeTuning.jsx';
 import { formatRosterDate, formatImportedAt } from '../lib/useSeason.js';
+import './SeasonWarRoom.css';
 import './TradeFinder.css';
 
 // The trade finder. Proposals down the middle, my trade block and my weak
@@ -83,13 +84,14 @@ function Acceptance({ accept, premium }) {
   );
 }
 
-function ProposalCard({ t, categories }) {
+function ProposalCard({ t, categories, miss = false }) {
   const reasons = reasonsFor(t);
   return (
-    <article className="trade-card">
+    <article className={`trade-card${miss ? ' trade-card--miss' : ''}`}>
       <header className="trade-card__head">
         <span className="trade-card__shape">{t.shape}</span>
         <span className="trade-card__team">with {t.team.name}</span>
+        {miss && <span className="trade-card__miss">Short of what they’d take</span>}
         <span className="trade-card__gain" title="Change in your expected category points">
           You {signed(t.me.delta)} cat pts
         </span>
@@ -151,6 +153,7 @@ function TradeBlock({ sell, onToggleLock, busyKey }) {
               <span className="trade-block__meta">
                 {p.pos}
                 {p.surplus > 0 ? ' · depth' : ''}
+                {p.samePos ? ' · same position' : ''}
                 {p.injured ? ' · injured list' : ''}
               </span>
             </div>
@@ -191,7 +194,74 @@ function Needs({ need, categories }) {
   );
 }
 
-export default function TradeFinder({ onNavigate }) {
+const MODES = [
+  { key: 'scan', label: 'Open scan' },
+  { key: 'target', label: 'Targeted' },
+];
+
+// Find the player I'm after: anyone on another team, by name.
+function TargetPicker({ targets, onPick }) {
+  const [query, setQuery] = useState('');
+  const q = query.trim().toLowerCase();
+  const matches = q ? targets.filter((p) => p.name.toLowerCase().includes(q)).slice(0, 8) : [];
+  return (
+    <div className="target-picker">
+      <label htmlFor="target-search" className="trade__section-title">
+        Who do you want?
+      </label>
+      <input
+        id="target-search"
+        type="text"
+        className="pill-input target-picker__input"
+        placeholder="Search players on other teams…"
+        value={query}
+        autoFocus
+        onChange={(e) => setQuery(e.target.value)}
+      />
+      {q && (
+        <ul className="target-picker__results">
+          {matches.length === 0 && <li className="target-picker__none">No one on another team by that name.</li>}
+          {matches.map((p) => (
+            <li key={p.key}>
+              <button type="button" className="target-picker__result" onClick={() => onPick(p.key)}>
+                <span className="target-picker__name">{p.name}</span>
+                <span className="target-picker__meta">
+                  {p.pos} · {p.team ?? '–'} · {p.ownerName}
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+function TargetHeader({ p, onClear }) {
+  return (
+    <div className="target-head">
+      <div className="target-head__who">
+        <div className="trade__section-title">Target</div>
+        <div className="target-head__name">
+          {p.name}
+          {p.status && <span className="trade-player__status">{p.status}</span>}
+        </div>
+        <div className="trade-player__meta">
+          {p.pos} · {p.team ?? '–'} · owned by {p.ownerName}
+          <span className="trade-player__values" title="My value / market value">
+            {p.myValue?.toFixed(1) ?? '–'} / {p.marketValue?.toFixed(1) ?? '–'}
+          </span>
+        </div>
+      </div>
+      <GapChip gap={p.gap} want="under" />
+      <button type="button" className="btn btn-sm" onClick={onClear}>
+        Change player
+      </button>
+    </div>
+  );
+}
+
+export default function TradeFinder({ onNavigate, target = null, onTargetChange }) {
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
   const [busyKey, setBusyKey] = useState(null);
@@ -200,7 +270,11 @@ export default function TradeFinder({ onNavigate }) {
   // while the saved weights (and the proposals) catch up a moment later.
   const [draft, setDraft] = useState(null);
   const [pending, setPending] = useState(false);
+  const [mode, setMode] = useState(target ? 'target' : 'scan');
   const timer = useRef(null);
+  // The target as of the latest render, for requests fired from a timer.
+  const targetRef = useRef(target);
+  targetRef.current = target;
   // Only the latest request's answer is drawn, so a slow early one can't
   // land on top of a later one.
   const seq = useRef(0);
@@ -208,7 +282,7 @@ export default function TradeFinder({ onNavigate }) {
   const refetch = useCallback(async () => {
     const id = ++seq.current;
     try {
-      const next = await api.getTrades();
+      const next = await api.getTrades(targetRef.current);
       if (id !== seq.current) return;
       setData(next);
       // A newer slider move still waiting to be saved wins over this answer.
@@ -247,9 +321,16 @@ export default function TradeFinder({ onNavigate }) {
     }, RETUNE_DELAY);
   }
 
+  // A target handed in from Players opens targeted mode on him.
   useEffect(() => {
+    if (target) setMode('target');
     refetch();
-  }, [refetch]);
+  }, [target, refetch]);
+
+  function changeMode(next) {
+    setMode(next);
+    if (next === 'scan' && target) onTargetChange(null);
+  }
 
   async function toggleLock(key) {
     const locked = data.locked.includes(key) ? data.locked.filter((k) => k !== key) : [...data.locked, key];
@@ -292,7 +373,10 @@ export default function TradeFinder({ onNavigate }) {
     );
   }
 
-  const { meta, me, categories, proposals, sell, defaults } = data;
+  const { meta, me, categories, proposals = [], sell, defaults, targets } = data;
+  // The answer on screen may still be for the previous target while the
+  // next one loads; only draw it once it matches.
+  const shown = data.target && data.target.player?.key === target ? data.target : null;
   return (
     <div className="trade">
       <header className="trade__head trade__head--split">
@@ -303,9 +387,25 @@ export default function TradeFinder({ onNavigate }) {
             {meta.statsCount ? `stats imported ${formatImportedAt(meta.statsImportedAt)}` : 'no actual stats yet, so this runs on projections and reputation'}
           </div>
         </div>
-        <button type="button" className={`btn btn-sm${tuneOpen ? ' btn-primary' : ''}`} aria-expanded={tuneOpen} onClick={toggleTune}>
-          {tuneOpen ? 'Hide tuning' : 'Tune'}
-        </button>
+        <div className="trade__controls">
+          <div className="trade__modes" role="radiogroup" aria-label="Mode">
+            {MODES.map((m) => (
+              <button
+                key={m.key}
+                type="button"
+                role="radio"
+                aria-checked={mode === m.key}
+                className={`trade__mode${mode === m.key ? ' trade__mode--on' : ''}`}
+                onClick={() => changeMode(m.key)}
+              >
+                {m.label}
+              </button>
+            ))}
+          </div>
+          <button type="button" className={`btn btn-sm${tuneOpen ? ' btn-primary' : ''}`} aria-expanded={tuneOpen} onClick={toggleTune}>
+            {tuneOpen ? 'Hide tuning' : 'Tune'}
+          </button>
+        </div>
       </header>
 
       {tuneOpen && draft && (
@@ -314,18 +414,62 @@ export default function TradeFinder({ onNavigate }) {
 
       <div className={`trade__layout${pending ? ' trade__layout--pending' : ''}`}>
         <section className="trade__proposals" aria-label="Proposals">
-          <div className="trade__section-title">
-            Open scan <span className="trade__count">{proposals.length} proposals</span>
-          </div>
-          {proposals.length === 0 && (
+          {mode === 'scan' && (
+            <>
+              <div className="trade__section-title">
+                Open scan <span className="trade__count">{proposals.length} proposals</span>
+              </div>
+              {proposals.length === 0 && (
+                <div className="card">
+                  No package clears both checks right now — nothing they’d accept that also helps you. Unlocking a player
+                  or waiting for more games usually changes that.
+                </div>
+              )}
+              {proposals.map((t, i) => (
+                <ProposalCard key={i} t={t} categories={categories} />
+              ))}
+            </>
+          )}
+
+          {mode === 'target' && !target && <TargetPicker targets={targets} onPick={onTargetChange} />}
+
+          {mode === 'target' && target && !shown && data.target?.missing && (
             <div className="card">
-              No package clears both checks right now — nothing they’d accept that also helps you. Unlocking a player or
-              waiting for more games usually changes that.
+              That player isn’t on another team’s roster any more.{' '}
+              <button type="button" className="swr__link" onClick={() => onTargetChange(null)}>
+                Pick someone else
+              </button>
             </div>
           )}
-          {proposals.map((t, i) => (
-            <ProposalCard key={i} t={t} categories={categories} />
-          ))}
+          {mode === 'target' && target && !shown && !data.target?.missing && <div className="trade__loading">Building packages…</div>}
+
+          {mode === 'target' && shown && (
+            <>
+              <TargetHeader p={shown.player} onClear={() => onTargetChange(null)} />
+              <div className="trade__section-title">
+                Packages <span className="trade__count">{shown.viable.length} they’d accept that help you</span>
+              </div>
+              {shown.viable.length === 0 && (
+                <div className="card">
+                  Nothing from your trade block both clears their premium and helps your categories. The near misses below
+                  show how close it gets.
+                </div>
+              )}
+              {shown.viable.map((t, i) => (
+                <ProposalCard key={i} t={t} categories={categories} />
+              ))}
+              {shown.closest.length > 0 && (
+                <>
+                  <div className="trade__section-title">
+                    Near misses <span className="trade__count">would help you, but short of what they’d take</span>
+                  </div>
+                  {shown.closest.map((t, i) => (
+                    <ProposalCard key={i} t={t} categories={categories} miss />
+                  ))}
+                </>
+              )}
+            </>
+          )}
         </section>
         <aside className="trade__side">
           <Needs need={me.need} categories={categories} />

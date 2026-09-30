@@ -162,7 +162,8 @@ test('the scan only proposes trades they would take and that help me', () => {
     assert.ok(t.accept.ok);
     assert.ok(t.me.delta > 0);
     assert.notEqual(t.team, 1);
-    assert.ok(['1-for-1', '2-for-1', '2-for-2'].includes(t.shape));
+    assert.ok(['1-for-1', '2-for-1', '2-for-2', '3-for-3'].includes(t.shape));
+    assert.equal(t.give.length >= t.get.length, true, 'never more players back than I send');
   }
 });
 
@@ -178,5 +179,29 @@ test('a position weighted to zero is never proposed, alone or as the second piec
   const model = buildTradeModel(league(), { pos: { G: 0 } });
   const isG = (k) => model.players.get(k).posList.includes('G');
   for (const t of scanTrades(model)) assert.ok(!t.get.some(isG), t.get.map((k) => model.players.get(k).name).join(' + '));
-  assert.deepEqual(targetTrades(model, keyOf(model, 'Their Goalie')), { viable: [], closest: [] });
+  const none = targetTrades(model, keyOf(model, 'Their Goalie'));
+  assert.deepEqual([none.viable, none.closest], [[], []]);
+});
+
+test('3-for-3s are built and keep both rosters the same size', () => {
+  const model = buildTradeModel(league(), { premium: 0 });
+  const { viable, closest } = targetTrades(model, keyOf(model, 'Buy Low D'));
+  const threes = [...viable, ...closest].filter((t) => t.shape === '3-for-3');
+  const t = threes[0] ?? evaluateTrade(model, ['Hot Shot', 'Extra C', 'Softer D'].map((n) => keyOf(model, n)), ['Buy Low D', 'Depth D', 'Their C Two'].map((n) => keyOf(model, n)));
+  assert.equal(t.give.length, 3);
+  assert.equal(t.get.length, 3);
+  assert.equal(t.me.dropped.length, 0);
+  assert.equal(t.them.dropped.length, 0);
+});
+
+test('near misses would help me but fall short of what they would take', () => {
+  const model = buildTradeModel(league(), { premium: 2 });
+  const { viable, closest } = targetTrades(model, keyOf(model, 'Buy Low D'));
+  // Only a package for a player the market rates at replacement level (no
+  // ratio at all) gets past a 200% premium.
+  for (const t of viable) assert.ok(t.accept.ratio == null || t.accept.ratio >= 3);
+  for (const t of closest) {
+    assert.equal(t.accept.ok, false);
+    assert.ok(t.me.delta > 0);
+  }
 });

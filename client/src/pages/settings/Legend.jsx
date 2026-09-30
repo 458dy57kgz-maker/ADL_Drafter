@@ -2,6 +2,7 @@ import { CopyIcon } from '../../components/DraftBoard.jsx';
 import '../../components/DraftBoard.css';
 import '../WarRoom.css';
 import './Legend.css';
+import '../TradeFinder.css';
 
 // Every sample below uses the War Room's own class names, so it picks up the
 // real styles rather than a copy of them. If a colour changes on the board,
@@ -243,6 +244,53 @@ export default function Legend() {
         </Row>
         <Row sample={<span className="legend-free">Available</span>}>
           On nobody’s roster — a free agent. Filter Players to Available to see the waiver wire.
+        </Row>
+      </div>
+
+      <div className="card legend-card">
+        <div className="card-title">Season mode — Trades</div>
+        <Row sample={<span className="mono">3.4 / 5.1</span>}>
+          <strong>My value / market value</strong>, on one scale. My value is what he’s worth in your categories: your
+          projection, with his actual pace let in slowly (it counts as much as the projection after 40 games) and
+          shaded down after a lucky season. Market value is what the other managers think: Yahoo ADP and his
+          three-year line before the season, this season’s production more and more as games are played. It’s
+          compared within a position: the market’s 5th goalie is worth your 5th goalie.
+        </Row>
+        <Row sample={<span className="gap-chip gap-chip--good">overrated +1.7</span>}>
+          <strong>The gap</strong> — market minus mine. On your trade block, overrated is the one to sell: they’ll pay
+          for what he’s done, you’re paying for what he’ll do. On the other side, underrated is the one to buy. Green
+          marks the direction that side of the trade wants.
+        </Row>
+        <Row sample={<span className="legend-status">LUCK</span>}>
+          <strong>Luck</strong> reads last season against the career: on-ice shooting plus save % against the neutral
+          1000 (SHSV), shooting % and share of the team’s goals (IPP) against his career rates. A lucky season
+          marks down his goals by up to 15% and his assists, points and PPP by up to 8%.
+        </Row>
+        <Row sample={<span className="mono">1.27×</span>}>
+          <strong>Their view</strong> — the market value they get over what they give up. It has to clear the owner
+          premium (+15% by default), because owners overvalue their own players. Two fringe players never add up to a
+          star in their eyes, and a player they’d have to drop to make room counts against the offer. “They lose
+          nothing they’d miss” means the player they give up is at replacement level in the market’s eyes.
+        </Row>
+        <Row sample={<span className="mono">+2.4</span>}>
+          <strong>Cat pts</strong> — the change in expected category points: in each category, the chance of finishing
+          ahead of each other team, summed, with both rosters as they’d be after the trade and the best players
+          starting. Categories where you rank low count extra (Category need). Their change is shown, never required.
+        </Row>
+        <Row sample={<span className="trade-card__shape">2-for-2</span>}>
+          <strong>Package shapes</strong>: 1-for-1, 2-for-1, 2-for-2 and 3-for-3. A 2-for-1 makes the side taking two
+          drop its least valuable player; there’s no 3-for-1, since taking three means dropping two.
+        </Row>
+        <Row sample={<span className="mono">Lock</span>}>
+          <strong>Trade block</strong>: your players, best to offer first — overrated by the market, or depth at a
+          position you’re stacked at (your weaker players there only, never your best). Lock anyone you won’t move.
+          In targeted mode, players at the target’s position move up, so you send one back.
+        </Row>
+        <Row sample={<span className="mono">Tune</span>}>
+          <strong>Tuning</strong> re-ranks proposals as you move a slider and is saved for next time. A position
+          weighted to 0× is never proposed. Prefer simpler trades charges a little for every player past a
+          1-for-1, so a 3-for-3 only shows when it’s clearly better. Near misses in targeted mode would help you but fall short of what
+          they’d take — often a sweetener away.
         </Row>
       </div>
 

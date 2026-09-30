@@ -5,7 +5,7 @@ import { normalizeName } from '../lib/pickFeed.js';
 import { myTeamName } from '../lib/league.js';
 import { parseStartingRosters } from '../lib/yahooRosters.js';
 import { buildSeason, makeMatcher, guessMyTeam, STAT_KEYS, SEASON_CATEGORIES } from '../lib/season.js';
-import { buildTradeModel, scanTrades, sellList, mergeWeights, DEFAULT_WEIGHTS } from '../lib/trade.js';
+import { buildTradeModel, scanTrades, targetTrades, sellList, mergeWeights, DEFAULT_WEIGHTS } from '../lib/trade.js';
 
 // Season mode: Yahoo's rosters and my actual-stats sheet, joined to the
 // draft pool. One read endpoint feeds all three season pages (War Room,
@@ -80,8 +80,9 @@ seasonRouter.get('/', (req, res) => {
   });
 });
 
-// The trade finder: my sell list and the open scan's proposals, weighed
-// with whatever I've set in the trade settings.
+// The trade finder, weighed with whatever I've set in the trade settings.
+// Without ?target it's the open scan across the league; with ?target=<player
+// key> it's every package for that one player, plus the near misses.
 seasonRouter.get('/trade', (req, res) => {
   const loaded = loadSeason();
   const { weights = {}, locked = [] } = getSetting('trade') ?? {};
@@ -103,6 +104,8 @@ seasonRouter.get('/trade', (req, res) => {
       slot: p.slot,
       status: p.status,
       adp: p.adp,
+      owner: p.owner,
+      ownerName: p.owner != null ? teamName.get(p.owner) : null,
       myValue: p.myValue,
       marketValue: p.marketValue,
       gap: p.gap,
@@ -110,28 +113,55 @@ seasonRouter.get('/trade', (req, res) => {
     };
   };
   const side = (s) => ({ delta: s.delta, byCat: s.byCat, dropped: s.dropped.map(summary) });
+  const proposal = (t) => ({
+    shape: t.shape,
+    team: { num: t.team, name: teamName.get(t.team) },
+    give: t.give.map(summary),
+    get: t.get.map(summary),
+    me: side(t.me),
+    them: side(t.them),
+    accept: t.accept,
+    premium: model.weights.premium,
+    score: t.score,
+    edge: t.edge,
+    surplus: t.surplus,
+    bench: t.bench,
+  });
 
-  res.json({
+  const targetKey = typeof req.query.target === 'string' ? req.query.target : null;
+  const target = targetKey ? model.players.get(targetKey) : null;
+  const targetable = target && target.owner != null && target.owner !== me.num;
+  const targetPos = targetable ? target.posList?.[0] ?? null : null;
+
+  const body = {
     ...base,
     ready: true,
     meta: { rosterDate: loaded.season.rosterDate, statsImportedAt: loaded.season.statsImportedAt, statsCount: loaded.statsCount },
     me: { num: me.num, name: me.name, need: me.need, surplus: me.surplus, slots: model.slots },
-    sell: sellList(model).map((s) => ({ ...summary(s.key), score: s.score, surplus: s.surplus, injured: s.injured, locked: locked.includes(s.key) })),
-    proposals: scanTrades(model, { locked }).map((t) => ({
-      shape: t.shape,
-      team: { num: t.team, name: teamName.get(t.team) },
-      give: t.give.map(summary),
-      get: t.get.map(summary),
-      me: side(t.me),
-      them: side(t.them),
-      accept: t.accept,
-      premium: model.weights.premium,
-      score: t.score,
-      edge: t.edge,
-      surplus: t.surplus,
-      bench: t.bench,
+    sell: sellList(model, { targetPos }).map((s) => ({
+      ...summary(s.key),
+      score: s.score,
+      surplus: s.surplus,
+      samePos: s.samePos,
+      injured: s.injured,
+      locked: locked.includes(s.key),
     })),
-  });
+    // Everyone on another team, for targeted mode's search.
+    targets: model.teams
+      .filter((t) => !t.isMine)
+      .flatMap((t) => [...t.active, ...t.inactive])
+      .map((p) => ({ key: p.key, name: p.name, pos: p.pos, team: p.team, ownerName: teamName.get(p.owner) })),
+  };
+
+  if (targetKey) {
+    if (!targetable) return res.json({ ...body, target: { key: targetKey, missing: true } });
+    const found = targetTrades(model, targetKey, { locked });
+    return res.json({
+      ...body,
+      target: { player: summary(targetKey), viable: found.viable.map(proposal), closest: found.closest.map(proposal) },
+    });
+  }
+  res.json({ ...body, proposals: scanTrades(model, { locked }).map(proposal) });
 });
 
 // The saved Starting Rosters page, posted as text. Replaces every roster.

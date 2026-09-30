@@ -19,6 +19,14 @@ export default function App() {
   const [mode, setMode] = useState(null);
   const [tab, setTab] = useState(null);
   const [manualDraftOpen, setManualDraftOpen] = useState(false);
+  // The player targeted mode is working on; set from the Trade Finder's own
+  // search or from a row on Season Players.
+  const [tradeTarget, setTradeTarget] = useState(null);
+
+  function evaluateTrade(playerKey) {
+    setTradeTarget(playerKey);
+    setTab('trades');
+  }
 
   useEffect(() => {
     api
@@ -71,8 +79,8 @@ export default function App() {
           {tab === 'players' && <Players />}
           {tab === 'season-war' && <SeasonWarRoom onNavigate={setTab} />}
           {tab === 'teams' && <Teams />}
-          {tab === 'trades' && <TradeFinder onNavigate={setTab} />}
-          {tab === 'season-players' && <SeasonPlayers />}
+          {tab === 'trades' && <TradeFinder onNavigate={setTab} target={tradeTarget} onTargetChange={setTradeTarget} />}
+          {tab === 'season-players' && <SeasonPlayers onEvaluateTrade={evaluateTrade} />}
           {tab === 'settings' && <Settings mode={mode} onModeChange={handleModeChange} />}
         </div>
         {mode === 'draft' && (
