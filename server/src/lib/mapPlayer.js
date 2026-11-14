@@ -80,6 +80,7 @@ export function mapPlayerRow(row, teamCount = null) {
     w: row.w,
     gaa: row.gaa,
     saves: row.saves,
+    nhlId: row.nhl_id ?? null,
     ...Object.fromEntries(PROFILE_FIELDS.map((f) => [f.key, row[f.column] ?? null])),
     drafted: !!row.drafted,
     draftedBy: row.drafted_by,

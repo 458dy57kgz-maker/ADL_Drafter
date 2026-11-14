@@ -28,6 +28,8 @@ CREATE TABLE IF NOT EXISTS players (
   flag TEXT,
   roster_slot TEXT,
   yahoo_player_key TEXT,
+  -- NHL.com's player ID (the sheet's ID column): stats match on it exactly.
+  nhl_id INTEGER,
   -- Reputation and luck from the preseason sheet (PROFILE_FIELDS in mapPlayer.js).
   gp_3y REAL,
   g_3y REAL,
@@ -106,6 +108,7 @@ CREATE TABLE IF NOT EXISTS season_rosters (
 CREATE TABLE IF NOT EXISTS season_stats (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   player_id INTEGER,
+  nhl_id INTEGER,
   name TEXT NOT NULL,
   team TEXT,
   pos TEXT,

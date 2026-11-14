@@ -95,13 +95,25 @@ function statLine(source) {
 // thousand players against a pool of hundreds stays quick. Returns the
 // player or null; an ambiguity the name, team and position can't settle is
 // left unmatched rather than guessed.
+//
+// Failing that, one looser try: German umlauts get written three ways —
+// NHL.com's Stützle, the sheet's Stuetzle, Yahoo's Stutzle — so with "ue"
+// read as "u" (and "oe", "ae" likewise) a full name that then matches
+// exactly one player is taken. Full name only: loosening surnames alone
+// would start pairing up strangers.
+const loose = (normalized) => normalized.replace(/ue/g, 'u').replace(/oe/g, 'o').replace(/ae/g, 'a');
+
 export function makeMatcher(players, aliases = new Map()) {
   const bySurname = new Map();
+  const byLooseName = new Map();
   for (const p of players) {
     const parsed = parseFeedName(p.name);
     if (!parsed) continue;
     if (!bySurname.has(parsed.last)) bySurname.set(parsed.last, []);
     bySurname.get(parsed.last).push(p);
+    const key = loose(parsed.full);
+    if (!byLooseName.has(key)) byLooseName.set(key, []);
+    byLooseName.get(key).push(p);
   }
   return function match({ name, team, pos }) {
     const parsed = parseFeedName(name);
@@ -110,8 +122,12 @@ export function makeMatcher(players, aliases = new Map()) {
     const aliased = aliases.get(parsed.full);
     const lookup = aliased ? parseFeedName(aliased) : parsed;
     const candidates = bySurname.get(lookup?.last) ?? [];
-    if (!candidates.length) return null;
-    return matchPlayer({ player: aliased ?? name, nhlTeam: team, position: pos }, candidates)?.player ?? null;
+    const hit = candidates.length
+      ? matchPlayer({ player: aliased ?? name, nhlTeam: team, position: pos }, candidates)?.player ?? null
+      : null;
+    if (hit) return hit;
+    const looseHits = byLooseName.get(loose(lookup.full)) ?? [];
+    return looseHits.length === 1 ? looseHits[0] : null;
   };
 }
 

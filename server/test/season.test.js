@@ -116,6 +116,14 @@ function rosterRow(id, teamNum, seatNum, slot, playerId, name, pos) {
   return { id, team_num: teamNum, team_name: `T${teamNum}`, seat: seatNum, slot, player_id: playerId, yahoo_player_id: String(1000 + id), player_name: name, nhl_team: 'EDM', pos, status: null };
 }
 
+test('an umlaut written three ways still finds the one player', () => {
+  const pool = [poolPlayer(1, 'Tim Stuetzle', 'C', 'OTT'), poolPlayer(2, 'Leon Draisaitl', 'C', 'EDM')];
+  const match = makeMatcher(pool);
+  assert.equal(match({ name: 'Tim Stutzle', team: 'OTT', pos: 'C' })?.id, 1, 'Yahoo');
+  assert.equal(match({ name: 'Tim Stützle', team: 'OTT', pos: 'C' })?.id, 1, 'NHL.com');
+  assert.equal(match({ name: 'Tom Stutzle', team: 'OTT', pos: 'C' }), null, 'a different first name is someone else');
+});
+
 test('owners, unranked rostered players and stats-only free agents all land in one list', () => {
   const pool = [poolPlayer(1, 'Leon Draisaitl', 'C,LW', 'EDM'), poolPlayer(2, 'Evan Bouchard', 'D', 'EDM')];
   const rosterRows = [

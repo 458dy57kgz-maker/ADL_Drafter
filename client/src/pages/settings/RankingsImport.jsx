@@ -24,6 +24,10 @@ const IMPORT_FIELDS = [
   { key: 'team', label: 'Team', synonyms: ['team', 'tm', 'club'], required: false },
   { key: 'rank', label: 'Overall rank', synonyms: ['rank', 'overall', 'ovr', '#', 'lwlrank'], required: false, type: 'int' },
   { key: 'adp', label: 'ADP', synonyms: ['adp', 'yadp'], required: false, type: 'int' },
+  // NHL.com's own player ID — season mode matches NHL.com stats on it
+  // exactly, no name guessing. Exact header only: "id" is inside too many
+  // other headers.
+  { key: 'nhlId', label: 'NHL player ID — matches NHL.com stats exactly', synonyms: ['id', 'nhl id', 'nhlid', 'playerid', 'player id'], required: false, type: 'int', exact: true },
   { key: 'tier', label: 'Tier', synonyms: ['tier'], required: false, type: 'int' },
   { key: 'g', label: 'Goals', synonyms: ['g', 'goals', 'p_g'], required: false, type: 'int' },
   { key: 'a', label: 'Assists', synonyms: ['a', 'assists', 'p_a'], required: false, type: 'int' },

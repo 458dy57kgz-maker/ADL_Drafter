@@ -69,9 +69,10 @@ playersRouter.get('/', (req, res) => {
 
 const STAT_FIELDS = [
   'adp', 'tier', 'g', 'a', 'p', 'ppp', 'plusMinus', 'shots', 'blocks', 'ong', 'gp', 'vorp', 'w', 'gaa', 'saves',
+  'nhlId',
   ...PROFILE_FIELDS.map((f) => f.key),
 ];
-const COLUMN_FOR = { plusMinus: 'plus_minus', ...Object.fromEntries(PROFILE_FIELDS.map((f) => [f.key, f.column])) };
+const COLUMN_FOR = { plusMinus: 'plus_minus', nhlId: 'nhl_id', ...Object.fromEntries(PROFILE_FIELDS.map((f) => [f.key, f.column])) };
 
 function loadMatchIndex() {
   const existing = db.prepare('SELECT id, name, drafted FROM players').all();

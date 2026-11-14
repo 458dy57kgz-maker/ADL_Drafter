@@ -97,7 +97,7 @@ export default function SeasonWarRoom({ onNavigate }) {
         <div className="swr__notice">
           No actual stats imported yet, so every total reads zero.{' '}
           <button type="button" className="swr__link" onClick={() => onNavigate('season-players')}>
-            Import them on Players
+            Refresh them from NHL.com on Players
           </button>{' '}
           or switch to Projected.
         </div>

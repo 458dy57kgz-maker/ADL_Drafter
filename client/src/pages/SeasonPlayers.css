@@ -176,3 +176,26 @@
   border-color: var(--text-primary);
   outline: none;
 }
+
+.season-players__actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.season-players__auto {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font: 600 11.5px var(--font-ui);
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.season-players__error {
+  font: 600 11.5px var(--font-ui);
+  color: var(--danger-text);
+  margin-top: 3px;
+}

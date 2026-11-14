@@ -10,6 +10,7 @@ import { yahooRouter } from './routes/yahoo.js';
 import { debugRouter } from './routes/debug.js';
 import { leagueRouter } from './routes/league.js';
 import { seasonRouter } from './routes/season.js';
+import { startNhlSchedule } from './nhlSchedule.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = process.env.PORT || 4000;
@@ -44,4 +45,5 @@ if (fs.existsSync(clientDist)) {
 
 app.listen(PORT, () => {
   console.log(`ADL Drafter server listening on :${PORT}`);
+  startNhlSchedule();
 });

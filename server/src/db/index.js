@@ -27,6 +27,8 @@ const ADDED_COLUMNS = [
   { table: 'players', column: 'vorp', type: 'REAL' },
   { table: 'players', column: 'flag', type: 'TEXT' },
   ...PROFILE_FIELDS.map((f) => ({ table: 'players', column: f.column, type: 'REAL' })),
+  { table: 'players', column: 'nhl_id', type: 'INTEGER' },
+  { table: 'season_stats', column: 'nhl_id', type: 'INTEGER' },
 ];
 
 function migrate() {
@@ -62,7 +64,19 @@ const DEFAULT_SETTINGS = {
   app: { mode: 'draft' },
   // Bookkeeping for the season imports. myTeamNum is my team's number on
   // Yahoo's page (1-10), which needn't match my draft slot.
-  season: { myTeamNum: null, leagueId: null, rosterDate: null, rostersImportedAt: null, statsImportedAt: null, statsFile: null },
+  // statsSource is 'nhl' or 'file'. autoNhl refreshes actual stats from
+  // NHL.com once a day; nhlError is the last refresh's failure, if any.
+  season: {
+    myTeamNum: null,
+    leagueId: null,
+    rosterDate: null,
+    rostersImportedAt: null,
+    statsImportedAt: null,
+    statsFile: null,
+    statsSource: null,
+    autoNhl: true,
+    nhlError: null,
+  },
   // The trade finder's knobs. `weights` holds only what I've moved off the
   // defaults (DEFAULT_WEIGHTS in lib/trade.js); `locked` are my players it
   // must never offer.

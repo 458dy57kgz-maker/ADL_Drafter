@@ -4,6 +4,7 @@ import { mapPlayerRow } from '../lib/mapPlayer.js';
 import { normalizeName } from '../lib/pickFeed.js';
 import { myTeamName } from '../lib/league.js';
 import { parseStartingRosters } from '../lib/yahooRosters.js';
+import { fetchSeasonStats } from '../lib/nhlStats.js';
 import { buildSeason, makeMatcher, guessMyTeam, STAT_KEYS, SEASON_CATEGORIES } from '../lib/season.js';
 import { buildTradeModel, scanTrades, targetTrades, sellList, mergeWeights, DEFAULT_WEIGHTS } from '../lib/trade.js';
 
@@ -36,7 +37,7 @@ function loadStats() {
     .prepare('SELECT * FROM season_stats ORDER BY id ASC')
     .all()
     .map((row) => {
-      const out = { id: row.id, player_id: row.player_id, name: row.name, team: row.team, pos: row.pos };
+      const out = { id: row.id, player_id: row.player_id, nhl_id: row.nhl_id, name: row.name, team: row.team, pos: row.pos };
       for (const [key, column] of Object.entries(STAT_COLUMNS)) out[key] = row[column];
       return out;
     });
@@ -70,6 +71,9 @@ seasonRouter.get('/', (req, res) => {
       rostersImportedAt: season.rostersImportedAt,
       statsImportedAt: season.statsImportedAt,
       statsFile: season.statsFile,
+      statsSource: season.statsSource,
+      autoNhl: season.autoNhl,
+      nhlError: season.nhlError,
       statsCount,
       myTeamNum: season.myTeamNum,
     },
@@ -235,35 +239,76 @@ seasonRouter.post('/rosters', (req, res) => {
   });
 });
 
-// My actual-stats sheet, already mapped to fields by the client. Replaces
-// every row: a sheet is a season-to-date snapshot, not a delta.
+// Replaces every actual-stats row with `rows` — a season-to-date snapshot,
+// not a delta — whether they came from my sheet or from NHL.com. A row with
+// an NHL ID links to the pool player carrying the same one; anyone else is
+// matched by name.
+function saveStats(rows, { fileName = null, source = 'file' } = {}) {
+  const pool = loadPool();
+  const byNhlId = new Map(pool.filter((p) => p.nhlId != null).map((p) => [Number(p.nhlId), p]));
+  const match = makeMatcher(pool, aliasMap());
+  const columns = ['player_id', 'nhl_id', 'name', 'team', 'pos', ...Object.values(STAT_COLUMNS)];
+  const insert = db.prepare(`INSERT INTO season_stats (${columns.join(', ')}) VALUES (${columns.map(() => '?').join(', ')})`);
+  const num = (v) => (v === '' || v == null || !Number.isFinite(Number(v)) ? null : Number(v));
+
+  let matched = 0;
+  let byId = 0;
+  db.transaction(() => {
+    db.exec('DELETE FROM season_stats');
+    for (const r of rows) {
+      const name = r.name.trim();
+      const nhlId = num(r.nhlId);
+      const idHit = nhlId != null ? byNhlId.get(nhlId) : null;
+      const hit = idHit ?? match({ name, team: r.team, pos: r.pos });
+      if (hit) matched += 1;
+      if (idHit) byId += 1;
+      const stats = STAT_KEYS.map((k) => num(r[k]));
+      // Points is goals plus assists; a sheet that leaves it out still gets it.
+      const pIdx = STAT_KEYS.indexOf('p');
+      if (stats[pIdx] == null && num(r.g) != null && num(r.a) != null) stats[pIdx] = num(r.g) + num(r.a);
+      insert.run(hit?.id ?? null, nhlId, name, r.team ?? null, r.pos ?? null, ...stats);
+    }
+  })();
+
+  setSetting('season', { statsImportedAt: new Date().toISOString(), statsFile: fileName, statsSource: source });
+  return { rows: rows.length, matched, byId };
+}
+
+// My actual-stats sheet, already mapped to fields by the client.
 seasonRouter.post('/stats', (req, res) => {
   const rows = req.body?.rows;
   if (!Array.isArray(rows) || !rows.length) return res.status(400).json({ error: 'rows must be a non-empty array' });
   const named = rows.filter((r) => typeof r?.name === 'string' && r.name.trim());
   if (!named.length) return res.status(400).json({ error: 'no row has a player name' });
 
-  const match = makeMatcher(loadPool(), aliasMap());
-  const columns = ['player_id', 'name', 'team', 'pos', ...Object.values(STAT_COLUMNS)];
-  const insert = db.prepare(`INSERT INTO season_stats (${columns.join(', ')}) VALUES (${columns.map(() => '?').join(', ')})`);
-  const num = (v) => (v === '' || v == null || !Number.isFinite(Number(v)) ? null : Number(v));
+  const result = saveStats(named, { fileName: req.body.fileName ?? null, source: 'file' });
+  logDebug(`Season stats imported: ${result.rows} players, ${result.matched} matched to my pool`, 'OK', 'app');
+  res.json(result);
+});
 
-  let matched = 0;
-  db.transaction(() => {
-    db.exec('DELETE FROM season_stats');
-    for (const r of named) {
-      const name = r.name.trim();
-      const hit = match({ name, team: r.team, pos: r.pos });
-      if (hit) matched += 1;
-      const stats = STAT_KEYS.map((k) => num(r[k]));
-      // Points is goals plus assists; a sheet that leaves it out still gets it.
-      const pIdx = STAT_KEYS.indexOf('p');
-      if (stats[pIdx] == null && num(r.g) != null && num(r.a) != null) stats[pIdx] = num(r.g) + num(r.a);
-      insert.run(hit?.id ?? null, name, r.team ?? null, r.pos ?? null, ...stats);
-    }
-  })();
+// Every NHL player's season so far, from NHL.com. Used by the Refresh button
+// and by the daily refresh. A failure is kept in the season settings so the
+// Players page can say why the numbers are stale.
+export async function syncFromNhl({ reason = 'manual' } = {}) {
+  try {
+    const { seasonId, rows } = await fetchSeasonStats();
+    if (!rows.length) throw new Error(`NHL.com has no regular-season stats for ${seasonId} yet`);
+    const result = saveStats(rows, { fileName: 'NHL.com', source: 'nhl' });
+    setSetting('season', { nhlError: null });
+    logDebug(
+      `NHL stats refreshed (${reason}): ${result.rows} players, ${result.matched} matched to my pool (${result.byId} by NHL ID)`,
+      'OK',
+      'app'
+    );
+    return { ok: true, seasonId, ...result };
+  } catch (err) {
+    setSetting('season', { nhlError: { message: err.message, at: new Date().toISOString() } });
+    logDebug(`NHL stats refresh failed (${reason}): ${err.message}`, 'ERROR', 'app');
+    return { ok: false, error: err.message };
+  }
+}
 
-  setSetting('season', { statsImportedAt: new Date().toISOString(), statsFile: req.body.fileName ?? null });
-  logDebug(`Season stats imported: ${named.length} players, ${matched} matched to my pool`, 'OK', 'app');
-  res.json({ rows: named.length, matched });
+seasonRouter.post('/stats/nhl', async (req, res) => {
+  const result = await syncFromNhl({ reason: 'manual' });
+  res.status(result.ok ? 200 : 502).json(result);
 });

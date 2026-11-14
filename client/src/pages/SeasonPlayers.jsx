@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useSeason, formatImportedAt } from '../lib/useSeason.js';
+import { api } from '../lib/api.js';
 import { StatsImportPanel } from '../components/SeasonImports.jsx';
 import PlayerFlag from '../components/PlayerFlag.jsx';
 import './Players.css';
@@ -111,6 +112,28 @@ export default function SeasonPlayers({ onEvaluateTrade }) {
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState(null);
   const [importOpen, setImportOpen] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [refreshNote, setRefreshNote] = useState(null);
+
+  async function refreshFromNhl() {
+    setRefreshing(true);
+    setRefreshNote(null);
+    try {
+      const r = await api.refreshNhlStats();
+      setRefreshNote(`${r.rows} NHL players · ${r.matched} matched to your list${r.byId ? ` (${r.byId} by NHL ID)` : ''}`);
+      setSort(null);
+    } catch (err) {
+      setRefreshNote(`NHL.com refresh failed: ${err.message}`);
+    } finally {
+      setRefreshing(false);
+      refetch();
+    }
+  }
+
+  async function toggleAutoNhl(on) {
+    await api.updateSettings('season', { autoNhl: on });
+    refetch();
+  }
   const [groupKeys, setGroupKeys] = useState(loadGroups);
   const groups = GROUPS.filter((g) => groupKeys.includes(g.key));
 
@@ -201,13 +224,28 @@ export default function SeasonPlayers({ onEvaluateTrade }) {
             {meta.rostersImportedAt ? `Rosters imported ${formatImportedAt(meta.rostersImportedAt)}` : 'No rosters imported yet (Teams)'}
             {' · '}
             {hasStats
-              ? `actual stats for ${meta.statsCount} players, imported ${formatImportedAt(meta.statsImportedAt)}${meta.statsFile ? ` from ${meta.statsFile}` : ''}`
+              ? `actual stats for ${meta.statsCount} players, ${meta.statsSource === 'nhl' ? 'from NHL.com' : 'imported'} ${formatImportedAt(meta.statsImportedAt)}${meta.statsSource !== 'nhl' && meta.statsFile ? ` from ${meta.statsFile}` : ''}`
               : 'no actual stats yet'}
           </div>
+          {meta.nhlError && (
+            <div className="season-players__error">
+              Last NHL.com refresh failed {formatImportedAt(meta.nhlError.at)}: {meta.nhlError.message}
+            </div>
+          )}
+          {refreshNote && !meta.nhlError && <div className="season-players__sub">{refreshNote}</div>}
         </div>
-        <button type="button" className={`btn btn-sm${hasStats ? '' : ' btn-primary'}`} onClick={() => setImportOpen((o) => !o)}>
-          Import actual stats
-        </button>
+        <div className="season-players__actions">
+          <label className="season-players__auto" title="Every morning after 6, in season mode — skipped if you imported stats yourself that day">
+            <input type="checkbox" checked={!!meta.autoNhl} onChange={(e) => toggleAutoNhl(e.target.checked)} disabled={!data} />
+            Refresh daily
+          </label>
+          <button type="button" className="btn btn-sm btn-primary" onClick={refreshFromNhl} disabled={refreshing || !data}>
+            {refreshing ? 'Refreshing…' : 'Refresh from NHL'}
+          </button>
+          <button type="button" className="btn btn-sm" onClick={() => setImportOpen((o) => !o)}>
+            Import a sheet
+          </button>
+        </div>
       </div>
 
       {importOpen && (

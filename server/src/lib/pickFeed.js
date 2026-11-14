@@ -44,11 +44,17 @@ export function parseFeedName(raw) {
 // an export may say LAK/NJD/SJS/TBL. Compared loosely and used ONLY to break a
 // tie, never to reject a match: a stale team on a traded player would
 // otherwise throw away a name that is obviously right.
+// A player traded mid-season comes as a list ("TOR, EDM"); any team in one
+// list matching any in the other counts.
 export function sameTeam(a, b) {
-  const x = normalizeName(a).replace(/[^a-z]/g, '');
-  const y = normalizeName(b).replace(/[^a-z]/g, '');
-  if (!x || !y) return false;
-  return x === y || x.startsWith(y) || y.startsWith(x);
+  const teams = (v) =>
+    String(v ?? '')
+      .split(',')
+      .map((t) => normalizeName(t).replace(/[^a-z]/g, ''))
+      .filter(Boolean);
+  const xs = teams(a);
+  const ys = teams(b);
+  return xs.some((x) => ys.some((y) => x === y || x.startsWith(y) || y.startsWith(x)));
 }
 
 function positionOverlap(feedPos, posList) {

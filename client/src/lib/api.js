@@ -81,6 +81,8 @@ export const api = {
   getTrades: (target = null) => request(`/season/trade${target ? `?target=${encodeURIComponent(target)}` : ''}`),
   // The saved Yahoo "Starting Rosters" page, as text.
   importRosters: (html) => request('/season/rosters', { method: 'POST', body: JSON.stringify({ html }) }),
+  // Every NHL player's season so far, straight from NHL.com.
+  refreshNhlStats: () => request('/season/stats/nhl', { method: 'POST' }),
   importSeasonStats: (rows, fileName) =>
     request('/season/stats', { method: 'POST', body: JSON.stringify({ rows, fileName }) }),
 };
